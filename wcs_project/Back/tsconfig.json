@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+      "moduleResolution": "node",
+      "types": ["node"],
+      "module": "commonjs",
+      "target": "es2017",
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "strict": true,
+      "esModuleInterop": true,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "skipLibCheck": true,
+      "strictPropertyInitialization": false,
+      "forceConsistentCasingInFileNames": true, // เพื่อบังคับให้มีการตรวจสอบชื่อไฟล์ที่ใช้ตัวพิมพ์ใหญ่และตัวพิมพ์เล็กให้ตรงกัน
+      "resolveJsonModule": true,  // เพิ่มการรองรับการ import ไฟล์ .json
+      "sourceMap": true,  // เพิ่มการสร้าง source maps เพื่อการ debug ที่ง่ายขึ้น
+      "allowJs": true,  // เพิ่มการรองรับไฟล์ .js
+      "checkJs": false,  // ปิดการตรวจสอบข้อผิดพลาดในไฟล์ .js
+      "typeRoots": ["./node_modules/@types", "./src/types"] // ให้เพิ่ม path ของ types
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules"]  // ตรวจสอบให้แน่ใจว่าได้ exclude โฟลเดอร์ node_modules
+}
+  

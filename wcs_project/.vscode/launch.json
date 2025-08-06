@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Frontend (React)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3500",
+      "webRoot": "${workspaceFolder}/Front/src"
+    },
+    {
+      "name": "Launch Backend (Node.js)",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "args": [
+        "${workspaceFolder}/Back/src/app.ts"
+      ],
+      "cwd": "${workspaceFolder}/Back",
+      "sourceMaps": true,
+      "smartStep": true,
+      "protocol": "inspector",
+      "env": {
+        "PORT": "3502"
+      },
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

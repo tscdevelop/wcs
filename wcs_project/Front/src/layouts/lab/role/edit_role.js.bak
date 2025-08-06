@@ -1,0 +1,730 @@
+import React, { useEffect, useState ,useRef} from 'react';
+import {
+  Box,
+  Grid,
+  Card,
+  TextField,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  styled,
+  Modal,
+  Autocomplete,
+  Checkbox,
+  Switch ,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+
+  
+} from '@mui/material';
+import UploadPic from "../components/from_uploadpicture_V002";
+import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
+import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
+import SweetAlert from 'react-bootstrap-sweetalert';
+import{StyledFormControl,StyledMenuItem,StyledSelect} from 'common/Global.style';
+import * as lang from "utils/langHelper"
+import BaseClass from 'common/baseClass';
+// Material Dashboard 2 PRO React components
+import MDBox from 'components/MDBox';
+import MDInput from "components/MDInput";
+import MDButton from "components/MDButton";
+import { Await, Link, Navigate, useNavigate } from "react-router-dom"; // นำเข้า Link และ useNavigate สำหรับการจัดการ routing
+import '../lab-price/styles.css';
+import roleAPI from "api/RoleAPI";
+import Menu from "api/MenuAPI";
+const Editrole= () =>{
+    const [formData, setFormData] = useState({
+        role_code: '',
+        role_name: '',
+        role_description: '',
+        role_is_active: true,
+        status: '',
+        permissionMenus: [], // จะได้รับข้อมูลจาก API
+        selectAllMenus: false,
+    });
+    
+
+
+    const roleFetched = useRef(false); // useRef สำหรับควบคุมการ fetch ข้อมูล
+    const [mode, setMode] = useState('edit');
+    const [menuData, setMenuData] = useState([]); // เก็บข้อมูลเมนูจาก API
+    const [isModalOpen,setIsModalOpen]=useState(false);
+    const [modalMessage,setModalMessage]=useState('');
+    const [alertMenu,setAlertMenu]=useState(false);
+    const searchParams = new URLSearchParams(location.search);
+    const roleCode = searchParams.get('role_code');
+    console.log('Role ID : ',roleCode);
+
+
+  
+    
+    
+    
+    useEffect(() => {
+        const fetchMenuData = async () => {
+            try {
+                const response = await Menu.getMenuAll();
+                if (response.isCompleted) {
+                    const menus = response.data || [];
+                    
+                    // Log the fetched menu data
+                    console.log('Fetched menus:', menus);
+    
+                    // Helper function to recursively map children
+                    const mapChildren = (parentMenu) => {
+                        const children = menus.filter(menu => menu.parent_menu_id === parentMenu.menu_id);
+                        return children.map(childMenu => ({
+                            ...childMenu,
+                            checked: false,
+                            isHeader: !childMenu.menu_actions?.length && !!mapChildren(childMenu).length, // If it has no actions but has children, it's a header
+                            children: mapChildren(childMenu), // Recursively map sub-menus
+                            menu_actions: childMenu.menu_actions?.map(action => ({
+                                ...action,
+                                checked: false
+                            })) || []
+                        }));
+                    };
+    
+                    // Get top-level menus (parent_menu_id === null)
+                    const parentMenus = menus.filter(menu => menu.parent_menu_id === null);
+                    
+                    // Log the parent menus
+                    console.log('Parent menus:', parentMenus);
+    
+                    // Build the full hierarchical structure
+                    const structuredMenus = parentMenus.map(parentMenu => ({
+                        ...parentMenu,
+                        checked: false,
+                        isHeader: !parentMenu.menu_actions?.length && !!mapChildren(parentMenu).length, // Mark it as a header if applicable
+                        children: mapChildren(parentMenu) // Recursively add children
+                    }));
+    
+                    // Log the structured menu data
+                    console.log('Structured menus:', structuredMenus);
+    
+                    // Set the data in the form
+                    setFormData(prev => ({
+                        ...prev,
+                        permissionMenus: structuredMenus
+                    }));
+                } else {
+                    console.error('Response not completed:', response.message);
+                }
+            } catch (error) {
+                console.error('Error fetching menu data:', error.message || error);
+            }
+        };
+    
+        fetchMenuData(); // Fetch menu data only once on mount
+    }, []);
+    
+    
+    
+
+
+    // useEffect(() => {
+    //     if (formData.permissionMenus.length > 0 && roleCode && !roleFetched.current) {
+    //         const fetchRoleCode = async () => {
+    //             try {
+    //                 const response = await roles.getByRoleCode(roleCode);
+    //                 if (response.isCompleted) {
+    //                     const roleinfo = response.data;
+    
+    //                     setFormData(prevFormData => {
+    //                         const updatedPermissionMenus = prevFormData.permissionMenus.map(menu => {
+    //                             // ตรวจสอบว่าเมนูหลักถูกเช็คหรือไม่
+    //                             const foundPermissionMenu = roleinfo.permission_menus.find(perm => perm.menu_id === menu.menu_id);
+    
+    //                             const updatedMenu = {
+    //                                 ...menu,
+    //                                 // เช็คเมนูหลักถ้ามีเมนูย่อยหรือ action ใดๆ ถูกเช็ค
+    //                                 checked: !!foundPermissionMenu || menu.children.some(submenu => !!roleinfo.permission_menus.find(perm => perm.menu_id === submenu.menu_id)),
+    //                                 children: menu.children.map(submenu => {
+    //                                     const foundPermissionSubMenu = roleinfo.permission_menus.find(perm => perm.menu_id === submenu.menu_id);
+    //                                     return {
+    //                                         ...submenu,
+    //                                         // เช็คว่าเมนูย่อยถูกเลือกหรือไม่
+    //                                         checked: !!foundPermissionSubMenu,
+    //                                         // ตรวจสอบ action ที่ถูกเลือก
+    //                                         menu_actions: submenu.menu_actions.map(action => ({
+    //                                             ...action,
+    //                                             checked: foundPermissionSubMenu?.permission_actions.includes(action.action_code) || false
+    //                                         }))
+    //                                     };
+    //                                 })
+    //                             };
+    
+    //                             return updatedMenu;
+    //                         });
+    
+    //                         return {
+    //                             ...prevFormData,
+    //                             role_code: roleinfo.role_code,
+    //                             role_name: roleinfo.role_name || '',
+    //                             role_description: roleinfo.role_description || '',
+    //                             role_is_active: roleinfo.role_is_active,
+    //                             permissionMenus: updatedPermissionMenus
+    //                         };
+    //                     });
+    
+    //                     roleFetched.current = true; // ตั้งค่านี้เป็น true เพื่อไม่ให้ดึงข้อมูลซ้ำ
+    //                 } else {
+    //                     console.error('Error fetching role data:', response.message);
+    //                 }
+    //             } catch (error) {
+    //                 console.error('Error fetching role data:', error.message || error);
+    //             }
+    //         };
+    
+    //         fetchRoleCode(); // ดึงข้อมูล role หนึ่งครั้ง
+    //     }
+    // }, [formData.permissionMenus, roleCode]);
+    
+    
+    useEffect(() => {
+        if (formData.permissionMenus.length > 0 && roleCode && !roleFetched.current) {
+            const fetchRoleCode = async () => {
+                try {
+                    const response = await roleAPI.getByRoleCode(roleCode);
+                    if (response.isCompleted) {
+                        const roleInfo = response.data;
+    
+                        // Recursive function to update children at any level
+                        const updateChildren = (menuChildren, rolePermissions) => {
+                            return menuChildren.map(child => {
+                                const foundPermissionSubMenu = rolePermissions.find(perm => perm.menu_id === child.menu_id);
+                                
+                                return {
+                                    ...child,
+                                    checked: !!foundPermissionSubMenu, // Check if permission exists
+                                    menu_actions: child.menu_actions?.map(action => ({
+                                        ...action,
+                                        checked: foundPermissionSubMenu?.permission_actions.includes(action.action_code) || false // Check if action is permitted
+                                    })) || [],
+                                    children: child.children ? updateChildren(child.children, rolePermissions) : [] // Recursively update sub-menus
+                                };
+                            });
+                        };
+    
+                        setFormData(prevFormData => {
+                            const updatedPermissionMenus = prevFormData.permissionMenus.map(menu => {
+                                const foundPermissionMenu = roleInfo.permission_menus.find(perm => perm.menu_id === menu.menu_id && menu.menu_level === 2);
+    
+                                return {
+                                    ...menu,
+                                    checked: !!foundPermissionMenu && menu.menu_level !== 1, // Top-level menus are not checked
+                                    children: updateChildren(menu.children || [], roleInfo.permission_menus) // Update children recursively
+                                };
+                            });
+    
+                            return {
+                                ...prevFormData,
+                                role_code: roleInfo.role_code,
+                                role_name: roleInfo.role_name || '',
+                                role_description: roleInfo.role_description || '',
+                                role_is_active: roleInfo.role_is_active,
+                                permissionMenus: updatedPermissionMenus
+                            };
+                        });
+    
+                        roleFetched.current = true; // Mark role as fetched
+                    } else {
+                        console.error('Error fetching role data:', response.message);
+                    }
+                } catch (error) {
+                    console.error('Error fetching role data:', error.message || error);
+                }
+            };
+    
+            fetchRoleCode(); // Fetch role permissions
+        }
+    }, [formData.permissionMenus, roleCode]);
+    
+    
+
+
+
+
+    useEffect(() => {
+        if (roleCode) {
+            setMode('edit'); // ถ้ามี roleID ให้เป็นโหมดแก้ไข
+            
+        } else {
+            setMode('create'); // ถ้าไม่มี roleID ให้เป็นโหมดสร้าง
+        }
+    }, [roleCode]);
+
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prevFormData) => ({
+            ...prevFormData,
+            [name]: value.toUpperCase().replace(/\s+/g, ''), // แปลงเป็นตัวพิมพ์ใหญ่และลบช่องว่างทั้งหมด
+        }));
+    };
+
+    const handleCheckRoleCode = async () => {
+        if (mode === 'create') {
+            try {
+                const response = await roleAPI.checkRole(formData.role_code);
+                if (response.isCompleted) {
+                    console.log(response.message);
+                    setAlertMenu(true);
+                    setModalMessage(response.message);
+                } else {
+                    console.log(response.message);
+                    setAlertMenu(true);
+                    setModalMessage(response.message);
+                }
+            } catch (error) {
+                console.error('Error checking role code:', error.message || error);
+            }
+        }
+    };
+
+
+    const handleStatusChange = (e) => {
+        const isActive = e.target.checked;
+        console.log("is_active changed to:", isActive); // ตรวจสอบว่าค่าเปลี่ยนแปลงถูกต้องหรือไม่
+        setFormData((prevFormData) => ({
+            ...prevFormData,
+            role_is_active: isActive, // ตั้งค่าเป็น boolean ตรงๆ
+            status: isActive ? 'active' : 'inactive', // สถานะเพื่อการแสดงผล
+        }));
+    };
+
+      // ฟังก์ชันสำหรับการจัดการ checkbox "All"
+      const handleSelectAllMenusChange = (event) => {
+        const { checked } = event.target;
+    
+        setFormData((prevData) => {
+            const updatedMenus = prevData.permissionMenus.map(menu => ({
+                ...menu,
+                children: Array.isArray(menu.children) 
+                    ? menu.children.map(submenu => ({
+                        ...submenu,
+                        checked: checked,  // เช็คหรือยกเลิกเช็คเมนูย่อย
+                        permissionActions: Array.isArray(submenu.permissionActions)
+                            ? submenu.permissionActions.map(action => ({
+                                ...action,
+                                checked: checked  // เช็คหรือยกเลิกเช็ค action
+                            }))
+                            : []
+                    }))
+                    : [],
+            }));
+    
+            return { ...prevData, permissionMenus: updatedMenus, selectAllMenus: checked };
+        });
+    };
+    
+    
+    
+    
+    const handleMenuChange = (menu_id) => (event) => { 
+        const { checked } = event.target;
+    
+        const updateCheckedStatus = (menus) => {
+            return menus.map(menu => ({
+                ...menu,
+                checked: menu.menu_id === menu_id ? checked : menu.checked, // อัปเดตสถานะเช็คของเมนู
+                children: menu.children ? updateCheckedStatus(menu.children) : menu.children // ทำงานกับเมนูย่อยถ้ามี
+            }));
+        };
+    
+        setFormData((prevData) => ({
+            ...prevData,
+            permissionMenus: updateCheckedStatus(prevData.permissionMenus)
+        }));
+    };
+    
+
+    const handleActionChange = (menu_id, action_code) => (event) => {
+        const { checked } = event.target;
+    
+        const updateActionCheckedStatus = (menus) => {
+            return menus.map(menu => ({
+                ...menu,
+                children: menu.children ? updateActionCheckedStatus(menu.children) : menu.children, // ทำงานกับเมนูย่อยถ้ามี
+                menu_actions: menu.menu_id === menu_id
+                    ? menu.menu_actions.map(action =>
+                        action.action_code === action_code
+                            ? { ...action, checked: checked } // อัปเดตสถานะเช็คของ action
+                            : action
+                    )
+                    : menu.menu_actions
+            }));
+        };
+    
+        setFormData((prevData) => ({
+            ...prevData,
+            permissionMenus: updateActionCheckedStatus(prevData.permissionMenus)
+        }));
+    };
+    
+    
+    const closeAlert = () =>{
+        setAlertMenu(false);
+    };
+    
+    const navigate = useNavigate();
+    const closeModal = () => {
+        setIsModalOpen(false);
+        if(modalMessage){
+            navigate('/Role');
+        }
+      };
+
+      const handleCancel = () => {
+        navigate('/Role'); // เพิ่มการนำทางเมื่อคลิก Cancel
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+    
+        // ฟังก์ชัน recursive เพื่อตรวจสอบว่ามีเมนูหรือแอคชันถูกเลือกในทุกระดับ
+        const hasSelectedMenuOrAction = (menus) => {
+            return menus.some(menu =>
+                menu.checked || menu.menu_actions?.some(action => action.checked) ||
+                (menu.children && hasSelectedMenuOrAction(menu.children))  // ตรวจสอบเมนูย่อย
+            );
+        };
+    
+        // ถ้าไม่มีเมนูหรือแอคชันไหนถูกเลือก
+        if (!hasSelectedMenuOrAction(formData.permissionMenus)) {
+            setModalMessage('กรุณาเลือกเมนูหรือ action อย่างน้อยหนึ่งรายการ');
+            setAlertMenu(true);
+            return; // หยุดการ submit ถ้ายังไม่มีการเลือกเมนูหรือแอคชัน
+        }
+    
+        // ฟังก์ชัน recursive สำหรับการสร้างรายการ permission_menus
+        const generatePermissionMenus = (menus) => {
+            return menus.flatMap(menu =>
+                (menu.checked || menu.menu_actions?.some(action => action.checked)) ? [{
+                    menu_id: menu.menu_id,
+                    permission_actions: menu.menu_actions
+                        ?.filter(action => action.checked)
+                        .map(action => action.action_code)
+                }] : []
+            ).concat(menus.flatMap(menu => menu.children ? generatePermissionMenus(menu.children) : []));
+        };
+    
+        // สร้าง permission_menus จากเมนูที่ถูกเลือก
+        const permission_menus = generatePermissionMenus(formData.permissionMenus);
+    
+        // เตรียม formData สำหรับส่งไปยัง API
+        const form = new FormData();
+        form.append('role_code', formData.role_code);
+        form.append('role_name', formData.role_name);
+        form.append('role_description', formData.role_description);
+        form.append('role_is_active', formData.role_is_active);
+        form.append('permission_menus', JSON.stringify(permission_menus));
+    
+        try {
+            let response;
+            if (roleCode && mode === 'edit') {
+                response = await roleAPI.updateRole(roleCode, form); // เรียก API สำหรับการอัปเดตบทบาท
+            } else {
+                response = await roleAPI.createRole(form); // เรียก API สำหรับการสร้างบทบาทใหม่
+            }
+    
+            if (response.isCompleted) {
+                setIsModalOpen(true);
+                setModalMessage(response.message);
+            } else {
+                setIsModalOpen(true);
+                setModalMessage(response.message);
+            }
+        } catch (error) {
+            setIsModalOpen(true);
+            setModalMessage('An error occurred while submitting the role.');
+        }
+    };
+    
+    
+    
+
+
+    
+    
+    
+const title1 = lang.msg("role.role_title_1");
+const title2 = lang.msg("role.role_title_2");
+const code = lang.msg("role.role_code");
+const name =lang.msg("role.name");
+const decription = lang.msg("role.decription");
+const status = lang.msg("employee.employee_status");
+const menu = lang.msg("item.menu");
+const action = lang.msg("employee.actions");
+const  permission  =lang.msg("role.permission");
+const active =lang.msg("lab.active");
+const inactive = lang.msg("lab.inactive");
+const check = lang.btnCheck();
+
+
+    return(
+        <DashboardLayout>
+            <DashboardNavbar />
+            <MDBox mt={4} p={3}>
+                <MDBox p={3}>
+                    <Box mt={2}  pl={2} pr={2}>
+                    <form onSubmit={handleSubmit}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} lg={12}>
+                                <Card>
+                                    <MDBox p={4}>
+                                        <Typography variant='h4' gutterBottom>
+                                        {roleCode ? title2 : title1}    
+                                        </Typography>
+                                        <Grid container spacing={3} >
+                                            <Grid item xs={12} lg={12} >
+                                            <MDBox display="flex" gap={2}>
+                                            {mode === 'create' ? (
+                                                <MDInput
+                                                        label={code}
+                                                        name="role_code"
+                                                        value={formData.role_code}
+                                                        onChange={handleChange}
+                                                        style={{ width: '200px' }}
+                                                        // ทำให้ readonly เมื่อเป็นโหมด edit
+
+                                                    />
+                                            ):(
+                                                <MDInput
+                                                        label={code}
+                                                        name="role_code"
+                                                        value={formData.role_code}
+                                                        onChange={handleChange}
+                                                        style={{ width: '300px' }}
+                                                        // ทำให้ readonly เมื่อเป็นโหมด edit
+                                                        disabled  
+                                                    />
+                                            )}
+                                            
+                                            
+                                                    {mode === 'create' && (
+                                                        <MDButton
+                                                            color="info"
+                                                            variant="contained"
+                                                            onClick={handleCheckRoleCode}
+                                                        >
+                                                            {check}
+                                                        </MDButton>
+                                                    )}
+                                            </MDBox>
+                                            </Grid>
+                    
+                                            <Grid item xs={12} lg={12}>
+                                                <MDInput
+                                                    label={name}
+                                                    name="role_name"
+                                                    value={formData.role_name}
+                                                    onChange={handleChange}
+                                                    style={{ width: '400px' }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} lg={12}>
+                                                <MDInput
+                                                    label={decription}
+                                                    name="role_description"
+                                                    multiline
+                                                    rows={2}
+                                                    value={formData.role_description}
+                                                    onChange={handleChange}
+                                                    style={{ width: '400px' }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12}>
+                                                <Typography variant="h6">{status}</Typography>
+                                                <Box  pl={2} display="flex" alignItems="center" justifyContent="flex"> 
+                                                    <Switch
+                                                        checked={formData.role_is_active}
+                                                        onChange={handleStatusChange}
+                                                        color="success"
+                                                    />
+                                                    <Typography variant="body1" >
+                                                        {formData.role_is_active ? active : inactive}
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
+                                            <MDBox p={3}>
+                                                <Typography variant="body1" >
+                                                    {permission}
+                                                </Typography>
+                                                <TableContainer>
+                                                    <Table>
+                                                        <TableHead style={{ display: 'table-header-group' }}>
+                                                            <TableRow>
+                                                                <TableCell>
+                                                                    <Checkbox
+                                                                        onChange={handleSelectAllMenusChange}
+                                                                        checked={formData.selectAllMenus}
+                                                                    />
+                                                                    All
+                                                                </TableCell>
+                                                                <TableCell>Menu</TableCell>
+                                                                <TableCell>Action</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                           {Array.isArray(formData.permissionMenus) && formData.permissionMenus.length > 0 ? (
+                                                            formData.permissionMenus.map((menu) => (
+                                                                    <React.Fragment key={menu.menu_id}>
+                                                                        {/* ตรวจสอบว่า menu_seq เป็นหัวข้อหรือเมนูย่อย */}
+                                                                        <TableRow
+                                                                            style={{
+                                                                                backgroundColor: menu.parent_menu_id === null ? '#f0f0f0' : 'transparent'
+                                                                            }}
+                                                                        >
+                                                                            <TableCell />
+                                                                            <TableCell>
+                                                                                <Typography variant="h6">{menu.menu_name}</Typography>
+                                                                            </TableCell>
+                                                                            <TableCell />
+                                                                        </TableRow>
+
+                                                                        {/* แสดงเมนูย่อยที่มี parent_menu_id ตรงกับ menu_id ของหัวข้อ */}
+                                                                        {Array.isArray(menu.children) && menu.children.map((submenu) => (
+                                                                            <React.Fragment key={submenu.menu_id}>
+                                                                                <TableRow>
+                                                                                    <TableCell>
+                                                                                        {/* If it's a header (like menu.cust-pet), no checkbox */}
+                                                                                        {!submenu.isHeader && (
+                                                                                            <Checkbox
+                                                                                                checked={submenu.checked || false} // เช็คว่าเมนูย่อยถูกเลือกหรือไม่
+                                                                                                onChange={handleMenuChange(submenu.menu_id)}
+                                                                                            />
+                                                                                        )}
+                                                                                    </TableCell>
+                                                                                    <TableCell>{submenu.menu_name}</TableCell>
+                                                                                    <TableCell>
+                                                                                        {/* If it's not a header, render the actions */}
+                                                                                        {!submenu.isHeader && Array.isArray(submenu.menu_actions) && submenu.menu_actions.map((action) => (
+                                                                                            <div key={action.action_code}>
+                                                                                                <Checkbox
+                                                                                                    checked={action.checked || false} // เช็คว่า action ถูกเลือกหรือไม่
+                                                                                                    onChange={handleActionChange(submenu.menu_id, action.action_code)}
+                                                                                                />
+                                                                                                {action.action_name}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </TableCell>
+                                                                                </TableRow>
+
+                                                                                {/* Nested children of submenu */}
+                                                                                {Array.isArray(submenu.children) && submenu.children.map((grandchild) => (
+                                                                                    <React.Fragment key={grandchild.menu_id}>
+                                                                                        <TableRow>
+                                                                                            <TableCell>
+                                                                                                <Checkbox
+                                                                                                    checked={grandchild.checked || false}
+                                                                                                    onChange={handleMenuChange(grandchild.menu_id)}
+                                                                                                />
+                                                                                            </TableCell>
+                                                                                            <TableCell>{grandchild.menu_name}</TableCell>
+                                                                                            <TableCell>
+                                                                                                {Array.isArray(grandchild.menu_actions) && grandchild.menu_actions.map((action) => (
+                                                                                                    <div key={action.action_code}>
+                                                                                                        <Checkbox
+                                                                                                            checked={action.checked || false}
+                                                                                                            onChange={handleActionChange(grandchild.menu_id, action.action_code)}
+                                                                                                        />
+                                                                                                        {action.action_name}
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </TableCell>
+                                                                                        </TableRow>
+                                                                                    </React.Fragment>
+                                                                                ))}
+                                                                            </React.Fragment>
+                                                                        ))}
+                                                                    </React.Fragment>
+                                                                ))
+                                                            ) : (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={3}>No data available</TableCell>
+                                                                </TableRow>
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+                                            </MDBox>
+                                            <Grid item xs={12}  >
+                                                <Box  display="flex"  gap={5} pl={18}>
+                                                <MDButton
+                                                    type="submit"
+                                                    color="primary"
+                                                    variant="contained"
+                                                >
+                                                    {lang.btnSave()}
+                                                </MDButton>
+                                                <MDButton
+                                                color="error"
+                                                onClick={handleCancel}
+                                                >
+                                                {lang.btnCancel()}
+                                                </MDButton>
+                                                </Box>
+                                                
+                                            </Grid>
+                                        </Grid>
+                                    </MDBox>
+                                </Card>
+                            </Grid>
+                        </Grid>
+                    </form>
+
+                    </Box>
+                </MDBox>
+            </MDBox>
+            {isModalOpen && (
+                      <SweetAlert
+                        title={modalMessage}
+                        success
+                        confirmBtnText="ตกลง"
+                        confirmBtnStyle={{
+                            backgroundColor: "#007bff", // สีพื้นหลัง
+                            color: "white", // สีข้อความ
+                            borderRadius: "5px", // ขอบมน
+                            padding: "10px 20px", // ขยายขนาดของปุ่ม (บน/ล่าง, ซ้าย/ขวา)
+                            fontSize: "18px", // ขยายขนาดของข้อความในปุ่ม
+                          }}
+                        onConfirm={closeModal}
+                        onCancel={() => setIsModalOpen(false)}
+                        focusCancelBtn
+                      >
+                      
+                      </SweetAlert>
+                    )}
+
+            {alertMenu && (
+                <SweetAlert
+                warning
+                confirmBtnText="ตกลง"
+                confirmBtnStyle={{
+                    backgroundColor: "#007bff", // สีพื้นหลัง
+                    color: "white", // สีข้อความ
+                    borderRadius: "5px", // ขอบมน
+                    padding: "10px 20px", // ขยายขนาดของปุ่ม (บน/ล่าง, ซ้าย/ขวา)
+                    fontSize: "18px", // ขยายขนาดของข้อความในปุ่ม
+                }}
+                onConfirm={closeAlert}
+                onCancel={() => setAlertMenu(false)}
+                title={modalMessage}
+
+                >
+
+                </SweetAlert>
+            )}
+        </DashboardLayout>
+    );
+};
+
+export default Editrole;

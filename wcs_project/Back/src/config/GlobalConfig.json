@@ -1,0 +1,49 @@
+{
+    "ProjectConfig": {
+        "ApplicationName": "WCS",
+        "SystemName": "ระบบควบคุมคลังสินค้า",
+        "BaseURL": "http://erp-deblu-server:3500"
+    },
+    "ServerBackend":{
+      "Port": 3502,
+      "Name": "TW-SERVER",
+      "Local": "localhost"
+    },
+    "JwtConfig": {
+        "Key": "SecretKey@TW-EP_WebAPI",
+        "Issuer": "http://tw-server:3502",
+        "Audience": "TWEngineeringAndProgramming.info",
+        "ExpireMinutes": "480"
+    },
+    "Database": {
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "username": "sa",
+      "password": "sysdba",
+      "database": "db_wcs"
+    },
+    "DatabaseServer": {
+      "type": "mysql",
+      "host": "tw-server",
+      "port": 3306,
+      "username": "sa",
+      "password": "sysdba",
+      "database": "db_wcs"
+    },
+    "DatabaseConnections": {
+        "ConnStr": "mysql://sa:sysdba@localhost/db_wcs",
+        "ConnStrServer": "mysql://sa:sysdba@tw-server/db_wcs"
+    },
+    "PathFile":
+    {
+      "dirImage": "src/public/images",
+      "dirUploadOutboundToolingImage": "src/public/uploads/outbtl_image"
+    },
+    "BackupConfig": {
+        "mysqldumpPath": "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump",
+        "mysqlPath": "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql",
+        "backupPath": "C:\\MySQLBackup\\db_wcs"
+    },
+    "SOFT_DELETE": false 
+}

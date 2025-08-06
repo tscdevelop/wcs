@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "prop-types": "^15.8.1",
+    "react-toastify": "^10.0.5"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "typescript": "^5.5.4"
+  }
+}

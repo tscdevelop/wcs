@@ -1,0 +1,158 @@
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+const config = require('../config/GlobalConfig.json');
+
+// Enum สำหรับ uploadDirKey
+const UploadDirKey = {
+  DIR_UPLOAD_REGISTER_IMAGE: 'dirUploadRegisterImage',
+  DIR_UPLOAD_LAB_FORM_IMAGE: 'dirUploadLabFormImage',
+  DIR_UPLOAD_LAB_FORM_FILE: 'dirUploadLabFormFile',
+  DIR_UPLOAD_HOSPITAL_IMAGE: 'dirUploadHospitalImage',
+  DIR_IMAGE: 'dirImage',
+};
+
+/**
+ * Ensure the directory exists, create it if not
+ * @param {string} dir - Directory path
+ */
+const ensureDirExists = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Directory created: ${dir}`);
+  } else {
+    console.log(`Directory already exists: ${dir}`);
+  }
+};
+
+/**
+ * Create multer storage configuration
+ * @param {string} baseDir - Base directory for uploads
+ * @returns {object} - Multer storage configuration
+ */
+const createMulterStorage = (baseDir) => {
+  const fullBaseDir = path.resolve(baseDir);
+  ensureDirExists(fullBaseDir);
+
+  return multer.diskStorage({
+    destination: function (req, file, cb) {
+      const uploadDir = fullBaseDir;
+      ensureDirExists(uploadDir);
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + uuidv4();
+      const extension = path.extname(file.originalname);
+      const filename = file.fieldname + '-' + uniqueSuffix + extension;
+      cb(null, filename);
+    }
+  });
+};
+
+/**
+ * Upload middleware
+ * @param {string} uploadDirKey - Key from UploadDirKey enum
+ * @returns {multer.Instance} - Multer instance
+ * @example
+ * router.post('/upload', uploadFile(UploadDirKey.DIR_UPLOAD_HOSPITAL_IMAGE).single('file'), (req, res) => {
+ *   res.send('File uploaded successfully');
+ * });
+ */
+const uploadFile = (uploadDirKey) => {
+  const uploadDir = config.PathFile[uploadDirKey];
+  const storage = createMulterStorage(uploadDir);
+  return multer({ storage });
+};
+
+/**
+ * Get file URL
+ * @param {string} folder - Folder name
+ * @param {string} filename - File name
+ * @param {object} req - Express request object
+ * @returns {string} - File URL
+ * @example
+ * const fileUrl = getFileUrl('hospital_image', 'logo.png', req);
+ * console.log(fileUrl); // http://localhost:3000/uploads/hospital_image/logo.png
+ */
+const getFileUrl = (folder, filename, req) => {
+  if (!filename) {
+    throw new Error('Filename is required');
+  }
+
+  let fileUrl;
+  if (folder) {
+    fileUrl = `${req.protocol}://${req.get('host')}/uploads/${folder}/${filename}`;
+  } else {
+    fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+  }
+  return fileUrl;
+};
+
+/**
+ * Download file
+ * @param {string} folder - Folder name
+ * @param {string} filename - File name
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @example
+ * router.get('/download', (req, res) => {
+ *   downloadFile('hospital_image', 'logo.png', req, res);
+ * });
+ */
+const downloadFile = (folder, filename, req, res) => {
+  if (!filename) {
+    return res.status(400).json({ error: 'Filename is required' });
+  }
+
+  const filePath = folder
+    ? path.join(__dirname, '..', 'public', 'uploads', folder, filename)
+    : path.join(__dirname, '..', 'public', 'uploads', filename);
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+  });
+};
+
+/**
+ * Save file
+ * @param {string} baseDir - Base directory for saving files
+ * @param {object} file - File object
+ * @returns {string} - Saved file name
+ * @example
+ * const filename = saveFile('/uploads', file);
+ * console.log(filename); // file-12345.png
+ */
+const saveFile = (baseDir, file) => {
+  const fullBaseDir = path.resolve(baseDir);
+  ensureDirExists(fullBaseDir);
+  const uniqueSuffix = Date.now() + '-' + uuidv4();
+  const extension = path.extname(file.name);
+  const filename = file.fieldname + '-' + uniqueSuffix + extension;
+  const filePath = path.join(fullBaseDir, filename);
+  fs.writeFileSync(filePath, file.data);
+  return filename;
+};
+
+/* module.exports = {
+  UploadDirKey,
+  uploadFile,
+  getFileUrl,
+  downloadFile,
+  saveFile,
+}; */
+
+exports.UploadDirKey = UploadDirKey;
+exports.uploadFile = uploadFile;
+exports.getFileUrl = getFileUrl;
+exports.downloadFile = downloadFile;
+exports.saveFile = saveFile;
+

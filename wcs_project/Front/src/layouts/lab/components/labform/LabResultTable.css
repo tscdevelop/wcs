@@ -1,0 +1,175 @@
+/* ตั้งค่าฟอนต์แบบ Global สำหรับฟอร์ม */
+.lab-form-layout {
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif; /* ใช้ฟอนต์ของ Template */
+  font-size: 0.875rem; /* ขนาดตัวอักษรเท่ากับ Template */
+  line-height: 1.5;    /* line-height ตาม Template */
+  color: rgba(0, 0, 0, 0.87); /* สีข้อความ */
+}
+
+/* ตั้งค่าฟอนต์ใน control ต่าง ๆ */
+.control-container {
+  padding: 8px; /* ปรับ padding ของแต่ละ control ให้สม่ำเสมอ */
+  margin: 4px; /* ระยะห่างระหว่าง control */
+}
+
+.control-container .control-label,
+.control-container .control-input {
+  font-size: 0.875rem; /* ขนาดฟอนต์ที่ใช้ใน Template */
+  line-height: 1.43;   /* ปรับ line-height */
+  font-weight: 400;    /* น้ำหนักฟอนต์ */
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* ปรับการจัดตำแหน่ง label ที่ต้องการความหนาเป็นพิเศษ */
+.control-label-bold {
+  font-weight: 500; /* ใช้สำหรับ label ที่ต้องการความหนาพิเศษ */
+}
+
+/* Table Styling */
+.lab-result-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif; /* ใช้ฟอนต์ของ Template */
+  font-size: 0.875rem; /* ใช้ขนาดตัวอักษรของ Template */
+  line-height: 1.5; /* ใช้ line-height ของ Template */
+  color: rgba(0, 0, 0, 0.87); /* ใช้สีข้อความตาม Template */
+}
+
+/* General Cell Styling */
+.lab-result-table th,
+.lab-result-table td {
+  border: 1px solid #000;
+  padding: 12px 8px; /* ปรับ padding ตามดีไซน์ของ Template */
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.875rem; /* ขนาดของ Template */
+  line-height: 1.43; /* line-height ของ Template */
+  font-weight: 400; /* กำหนดให้เหมือน Template */
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* Header Cell Styling */
+.header-cell {
+  font-weight: 500; /* ทำให้หนาขึ้นสำหรับ Header */
+  background-color: #f5f5f5;
+  text-align: center;
+}
+
+/* Row Highlight */
+.highlight-row {
+  background-color: lightblue;
+}
+
+/* Container for Cell Content */
+.cell-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cell-container-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cell-container > .control-content {
+  flex-grow: 1;
+}
+
+.cell-container > .comment-icon {
+  margin-left: 8px;
+}
+
+/* Composite Label Styling */
+.composite-label {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.composite-label span {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* PDF Export Styling */
+.hide-in-pdf {
+  display: none;
+}
+
+/* Center-Aligned Label in a Div */
+.label-div-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.label-div-center p {
+  margin: 0;
+}
+
+/* Comment Icon Highlight */
+.comment-icon--highlight {
+  color: orange;
+}
+
+/* Note Label Colors */
+.note-label.note {
+  color: black;
+}
+
+.note-label.note_above {
+  color: red;
+}
+
+.note-label.note_below {
+  color: blue;
+}
+
+
+/* สำหรับ ตั้งค่าการ Print */
+/* การปรับแต่ง CSS สำหรับโหมดพิมพ์ */
+/* การปรับแต่ง CSS สำหรับโหมดการพิมพ์ หรือการสร้าง PDF */
+.print-mode .print-friendly,
+.print-mode .MuiOutlinedInput-root,
+.print-mode .print-friendly-textbox .MuiOutlinedInput-root,
+.print-mode .print-friendly-datepicker .MuiOutlinedInput-root,
+.print-mode .range-control-print,
+.print-mode .range-control-print input {
+  border: none !important; /* ซ่อนขอบทั้งหมด */
+  background-color: transparent !important; /* ตั้งพื้นหลังให้โปร่งใส */
+  box-shadow: none !important; /* เอาเงาออก */
+}
+
+.print-mode .print-friendly .MuiOutlinedInput-notchedOutline,
+.print-mode .MuiOutlinedInput-notchedOutline,
+.print-mode .print-friendly-textbox .MuiOutlinedInput-notchedOutline,
+.print-mode .print-friendly-datepicker .MuiOutlinedInput-notchedOutline,
+.print-mode .range-control-print .MuiOutlinedInput-notchedOutline {
+  display: none !important; /* ซ่อน outline */
+}
+
+.print-mode .print-friendly .MuiInputBase-input,
+.print-mode .print-friendly-textbox .MuiInputBase-input,
+.print-mode .print-friendly-datepicker .MuiInputBase-input {
+  background-color: transparent !important; /* ตั้งพื้นหลังให้โปร่งใส */
+  box-shadow: none !important; /* เอาเงาออก */
+}
+
+/* ซ่อนไอคอนปฏิทินในโหมดพิมพ์ */
+.print-mode .print-friendly-calendar-icon {
+  display: none !important; /* ซ่อนไอคอนปฏิทิน */
+}
+
+/* ซ่อนไอคอนในโหมดพิมพ์ */
+.print-mode .no-print {
+  display: none !important;
+}
+

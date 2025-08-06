@@ -1,0 +1,19 @@
+.dropsign {
+    font-size: 18px;
+    ;
+  }
+  
+  .textsign {
+    width: 100%;
+    color: black;
+    font: 30px;
+  }
+  
+  .tech {
+    display: flex;
+    align-items: center;
+    font-size: 60%;
+  }
+
+
+  
