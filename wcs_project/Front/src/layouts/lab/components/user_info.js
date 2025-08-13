@@ -12,7 +12,7 @@ const UserInfo = ({ Username, RoleCode, profileUser }) => {
       flexDirection="column"
       py={2}
       sx={{
-        backgroundColor: "#FEE4A0", // พื้นหลังส่วนข้อมูลผู้ใช้งาน
+        backgroundColor: "#ffffffff", // พื้นหลังส่วนข้อมูลผู้ใช้งาน
       }}
     >
       {/* Avatar */}

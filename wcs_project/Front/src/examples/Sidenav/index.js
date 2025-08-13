@@ -1328,7 +1328,7 @@ function Sidenav({ color, routes, ...rest }) {
       alignItems="center"
       sx={{
         position: "relative", // ใช้สำหรับการวางตำแหน่งเส้นด้านล่าง
-        backgroundColor: "#FDC068", // สีพื้นหลังของ Header
+        backgroundColor: "#ffffffff", // สีพื้นหลังของ Header
         height: "100px", // ปรับความสูง Header ตามต้องการ
       }}
     >
@@ -1402,7 +1402,7 @@ function Sidenav({ color, routes, ...rest }) {
             textDecoration: "none",
             backgroundColor: "#FDD668",
             color: "black",
-            "&:hover": { backgroundColor: "#FBB040" },
+            "&:hover": { backgroundColor: "#ffffffff" },
           }}
         >
           <SidenavItem name={name} nested icon={(key, icon)} />
@@ -1600,13 +1600,13 @@ function Sidenav({ color, routes, ...rest }) {
       variant="permanent"
       ownerState={{ transparentSidenav, whiteSidenav, miniSidenav, darkMode }}
       sx={{
-        backgroundColor: "#FDC068 ", // สีพื้นหลังเหลืองอ่อน
+        backgroundColor: "#ffffffff ", // สีพื้นหลังเหลืองอ่อน
       }}
     >
       {renderHeader()} {/* เรียกใช้ฟังก์ชัน renderHeader */}
       <List
         sx={{
-          backgroundColor: "#FEE4A0",
+          backgroundColor: "#ffffffff",
           flexGrow: 1, // ขยายให้เต็มพื้นที่ที่เหลือ
           padding: 0, // เอาการ padding ออกเพื่อเต็มพื้นที่
           overflow: "auto", // เลื่อนเมื่อเนื้อหาเกิน

@@ -86,7 +86,9 @@ import Icon from "@mui/material/Icon";
 import HomePage from "layouts/lab/home";
 import LoginPage from "layouts/lab/login";
 import LogoutPage from "layouts/lab/logout";
-import RoleEditPage from "layouts/lab/role/edit_role.js";
+import RoleEditPage from "layouts/lab/role/edit_role";
+
+import CreateTaskForm from "layouts/lab/task/add";
 
 
 const getComponent = (componentName) => {
@@ -101,7 +103,8 @@ const getComponent = (componentName) => {
     case "role-edit":
         return <RoleEditPage />;
 
-
+    case "add-task":
+        return <CreateTaskForm />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:
@@ -121,6 +124,9 @@ const getIcon = (menuKey) => {
       return <Icon fontSize="medium"></Icon>;
     case "role":
       return <Icon fontSize="medium">admin_panel_settings</Icon>;
+
+    case "task-add":
+      return <Icon fontSize="medium">home</Icon>;
     default:
       return <Icon fontSize="medium">fiber_manual_record</Icon>;
   }
