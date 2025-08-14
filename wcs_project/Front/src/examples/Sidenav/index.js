@@ -1382,8 +1382,8 @@ function Sidenav({ color, routes, ...rest }) {
           left: "50%", // ตั้งจุดเริ่มต้นให้อยู่กึ่งกลาง
           transform: "translateX(-50%)", // เลื่อนเส้นให้อยู่ตรงกลาง
           width: "70%", // ครอบคลุมความกว้างทั้งหมด
-          height: "3px", // ความหนาของเส้น
-          backgroundColor: "#FBB040", // สีของเส้น
+          height: "1px", // ความหนาของเส้น
+          backgroundColor: "#565656ff", // สีของเส้น
         }}
       />
     </MDBox>
@@ -1400,7 +1400,7 @@ function Sidenav({ color, routes, ...rest }) {
           rel="noreferrer"
           sx={{
             textDecoration: "none",
-            backgroundColor: "#FDD668",
+            backgroundColor: "#363636ff",
             color: "black",
             "&:hover": { backgroundColor: "#ffffffff" },
           }}
@@ -1412,7 +1412,7 @@ function Sidenav({ color, routes, ...rest }) {
           key={key}
           style={{
             cursor: "pointer",
-            backgroundColor: "#FDD668",
+            backgroundColor: "#363636ff",
             color: "black",
           }}
           onClick={() => handleMenuClick(route, key, menu_id)}
@@ -1424,8 +1424,8 @@ function Sidenav({ color, routes, ...rest }) {
             // icon={(route, icon)}
             icon={(key, icon)}
             sx={{
-              backgroundColor: "#FDD668",
-              "&:hover": { backgroundColor: "#FBB040" },
+              backgroundColor: "#363636ff",
+              "&:hover": { backgroundColor: "#363636ff" },
             }}
           />
         </div>

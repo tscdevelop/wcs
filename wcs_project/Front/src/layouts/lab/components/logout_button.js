@@ -23,10 +23,10 @@ const LogoutButton = ({ onLogout }) => {
       height="80px"
       onClick={handleLogout}
       sx={{
-        backgroundColor: "#FEE4A0",
+        backgroundColor: "#ffffffff",
         cursor: "pointer",
         "&:hover": {
-          backgroundColor: "#FBB040",
+          backgroundColor: "#ddddddff",
         },
       }}
     >

@@ -33,7 +33,7 @@ function item(theme, ownerState) {
       let backgroundValue = transparent.main;
 
       if (active) {
-        backgroundValue = "#FDC068"; // เปลี่ยนเป็นสีส้มเมื่อ active
+        backgroundValue = "#363636ff"; // เปลี่ยนสีพื้นหลัง sub menu ให้เป็นสีดำ 
       } else if (
         (active === "isParent" && !transparentSidenav && !whiteSidenav) ||
         (active === "isParent" && transparentSidenav && darkMode)

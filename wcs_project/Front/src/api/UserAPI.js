@@ -7,7 +7,7 @@ class UserApi {
   static async getUserDataById(userID) {
     try {
       const token = GlobalVar.getToken();
-      console.log("getUserDataById Token:", token );
+      
       if (!token) {
         return new ApiResponse({
           isCompleted: false,

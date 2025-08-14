@@ -86,9 +86,13 @@ import Icon from "@mui/material/Icon";
 import HomePage from "layouts/lab/home";
 import LoginPage from "layouts/lab/login";
 import LogoutPage from "layouts/lab/logout";
-import RoleEditPage from "layouts/lab/role/edit_role";
+import RolePage from "layouts/lab/role";
+
+
 
 import CreateTaskForm from "layouts/lab/task/add";
+import RoleEditPage from "layouts/lab/role/edit_role";
+
 
 
 const getComponent = (componentName) => {
@@ -100,10 +104,11 @@ const getComponent = (componentName) => {
       return <LoginPage />;
     case "logout":
       return <LogoutPage />;
+    case "view-role":
+      return <RolePage />;
     case "role-edit":
         return <RoleEditPage />;
-
-    case "add-task":
+    case "create-task":
         return <CreateTaskForm />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ

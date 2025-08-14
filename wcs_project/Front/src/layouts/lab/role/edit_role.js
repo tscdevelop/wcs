@@ -12,11 +12,12 @@ import Menu from "api/MenuAPI";
 import PermissionTable from "./PermissionTable"; // นำเข้า PermissionTable
 import SweetAlertComponent from "../components/sweetAlert";
 import ButtonComponent from "../components/ButtonComponent";
+import RoleAPI from "api/RoleAPI";
 
 const Editrole = () => {
   const [formData, setFormData] = useState({
     role_code: "",
-    emp_name: "",
+    role_name: "",
     role_description: "",
     role_is_active: true,
     status: "",
@@ -30,7 +31,6 @@ const Editrole = () => {
 
   const searchParams = new URLSearchParams(window.location.search);
   const roleCode = searchParams.get("role_code");
-  const empName = searchParams.get("emp_name");
   const [alert, setAlert] = useState({
     show: false,
     type: "success",
@@ -253,14 +253,30 @@ const Editrole = () => {
   };
 
 
-
-  const navigate = useNavigate();
-
-
-  const handleCancel = () => {
-    navigate("/data/role");
+  const fetchDataByRole = async (role_code) => {
+    try {
+      const response = await RoleAPI.getByRoleCode(role_code);
+      console.log("Response from getFactoryByID:", response); // ตรวจสอบข้อมูลที่ได้จาก API
+      if (response.isCompleted) {
+        setFormData({
+          role_code: response.data.role_code || "",
+          role_name: response.data.role_name || "",
+          role_description: response.data.role_description || ""
+        });
+        setMode("edit"); // เปลี่ยนโหมดเป็น edit
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
 
+
+  useEffect(() => {
+    fetchDataByRole();
+  }, []);
+
+
+  //สำหรับการส่งข้อมูลไปที่ Server 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -311,19 +327,21 @@ const Editrole = () => {
 
     const permission_menus = generatePermissionMenus(formData.permissionMenus);
 
-    const form = new FormData();
-    form.append("role_code", formData.role_code);
-    form.append("role_name", formData.role_name);
-    form.append("role_description", formData.role_description);
-    form.append("role_is_active", formData.role_is_active);
-    form.append("permission_menus", JSON.stringify(permission_menus));
+    const payload = {
+      role_code: formData.role_code,
+      role_name: formData.role_name,
+      role_description: formData.role_description,
+      role_is_active: !!formData.role_is_active,
+      permission_menus, // <-- เป็น array จริง ๆ ไม่ต้อง stringify
+    };
 
+    console.log("▶ JSON payload:", payload);
     try {
       let response;
-      if (roleCode && mode === "edit") {
-        response = await roleAPI.updateRole(roleCode, form);
+      if (roleCode) {
+        response = await roleAPI.updateRole(roleCode, payload);
       } else {
-        response = await roleAPI.createRole(form);
+        response = await roleAPI.createRole(payload);
       }
 
       if (response.isCompleted) {
@@ -333,9 +351,7 @@ const Editrole = () => {
           title: "ดำเนินการสำเร็จ",
           message: response.message,
         });
-        setTimeout(() => {
-          navigate("/data/role");
-        }, 1500);
+
       } else {
         setAlert({
           show: true,
@@ -349,14 +365,20 @@ const Editrole = () => {
     }
   };
 
+  //กลับไปหน้าหลัก
+  const navigate = useNavigate();
+  const handleCancel = () => {
+    navigate("/data/view-role");
+  };
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox p={2}>
         <form onSubmit={handleSubmit}>
-          <MDBox mt={2} ml={5}>
-            <MDTypography variant="h4" gutterBottom>
-              ตั้งค่า / การเเสดงผลเมนู
+          <MDBox mt={2} pb={2} >
+            <MDTypography variant="h3" gutterBottom>
+              {roleCode ? "Edit Permissions and Configure Menu Display" : "Create Permissions and Configure Menu Display"}
             </MDTypography>
           </MDBox>
 
@@ -364,6 +386,11 @@ const Editrole = () => {
             <Grid item xs={12}>
               <MDBox mt={2}>
                 <Card>
+                  <MDBox p={2} mt={2} ml={2}>
+                    <MDTypography variant="h6" gutterBottom>
+                       Permission
+                    </MDTypography>
+                  </MDBox>
                   <MDBox p={2}>
                     <Grid container spacing={4} alignItems="center">
                       <Grid item xs={12} md={6} lg={6}>
@@ -376,18 +403,21 @@ const Editrole = () => {
                               height="100%"
                             >
                               <MDTypography variant="body02" color="inherit">
-                                ชื่อ-นานสกุล
+                                Role
                               </MDTypography>
                             </MDBox>
                           </Grid>
                           <Grid item xs={12} sm={8} lg={9}>
                             <MDInput
-                              name="empName"
-                              variant="outlined"
-                              value={empName}
-                              onChange
-                              sx={{ width: "100%", height: "auto" }}
-                              disabled
+                              name="role_code"
+                              value={formData.role_code}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  role_code: e.target.value.toUpperCase(),
+                                })
+                              }
+                              sx={{ width: "400px", maxWidth: "100%", height: "auto" }}
                             />
                           </Grid>
                         </Grid>
@@ -403,22 +433,55 @@ const Editrole = () => {
                               height="100%"
                             >
                               <MDTypography variant="body02" color="inherit">
-                                {lang.msg("role.role_code")}
+                                Name
                               </MDTypography>
                             </MDBox>
                           </Grid>
                           <Grid item xs={12} sm={8} lg={9}>
                             <MDInput
-                              name="role_code"
-                              value={formData.role_code}
-                              disabled
+                              name="role_name"
+                              variant="outlined"
+                              value={formData.role_name}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  role_code: e.target.value.toUpperCase(),
+                                  role_name: e.target.value
                                 })
                               }
-                              sx={{ width: "100%", height: "auto" }}
+                              sx={{ width: "400px", maxWidth: "100%", height: "auto" }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Grid>
+
+
+                      <Grid item xs={12} md={6} lg={6}>
+                        <Grid container>
+                          <Grid item xs={12} sm={4} lg={3}>
+                            <MDBox
+                              display="flex"
+                              justifyContent="center"
+                              alignItems="center"
+                              height="100%"
+                            >
+                              <MDTypography variant="body02" color="inherit">
+                                Description
+                              </MDTypography>
+                            </MDBox>
+                          </Grid>
+                          <Grid item xs={12} sm={8} lg={9}>
+                            <MDInput
+                              name="role_description"
+                              variant="outlined"
+                              value={formData.role_description}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  role_description: e.target.value
+                                })
+                              }
+                              multiline rows={5}
+                              sx={{ width: "400px", maxWidth: "100%", height: "auto" }}
                             />
                           </Grid>
                         </Grid>
@@ -433,7 +496,7 @@ const Editrole = () => {
                   <Card>
                     <MDBox p={2} mt={2} ml={2}>
                       <MDTypography variant="h6" gutterBottom>
-                        กำหนดการเเสดงผลเมนู
+                        Menu Display Settings
                       </MDTypography>
                     </MDBox>
 
@@ -457,7 +520,7 @@ const Editrole = () => {
                         <ButtonComponent type="cancel" onClick={handleCancel}>
                           {lang.btnCancel()}
                         </ButtonComponent>
-                        <ButtonComponent type={mode === "add" ? "save" : "edit"} onClick={handleSubmit}>
+                        <ButtonComponent type={mode === "create"  ? "save" : "edit"} onClick={handleSubmit}>
                           {lang.btnConfirmMenu()}
                         </ButtonComponent>
                       </Box>

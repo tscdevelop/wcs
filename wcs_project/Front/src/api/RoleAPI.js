@@ -74,11 +74,11 @@ class RoleAPI {
 
     }
   }
+
+
   static async checkRole(role_code) {
     try {
       const token = GlobalVar.getToken();
-
-
       // ส่ง role_code เป็น query parameter ใน URL
       const endpoint = `/api/roles/check-role-code?role_code=${role_code}`;
       const apiResponse = await ApiProvider.getData(endpoint, {}, token);
