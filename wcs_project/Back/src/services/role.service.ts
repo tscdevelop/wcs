@@ -35,221 +35,234 @@ export class RoleService {
     async create(
         data: Partial<RoleCreateModel>,
         manager?: EntityManager
-    ): Promise<ApiResponse<any>> {
+        ): Promise<ApiResponse<any>> {
         let response = new ApiResponse<RoleModel>();
         const operation = 'RoleService.create';
-    
-        // เริ่มต้น Transaction
+
+        // เตรียมทรานแซกชัน
         const queryRunner = manager ? null : AppDataSource.createQueryRunner();
         const useManager = manager || queryRunner?.manager;
-    
+
         if (!useManager) {
             return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
         }
-    
+
         if (!manager && queryRunner) {
             await queryRunner.connect();
             await queryRunner.startTransaction();
         }
-    
+
         try {
-            const repository = manager ? useManager.getRepository(s_role) : this.roleRepository;
-    
-            // *** ตรวจสอบข้อมูล `permission_menus` ก่อน ***
+            // ✅ ใช้ repo จาก useManager เสมอให้ผูกกับทรานแซกชันเดียวกัน
+            const roleRepo = useManager.getRepository(s_role);
+            const menuRepo = useManager.getRepository(s_menu);
+            const menuActionRepo = useManager.getRepository(s_menu_action);
+
+            // --- validate input ---
             if (!Array.isArray(data.permission_menus) || data.permission_menus.length === 0) {
-                throw new Error(lang.msgRequired('field.permission_menus'));
+            throw new Error(lang.msgRequired('field.permission_menus'));
             }
-    
-             // ตรวจสอบว่า menu_id และ action_code มีความถูกต้อง
+
             for (const menu of data.permission_menus) {
-                console.log("🔍 Checking menu existence:", menu.menu_id);
-                const menuEntity = await useManager.getRepository(s_menu).findOne({ where: { menu_id: menu.menu_id } });
-                if (!menuEntity) {
-                    console.error(`❌ Menu ID ${menu.menu_id} not found!`);
-                    throw new Error(lang.msgNotFound(`Menu ID ${menu.menu_id} not found`));
-                }
-
-                for (const actionCode of menu.permission_actions) {
-                    const menuActionEntity = await useManager
-                        .getRepository(s_menu_action)
-                        .findOne({ where: { menu_id: menu.menu_id, action_code: actionCode } });
-                    if (!menuActionEntity) {
-                        throw new Error(
-                            lang.msgErrorFormat(`Action Code ${actionCode} is not valid for Menu ID ${menu.menu_id}`)
-                        );
-                    }
+            console.log("🔍 Checking menu existence:", menu.menu_id);
+            const menuEntity = await menuRepo.findOne({ where: { menu_id: menu.menu_id } });
+            if (!menuEntity) {
+                throw new Error(lang.msgNotFound(`Menu ID ${menu.menu_id} not found`));
+            }
+            for (const actionCode of menu.permission_actions) {
+                const menuActionEntity = await menuActionRepo.findOne({
+                where: { menu_id: menu.menu_id, action_code: actionCode }
+                });
+                if (!menuActionEntity) {
+                throw new Error(
+                    lang.msgErrorFormat(`Action Code ${actionCode} is not valid for Menu ID ${menu.menu_id}`)
+                );
                 }
             }
+            }
 
-            // ตรวจสอบข้อมูลอื่น ๆ
             if (validate.isNullOrEmpty(data.role_code)) {
-                throw new Error(lang.msgRequired('field.role_code'));
+            throw new Error(lang.msgRequired('field.role_code'));
             }
             if (await this.checkRoleCodeExists(data.role_code!)) {
-                throw new Error(lang.msgAlreadyExists('field.role_code'));
+            throw new Error(lang.msgAlreadyExists('field.role_code'));
             }
             if (validate.isNullOrEmpty(data.role_name)) {
-                throw new Error(lang.msgRequired('field.role_name'));
+            throw new Error(lang.msgRequired('field.role_name'));
             }
             if (validate.isNullOrEmpty(data.create_by)) {
-                throw new Error(lang.msgRequiredCreateby());
+            throw new Error(lang.msgRequiredCreateby());
             }
-    
-            // *** บันทึก `role_code` ใน `s_role` ***
+
+            // --- create role ---
             console.log("📝 Creating Role:", data.role_code);
-            const role = repository.create(data);
-            const savedData = await repository.save(role);
-            console.log("✅ Role Created:", savedData);
-            
-            // ✅ บันทึก permission_menus
+            const role = roleRepo.create(data);
+            const savedRole = await roleRepo.save(role);
+            console.log("✅ Role Created:", savedRole);
+
+            // --- save permissions (ใช้ useManager เดียวกัน) ---
             try {
-                await this.savePermissions(savedData.role_code, data.permission_menus!, useManager);
-            } catch (error) {
-                await repository.delete({ role_code: savedData.role_code });
-                throw new Error(lang.msgErrorFunction('savePermissions', (error as Error).message));
+            await this.savePermissions(savedRole.role_code, data.permission_menus!, useManager);
+            } catch (err) {
+            // ถ้าบันทึก permission ล้มเหลว ให้ลบ role ที่เพิ่งสร้าง (ในทรานแซกชันเดียวกัน)
+            await roleRepo.delete({ role_code: savedRole.role_code });
+            throw new Error(lang.msgErrorFunction('savePermissions', (err as Error).message));
             }
 
-            // ✅ กรอง permission_menus ที่มี action
-            const filteredMenus = data.permission_menus.filter(menu => menu.permission_actions.length > 0);
+            const filteredMenus = data.permission_menus.filter(m => m.permission_actions.length > 0);
 
-            // ✅ ส่ง response กลับ
             response = response.setComplete(lang.msgSuccessAction('created', 'item.role'), {
-                ...savedData,
-                permission_menus: filteredMenus,
+            ...savedRole,
+            permission_menus: filteredMenus,
             });
-    
+
+            // ✅ สำเร็จแล้วให้ commit (เฉพาะกรณีเราเป็นคนเริ่มทรานแซกชัน)
             if (!manager && queryRunner) {
-                console.log("🔄 Rolling back transaction...");
-                try {
-                    await queryRunner.rollbackTransaction();
-                    console.log("⚠️ Transaction rolled back successfully!");
-                } catch (err) {
-                    console.error("❌ Error rolling back transaction:", err);
-                }
+            await queryRunner.commitTransaction();
             }
-            
-    
+
             return response;
-    
+
         } catch (error: any) {
+            // ❌ ผิดพลาด ให้ rollback ถ้าเราเป็นคนเริ่มทรานแซกชัน
             if (!manager) {
-                await queryRunner?.rollbackTransaction();
+            await queryRunner?.rollbackTransaction();
             }
             console.error('Error during role creation:', error);
             throw new Error(lang.msgErrorFunction(operation, error.message));
         } finally {
             if (!manager) {
-                await queryRunner?.release();
+            await queryRunner?.release();
             }
         }
     }
+
     
     async update(
-        role_code: string,
-        data: Partial<RoleUpdateModel>,
-        manager?: EntityManager // รับ parameter manager จากภายนอก
+    role_code: string,
+    data: Partial<RoleUpdateModel>,
+    manager?: EntityManager
     ): Promise<ApiResponse<any>> {
-        let response = new ApiResponse<RoleModel>();
-        const operation = 'RoleService.update';
-    
-        // ใช้ QueryRunner ถ้าไม่ได้ส่ง manager เข้ามา
-        const queryRunner = manager ? null : AppDataSource.createQueryRunner();
-        const useManager = manager || queryRunner?.manager;
-    
-        if (!useManager) {
-            return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
+    let response = new ApiResponse<RoleModel>();
+    const operation = 'RoleService.update';
+
+    const queryRunner = manager ? null : AppDataSource.createQueryRunner();
+    const useManager = manager || queryRunner?.manager;
+
+    if (!useManager) {
+        return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
+    }
+
+    if (!manager && queryRunner) {
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+    }
+
+    try {
+        // ✅ ใช้ repo จาก useManager เสมอ
+        const roleRepo = useManager.getRepository(s_role);
+        const menuRepo = useManager.getRepository(s_menu);
+        const menuActRepo = useManager.getRepository(s_menu_action);
+
+        // หา role ที่จะแก้
+        const existingRole = await roleRepo.findOne({ where: { role_code } });
+        if (!existingRole) {
+        return response.setIncomplete(lang.msgNotFound('item.role'));
         }
-    
-        // ถ้าไม่ได้ส่ง manager เข้ามา ให้เริ่มต้น transaction
-        if (!manager && queryRunner) {
-            await queryRunner.connect();
-            await queryRunner.startTransaction();
+
+        // --- normalize/coerce fields ---
+        // กัน client ส่ง role_code มาทับ
+        if ('role_code' in data) delete (data as any).role_code;
+
+        // บังคับ boolean ที่อาจเป็น string
+        if (typeof data.role_is_active === 'string') {
+        (data as any).role_is_active = data.role_is_active === 'true';
         }
-    
-        try {
-            const repository = manager ? useManager.getRepository(s_role) : this.roleRepository;
-    
-            // ตรวจสอบ role ที่ต้องการอัปเดต
-            const existingRole = await repository.findOneBy({ role_code });
-            if (!existingRole) {
-                return response.setIncomplete(lang.msgNotFound('item.role'));
+
+        // --- validations ทั่วไป ---
+        if (validate.isNullOrEmpty(data.update_by)) {
+        throw new Error(lang.msgRequiredUpdateby());
+        }
+        // จะบังคับ role_name เสมอหรือไม่ขึ้นกับดีไซน์:
+        // ถ้าจะ "partial update" ให้บังคับเฉพาะเมื่อส่งมา
+        if ('role_name' in data && validate.isNullOrEmpty(data.role_name)) {
+        throw new Error(lang.msgRequired('field.role_name'));
+        }
+
+        // --- validate permission_menus เฉพาะเมื่อส่งมา ---
+        const hasPermsField = 'permission_menus' in data;
+        const perms = (data.permission_menus ?? []) as Array<{menu_id: number; permission_actions: string[]}>;
+
+        if (hasPermsField && perms.length > 0) {
+        for (const m of perms) {
+            const menuEntity = await menuRepo.findOne({ where: { menu_id: m.menu_id } });
+            if (!menuEntity) {
+            throw new Error(lang.msgNotFound(`Menu ID ${m.menu_id} not found`));
             }
-    
-            // *** ตรวจสอบข้อมูลทั้งหมด ***
-            if (validate.isNullOrEmpty(data.update_by)) {
-                throw new Error(lang.msgRequiredUpdateby());
-            }
-    
-            if (validate.isNullOrEmpty(data.role_name)) {
-                throw new Error(lang.msgRequired('field.role_name'));
-            }
-    
-            if (data.permission_menus && data.permission_menus.length > 0) {
-                for (const menu of data.permission_menus) {
-                    // ตรวจสอบ menu_id
-                    const menuEntity = await useManager.getRepository(s_menu).findOne({ where: { menu_id: menu.menu_id } });
-                    if (!menuEntity) {
-                        throw new Error(lang.msgNotFound(`Menu ID ${menu.menu_id} not found`));
-                    }
-    
-                    // ตรวจสอบ action_code สำหรับ menu_id
-                    for (const actionCode of menu.permission_actions) {
-                        const menuActionEntity = await useManager
-                            .getRepository(s_menu_action)
-                            .findOne({ where: { menu_id: menu.menu_id, action_code: actionCode } });
-                        if (!menuActionEntity) {
-                            throw new Error(
-                                lang.msgErrorFormat(`Action Code ${actionCode} is not valid for Menu ID ${menu.menu_id}`)
-                            );
-                        }
-                    }
-                }
-            }
-    
-            console.log('Before existingRole : ', existingRole);
-    
-            // *** อัปเดตข้อมูล Role ***
-            Object.assign(existingRole, data, {
-                update_date: new Date(),
+            for (const actionCode of m.permission_actions) {
+            const menuActionEntity = await menuActRepo.findOne({
+                where: { menu_id: m.menu_id, action_code: actionCode },
             });
-    
-            // บันทึกข้อมูล role ที่อัปเดตแล้ว
-            await repository.save(existingRole);
-    
-            // ลบและสร้าง permissionMenus ใหม่
-            await this.clearPermissions(role_code, useManager);
-            await this.savePermissions(role_code, data.permission_menus!, useManager);
-    
-            // ดึงข้อมูล Role ที่อัปเดตแล้วกลับมา
-            const dataResponse = await this.getByRoleCode(role_code, useManager);
-    
-            if (!dataResponse.isCompleted) {
-                throw new Error(dataResponse.message);
+            if (!menuActionEntity) {
+                throw new Error(
+                lang.msgErrorFormat(`Action Code ${actionCode} is not valid for Menu ID ${m.menu_id}`)
+                );
             }
-    
-            response = response.setComplete(lang.msgSuccessAction('updated', 'item.role'), dataResponse.data!);
-    
-            // คอมมิต transaction ถ้าไม่ได้ส่ง manager เข้ามา
-            if (!manager) {
-                await queryRunner?.commitTransaction();
             }
-    
-            return response;
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            // ย้อนกลับ transaction ถ้ามีข้อผิดพลาดเกิดขึ้นและไม่ได้ส่ง manager เข้ามา
-            if (!manager) {
-                await queryRunner?.rollbackTransaction();
-            }
-            console.error('Error during role edit:', errorMessage);
-            throw new Error(lang.msgErrorFunction(operation, errorMessage));
-        } finally {
-            // ปิด queryRunner ถ้าไม่ได้ส่ง manager เข้ามา
-            if (!manager) {
-                await queryRunner?.release();
-            }
+        }
+        }
+
+        // --- update role fields ---
+        Object.assign(existingRole, {
+        // กรองเฉพาะฟิลด์ที่อนุญาตให้แก้
+        ...( 'role_name'       in data ? { role_name: data.role_name } : {} ),
+        ...( 'role_description' in data ? { role_description: data.role_description } : {} ),
+        ...( 'role_is_active'   in data ? { role_is_active: data.role_is_active } : {} ),
+        update_by: data.update_by,
+        update_date: new Date(),
+        });
+
+        await roleRepo.save(existingRole);
+
+        // --- จัดการ permissions ตามที่ส่งมา ---
+        if (hasPermsField) {
+        // ถ้าส่งมา (รวมถึงกรณี []) → เคลียร์ก่อนเสมอ
+        await this.clearPermissions(role_code, useManager);
+        if (perms.length > 0) {
+            await this.savePermissions(role_code, perms, useManager);
+        }
+        // ถ้า perms ว่าง = ลบทั้งหมด ก็ไม่ต้อง savePermissions
+        }
+
+        // --- โหลดข้อมูลตอบกลับ ---
+        const dataResponse = await this.getByRoleCode(role_code, useManager);
+        if (!dataResponse.isCompleted) {
+        throw new Error(dataResponse.message);
+        }
+
+        response = response.setComplete(
+        lang.msgSuccessAction('updated', 'item.role'),
+        dataResponse.data!
+        );
+
+        if (!manager && queryRunner) {
+        await queryRunner.commitTransaction();
+        }
+        return response;
+
+    } catch (error: any) {
+        if (!manager) {
+        await queryRunner?.rollbackTransaction();
+        }
+        console.error('Error during role edit:', error?.message ?? error);
+        throw new Error(lang.msgErrorFunction(operation, error?.message ?? String(error)));
+    } finally {
+        if (!manager) {
+        await queryRunner?.release();
         }
     }
+    }
+
     
     async delete(role_code: string, manager?: EntityManager): Promise<ApiResponse<any>> {
         const response = new ApiResponse<void>();
