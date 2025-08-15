@@ -195,7 +195,7 @@ export default function UserFormDialog({
             <MDTypography variant="body01" mb={0.5} display="block">Email</MDTypography>
             <MDInput
               fullWidth
-              placeholder="Enter user_email"
+              placeholder="Enter Email"
               value={form.user_email}
               onChange={handleChange("user_email")}
               error={!!errors.user_email}
