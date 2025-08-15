@@ -189,9 +189,6 @@ export class UserService {
             if (validate.isNullOrEmpty(data.username)) {
             return response.setIncomplete(lang.msgRequired('field.username'));
             }
-            if (validate.isNullOrEmpty(data.password)) {
-            return response.setIncomplete(lang.msgRequired('field.password'));
-            }
             if (validate.isNullOrEmpty(data.user_first_name)) {
             return response.setIncomplete(lang.msgRequired('field.first_name'));
             }
