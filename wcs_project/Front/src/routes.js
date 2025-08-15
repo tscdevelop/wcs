@@ -87,8 +87,8 @@ import HomePage from "layouts/lab/home";
 import LoginPage from "layouts/lab/login";
 import LogoutPage from "layouts/lab/logout";
 import RolePage from "layouts/lab/role";
-
-
+import UserPage from "layouts/lab/user";
+import ListTaskPage from "layouts/lab/task/list";
 
 import CreateTaskForm from "layouts/lab/task/add";
 import RoleEditPage from "layouts/lab/role/edit_role";
@@ -110,6 +110,10 @@ const getComponent = (componentName) => {
         return <RoleEditPage />;
     case "create-task":
         return <CreateTaskForm />;
+    case "view-task":
+        return <ListTaskPage />;
+    case "view-user":
+        return <UserPage />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:

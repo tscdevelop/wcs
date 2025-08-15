@@ -4,10 +4,32 @@ import ApiResponse from "../common/ApiResponse";
 
 class UserApi {
 
-  static async getUserDataById(userID) {
+  static async searchUser() {
     try {
       const token = GlobalVar.getToken();
-      
+      const endpoint = "/api/users/search";
+      const apiResponse = await ApiProvider.getData(endpoint, {}, token);
+
+
+      return new ApiResponse({
+        isCompleted: true,
+        isError: false,
+        message: "Success",
+        data: apiResponse,
+        error: null
+      });
+
+    } catch (error) {
+      console.error("Error search Role:", error.message || error);
+      throw new Error(`Error: ${error.message}`);
+
+    }
+  }
+
+  static async getUserDataById(user_id) {
+    try {
+      const token = GlobalVar.getToken();
+
       if (!token) {
         return new ApiResponse({
           isCompleted: false,
@@ -18,7 +40,7 @@ class UserApi {
         });
       }
 
-      const endpoint = `/api/users/get-by-user-id/${userID}`;
+      const endpoint = `/api/users/get-by-user-id/${user_id}`;
       // console.log('Request Endpoint:', endpoint);
       const apiResponse = await ApiProvider.getData(endpoint, {}, token);
 
@@ -36,26 +58,91 @@ class UserApi {
       return response;
 
     } catch (error) {
-      console.error( error.message || error);
+      console.error(error.message || error);
       return {
         isCompleted: false,
         isError: true,
-        message: error.message ,
+        message: error.message,
         data: null,
-        error: error.message 
+        error: error.message
       };
     }
   }
+
+
+  static async createUser(payload) {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = "/api/users/create";
+      const apiResponse = await ApiProvider.postData(endpoint, payload, token);
+
+
+      return new ApiResponse({
+        isCompleted: true,
+        isError: false,
+        message: "Success",
+        data: apiResponse,
+        error: null
+      });
+
+    } catch (error) {
+      console.error("Error search Role:", error.message || error);
+      throw new Error(`Error: ${error.message}`);
+
+    }
+  }
+  static async updateUser(user_id, payload) {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = `/api/users/update/${user_id}`;
+      const apiResponse = await ApiProvider.putData(endpoint, payload, token);
+      console.log("apiResponse : ", apiResponse);
+
+      return new ApiResponse({
+        isCompleted: true,
+        isError: false,
+        message: "Success",
+        data: apiResponse,
+        error: null
+      });
+
+    } catch (error) {
+      console.error("Error search Role:", error.message || error);
+      throw new Error(`Error: ${error.message}`);
+
+    }
+  }
+
+  static async deleteUser(user_id) {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = `/api/users/delete/${user_id}`;
+
+      // ทำการเรียก API ด้วย token และ endpoint
+      const response = await ApiProvider.deleteData(endpoint, {}, token);
+      console.log("API Response:", response);
+
+      return response; // ส่งค่ากลับไป
+    } catch (error) {
+      console.error("Error in factory:", error);
+      throw error;
+    }
+  }
+
+
+
+
+
 
   static async login(username, password) {
     try {
       const data = { username, password };
       const endpoint = "/api/users/login";
-     
+
       const apiResponse = await ApiProvider.postData(endpoint, data);
-  
-    
-  
+
+
+
       // ตรวจสอบว่า apiResponse มีค่าที่ต้องการ
       if (apiResponse && apiResponse.data && apiResponse.data.token) {
         return new ApiResponse({
@@ -74,13 +161,13 @@ class UserApi {
         });
       }
     } catch (error) {
-      console.error( error.message || error);
+      console.error(error.message || error);
       return new ApiResponse({
         isCompleted: false,
         isError: true,
-        message: error.message ,
+        message: error.message,
         data: null,
-        error: error.message 
+        error: error.message
       });
     }
   }
@@ -90,18 +177,18 @@ class UserApi {
   //     const data = { username, password };
   //     const endpoint = `/api/users/login`;
   //     console.log('Request Endpoint:', endpoint);
-      
+
   //     // เรียก API เพื่อ login
   //     const apiResponse = await ApiProvider.postData(endpoint, data);
   //     console.log('API Response:', apiResponse);
-  
+
   //     // ตรวจสอบว่าการตอบกลับจาก API มี token และ role_code หรือไม่
   //     if (apiResponse && apiResponse.data && apiResponse.data.token) {
   //       GlobalVar.setToken(apiResponse.data.token);  // เก็บ token ใน GlobalVar
   //       GlobalVar.setRole(apiResponse.data.role);  // เก็บ role_code ใน GlobalVar
   //       GlobalVar.setUserId(apiResponse.data.userID);  // เก็บ user ID ใน GlobalVar
   //       GlobalVar.setUsername(apiResponse.data.username);  // เก็บ username ใน GlobalVar
-  
+
   //       return new ApiResponse({
   //         isCompleted: true,
   //         isError: false,
@@ -128,10 +215,10 @@ class UserApi {
   //     });
   //   }
   // }
-  
-  
+
+
   static handleTokenExpiration() {
-   
+
     GlobalVar.removeToken();
     GlobalVar.removeDataByKey(StorageKeys.USER_ID);
     window.location.href = "/login";
@@ -163,13 +250,13 @@ class UserApi {
       });
 
     } catch (error) {
-      console.error( error.message || error);
+      console.error(error.message || error);
       return new ApiResponse({
         isCompleted: false,
         isError: true,
-        message: error.message ,
+        message: error.message,
         data: null,
-        error: error.message 
+        error: error.message
       });
     }
   }

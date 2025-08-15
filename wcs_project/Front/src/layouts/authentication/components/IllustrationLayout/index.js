@@ -90,7 +90,7 @@
 //                     style={{ maxWidth: "300px", height: "150px" }} // ปรับขนาดรูปโลโก้
 //                   />
 //                   </MDBox>
-                  
+
 //                   <MDBox mb={2} textAlign="center">
 //                     <MDTypography variant="body2" color="text">
 //                       {description}
@@ -161,7 +161,8 @@ import PageLayout from "examples/LayoutContainers/PageLayout";
 // Material Dashboard 2 PRO React context
 import { useMaterialUIController } from "context";
 
-function IllustrationLayout({ header, title, description, illustration, children }) {
+function IllustrationLayout({ header, description, illustration, children })//title
+{
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
 
@@ -190,32 +191,32 @@ function IllustrationLayout({ header, title, description, illustration, children
         >
           {/* Login Card */}
           <MDBox
-             display="flex"
-             justifyContent="center"
-             alignItems="center"
-             sx={{
-               position: "absolute",
-               top: "50%",
-               left: "50%",
-               transform: "translate(-50%, -50%)",
-               width: { xs: "80%", sm: "40%", md: "25%" },
-               // เพิ่ม media query สำหรับ tablet
-               "@media (min-width:768px) and (max-width:1024px)": {
-                 width: "50%", // ปรับให้ Login Card มีความกว้างมากขึ้นในช่วง tablet
-               },
-               minHeight: "450px",
-               backgroundColor: "#FFFFFF",
-               borderRadius: "25px",
-               boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
-               p: 4,
-               zIndex: 2,
-             }}
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { xs: "80%", sm: "40%", md: "25%" },
+              // เพิ่ม media query สำหรับ tablet
+              "@media (min-width:768px) and (max-width:1024px)": {
+                width: "50%", // ปรับให้ Login Card มีความกว้างมากขึ้นในช่วง tablet
+              },
+              minHeight: "500px",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "10px",
+              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
+              p: 4,
+              zIndex: 2,
+            }}
           >
-            <MDBox width="100%">
+            <MDBox width="100%"  >
               {/* Header */}
               {header || (
                 <>
-                  <MDBox mb={3} textAlign="center">
+                  {/* <MDBox mb={3} textAlign="center">
                     <img
                       src={title}  // URL ของรูปโลโก้
                       alt="Logo"
@@ -225,13 +226,24 @@ function IllustrationLayout({ header, title, description, illustration, children
                         height: "auto",
                       }}
                     />
-                  </MDBox>
+                  </MDBox> */}
 
-                  <MDBox mb={2} textAlign="center">
-                    <MDTypography variant="body2" color="text">
+                  <MDBox
+                    mt={1}
+                    mb={5}
+                    textAlign="center"
+                    sx={{
+                      background: "linear-gradient(180deg, #2c2c2c, #1a1a1a)", // ไล่เฉดสี
+                      borderRadius: "12px", // มุมโค้ง
+                      padding: "50px", // ระยะห่างด้านใน
+                      color: "#fff", // ตัวหนังสือสีขาว
+                    }}
+                  >
+                    <MDTypography variant="h3" color="inherit">
                       {description}
                     </MDTypography>
                   </MDBox>
+
                 </>
               )}
 

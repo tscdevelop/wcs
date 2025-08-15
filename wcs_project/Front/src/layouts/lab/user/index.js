@@ -11,13 +11,13 @@ import UserApi from "api/UserAPI";
 // import { GlobalVar } from "../../../common/GlobalVar";
 import ReusableDataTable from "../components/table_component_v2";
 import MDButton from "components/MDButton";
+import UserFormDialog from "./user_form";
 
-
-const ListTask = () => {
+const User = () => {
     // eslint-disable-next-line no-unused-vars
     const [loading, setLoading] = useState(true);
     const [userAll, setUserAll] = useState([]);
-    const [deleteRole, setDeleteRole] = useState(""); // รหัสโรงงานที่จะลบ
+    const [deleteUser, setDeleteUser] = useState(""); // รหัสโรงงานที่จะลบ
     // eslint-disable-next-line no-unused-vars
     const navigate = useNavigate();
     const [confirmAlert, setConfirmAlert] = useState(false);
@@ -27,8 +27,16 @@ const ListTask = () => {
         title: "",
         message: "",
     });
-   
+    // eslint-disable-next-line no-unused-vars
+    const [roleOptions, setRoleOptions] = useState([
+        // mock ไว้ก่อน ถ้ามี API จริงค่อยไปโหลดมาแทน
+        { value: "ADMIN", label: "ADMIN" },
+        { value: "USER", label: "User" },
+    ]);
 
+    const [formOpen, setFormOpen] = useState(false);
+    const [formMode, setFormMode] = useState("create"); // "create" | "edit"
+    const [editingUser, setEditingUser] = useState(null);
 
     const fetchDataAll = async () => {
         try {
@@ -49,11 +57,78 @@ const ListTask = () => {
         fetchDataAll();
     }, []);
 
-    
+    const handleAdd = () => {
+        setFormMode("create");
+        setEditingUser(null);
+        setFormOpen(true);
+    };
+
+
+    const fetchDataById = async (user_id) => {
+        try {
+            const response = await UserApi.getUserDataById(user_id);
+            console.log("User By ID: ", response);
+            if (response.isCompleted) {
+                const data = response.data;
+                setEditingUser({
+                    user_id: data.user_id,
+                    user_first_name: data.user_first_name ?? "",
+                    user_last_name: data.user_last_name ?? "",
+                    username: data.username ?? "",
+                    user_email: data.user_email ?? "",
+                    role_code: data.role_code ?? "",
+                });
+                setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
+            } else {
+                console.error("Failed to fetch user:", response.message);
+            }
+        } catch (error) {
+            console.error("Error fetching user by id:", error);
+        }
+    };
+
+    const handleEditClick = (row) => {
+        setFormMode("edit");
+        fetchDataById(row.user_id); // ใช้ user_id ดึงข้อมูล
+    };
+
+
+    const handleSubmitUser = async (payload) => {
+        try {
+            let res;
+            if (formMode === "edit") {
+                // สมมุติว่ามี user_id ใน row ถ้าไม่มี ใช้ username เป็น key
+                res = await UserApi.updateUser(editingUser.user_id, payload);
+            } else {
+                res = await UserApi.createUser(payload);
+            }
+            if (res?.isCompleted) {
+                setAlert({
+                    show: true,
+                    type: "success",
+                    title: formMode === "edit" ? "Updated" : "Created",
+                    message: res.message,
+                });
+                await fetchDataAll(); // refresh table
+                return true; // ให้ dialog ปิด
+            } else {
+                setAlert({
+                    show: true,
+                    type: "error",
+                    title: "Error",
+                    message: res?.message || "Failed",
+                });
+                return false;
+            }
+        } catch (err) {
+
+            return false;
+        }
+    };
 
     const handleDelete = async () => {
         try {
-            const response = await UserApi.deleteRole(deleteRole);
+            const response = await UserApi.deleteUser(deleteUser);
             if (response.isCompleted) {
                 setAlert({
                     show: true,
@@ -78,9 +153,9 @@ const ListTask = () => {
     };
 
     const columns = [
-        { field: "sku_id", label: "SKU" },
+        { field: "username", label: "Username" },
         { field: "fullname", label: "Full Name" },
-        { field: "email", label: "Email" },
+        { field: "user_email", label: "Email" },
         { field: "role_code", label: "Role" },
     ];
 
@@ -94,7 +169,7 @@ const ListTask = () => {
             <MDBox p={2}>
                 <MDBox mt={2} >
                     <MDTypography variant="h3" color="inherit">
-                        Task
+                        User Management
                     </MDTypography>
                 </MDBox>
             </MDBox>
@@ -106,7 +181,7 @@ const ListTask = () => {
 
                             <MDButton
                                 color="dark"
-                                onClick
+                                onClick={handleAdd}
                             >
                                 Create
                             </MDButton>
@@ -118,8 +193,9 @@ const ListTask = () => {
                             defaultPageSize={10}
                             pageSizeOptions={[10, 25, 50]}
                             showActions={["edit", "delete"]}
+                            onEdit={(row) => handleEditClick(row)}
                             onDelete={(row) => {
-                                setDeleteRole(row.role_code);
+                                setDeleteUser(row.user_id);
                                 setConfirmAlert(true);
                             }}
 
@@ -128,7 +204,15 @@ const ListTask = () => {
                 </Card>
             </MDBox>
 
-          
+            {/* Pop-up */}
+            <UserFormDialog
+                open={formOpen}
+                mode={formMode}
+                initialData={editingUser}
+                roleOptions={roleOptions}
+                onClose={() => setFormOpen(false)}
+                onSubmit={handleSubmitUser}
+            />
 
             {confirmAlert && (
                 <SweetAlertComponent
@@ -156,4 +240,4 @@ const ListTask = () => {
 
 
 };
-export default ListTask;
+export default User;

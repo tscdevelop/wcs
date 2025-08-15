@@ -1,33 +1,25 @@
 import React, { useState } from "react";
-import { Box, Grid } from "@mui/material";
+import { Grid } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import MDBox from "components/MDBox";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 import IllustrationLayout from "layouts/authentication/components/IllustrationLayout";
-import bgImage from "assets/images/BackgroundRacking.jpg";
-import lgImage from "assets/images/logo.png";
+import bgImage from "assets/images/bg-profile.jpeg";
+// import lgImage from "assets/images/logo.png";
 import UserApi from "../../../api/UserAPI";
 import { GlobalVar } from "../../../common/GlobalVar";
-import { setLanguage, getLanguage } from "common/language.context";
-import * as lang from "utils/langHelper";
 import MDTypography from "components/MDTypography";
-import thaiflag from "../components/test-pic/thai_flag.jpg";
-import ukflag from "../components/test-pic/uk_flag.jpg";
-
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
 
 
 function LabLogin() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("1234");
   const [errorMessage, setErrorMessage] = useState(""); // state สำหรับข้อความ error
   const navigate = useNavigate();
-
-  const [language, setLangState] = useState(getLanguage());
-
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (event) => {
@@ -48,7 +40,7 @@ function LabLogin() {
           GlobalVar.setRole(role);
           GlobalVar.setUsername(userName);
 
-          
+
 
           navigate("/home");
         } else {
@@ -64,14 +56,11 @@ function LabLogin() {
     }
   };
 
-  const handleLanguageChange = (lang) => {
-    setLanguage(lang);
-    setLangState(lang);
-  };
+
 
   return (
-    <IllustrationLayout title={lgImage} illustration={bgImage}>
-      <MDBox component="form" role="form" onSubmit={handleLogin}>
+    <IllustrationLayout description="Sign in" illustration={bgImage}>
+      <MDBox pt={6} component="form" role="form" onSubmit={handleLogin} >
         <Grid
           container
           direction="column"
@@ -95,15 +84,14 @@ function LabLogin() {
               p: { xs: 2, sm: 0 },
             }}
           >
-            <MDTypography variant="body02" mb={1}>
-              {lang.msg("field.username")}
-            </MDTypography>
+
             <MDInput
+              label="Username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               fullWidth
-              placeholder= {lang.msg("field.username_required")}
+              placeholder="Username"
             />
           </Grid>
 
@@ -123,30 +111,31 @@ function LabLogin() {
               p: { xs: 2, sm: 0 },
             }}
           >
-            <MDTypography variant="body02" mb={1}>
-              {lang.msg("field.password")}
-            </MDTypography>
-            <MDInput
-              type={showPassword ? "text" : "password"} // 👈 Toggle type
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              placeholder= {lang.msg("field.password_required")}
-              InputProps={{
-                endAdornment: (
-                  <IconButton
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                ),
-              }}
-            />
+            <MDBox>
+              <MDInput
+                label="Password"
+                type={showPassword ? "text" : "password"} // 👈 Toggle type
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                placeholder="Password"
+                InputProps={{
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  ),
+                }}
+              />
+            </MDBox>
+
           </Grid>
 
-          {/* Language Selection */}
+          {/* Language Selection
           <Grid item>
             <Box display="flex" justifyContent="center" gap={2}>
               <MDButton
@@ -193,7 +182,7 @@ function LabLogin() {
                 EN
               </MDButton>
             </Box>
-          </Grid>
+          </Grid> */}
 
           {/* Login Button */}
           <Grid
@@ -211,16 +200,28 @@ function LabLogin() {
               p: { xs: 2, sm: 0 },
             }}
           >
-            <MDButton variant="gradient" color="warning" size="large" fullWidth type="submit">
-              {lang.btnLogin()}
-            </MDButton>
+            <MDBox mt={2} >
+              <MDButton
+                variant="gradient"
+                size="large"
+                fullWidth
+                type="submit"
+                sx={{
+                  background: "linear-gradient(180deg, #2c2c2c, #1a1a1a)",
+                  color: "#fff", // ตัวหนังสือสีขาว
+                }}
+              >
+                Login
+              </MDButton>
+            </MDBox>
+
           </Grid>
 
           {/* แสดงข้อความ Error */}
           {errorMessage && (
             <Grid
               item
-               container
+              container
               justifyContent="flex-end"
               sx={{
                 width: { xs: "100%", sm: "100%" },

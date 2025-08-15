@@ -153,8 +153,8 @@
         "view_task":"View Task",
         "role":"Permission",
         "view_role":"View Permission",
-        "blank":"หน้าว่าง",
-        "user":"ผู้ใช้"
+        "user":"User",
+        "view_user":"View User"
     },
     "role":{
         "role_title_1":"เพิ่มสิทธิ์การใช้งาน",
