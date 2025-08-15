@@ -29,8 +29,10 @@ const Editrole = () => {
   const roleFetched = useRef(false);
   const [mode, setMode] = useState("edit");
 
-  const searchParams = new URLSearchParams(window.location.search);
-  const roleCode = searchParams.get("role_code");
+// อ่านจาก query string
+const searchParams = new URLSearchParams(window.location.search);
+const roleCode = searchParams.get("role_code") || "";  // กัน null
+
   const [alert, setAlert] = useState({
     show: false,
     type: "success",
@@ -253,27 +255,38 @@ const Editrole = () => {
   };
 
 
-  const fetchDataByRole = async (role_code) => {
-    try {
-      const response = await RoleAPI.getByRoleCode(role_code);
-      console.log("Response from getFactoryByID:", response); // ตรวจสอบข้อมูลที่ได้จาก API
-      if (response.isCompleted) {
-        setFormData({
-          role_code: response.data.role_code || "",
-          role_name: response.data.role_name || "",
-          role_description: response.data.role_description || ""
-        });
-        setMode("edit"); // เปลี่ยนโหมดเป็น edit
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
+// รับ role_code เป็นอาร์กิวเมนต์เสมอ
+const fetchDataByRole = async (role_code) => {
+  if (!role_code) return;                    // กัน undefined/ว่าง
+  try {
+    const response = await RoleAPI.getByRoleCode(role_code);
+    console.log("Response getByRoleCode:", response);
+    if (response.isCompleted) {
+      setFormData((prev) => ({
+        ...prev,
+        role_code: response.data.role_code || "",
+        role_name: response.data.role_name || "",
+        role_description: response.data.role_description || "",
+        role_is_active: !!response.data.role_is_active,
+      }));
+      setMode("edit");
+    } else {
+      console.error("Not found:", response.message);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching role:", error);
+  }
+};
 
+// เรียกเมื่อ roleCode เปลี่ยน และมีค่าเท่านั้น
+useEffect(() => {
+  if (roleCode) {
+    fetchDataByRole(roleCode);
+  } else {
+    setMode("create");
+  }
+}, [roleCode]);
 
-  useEffect(() => {
-    fetchDataByRole();
-  }, []);
 
 
   //สำหรับการส่งข้อมูลไปที่ Server 
