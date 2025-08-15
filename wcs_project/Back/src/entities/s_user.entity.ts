@@ -14,6 +14,15 @@ export class s_user {
     @Column({ length: 10, nullable: true })
     role_code: string; // FK -> s_role
 
+    @Column({ length: 255, nullable: false })
+    user_first_name: string;         // ชื่อ
+
+    @Column({ length: 255, nullable: true })
+    user_last_name: string;          // นามสกุล
+
+    @Column({ length: 100, nullable: true })
+    user_email: string;                  // Email
+
     @Column({ nullable: false, default: true })
     is_active: boolean;
 

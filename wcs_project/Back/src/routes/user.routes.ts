@@ -8,14 +8,14 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Users
- *   description: การจัดการผู้ใช้งานระบบ
+ *   description: System user management
  */
 
 /**
  * @swagger
  * /api/users/login:
  *   post:
- *     summary: เข้าสู่ระบบผู้ใช้
+ *     summary: Login
  *     tags: [Users]
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
@@ -28,11 +28,11 @@ const router = Router();
  *             properties:
  *               username:
  *                 type: string
- *                 description: ชื่อผู้ใช้
+ *                 description: Username
  *                 example: admin
  *               password:
  *                 type: string
- *                 description: รหัสผ่านสำหรับบัญชีผู้ใช้
+ *                 description: Password
  *                 example: 1234
  *     responses:
  *       200:
@@ -48,7 +48,7 @@ const router = Router();
  *                   type: string
  *                   format: date-time
  *       401:
- *         description: ข้อมูลรับรองไม่ถูกต้อง
+ *         description: Invalid credentials
  */
 router.post('/login', userController.login);
 
@@ -56,7 +56,7 @@ router.post('/login', userController.login);
  * @swagger
  * /api/users/create:
  *   post:
- *     summary: สร้างผู้ใช้ใหม่
+ *     summary: Create a new user
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -71,24 +71,35 @@ router.post('/login', userController.login);
  *             properties:
  *               username:
  *                 type: string
- *                 description: ชื่อผู้ใช้
+ *                 description: Username
  *                 example: admin
  *               password:
  *                 type: string
- *                 description: รหัสผ่านสำหรับบัญชีผู้ใช้ (ต้องมีตัวอักษรและตัวเลข)
+ *                 description: Password for user account (must contain letters and numbers)
  *                 example: password123
  *               role_code:
  *                 type: string
- *                 enum: [ADMIN, MANAGEMENT, MANAGER, OFFICER_PC, OFFICER_TL, OWNER]
- *                 description: บทบาทใหม่ของผู้ใช้
+ *                 description: New user roles
  *                 example: ADMIN
+ *               user_first_name:
+ *                 type: string
+ *                 description: First name
+ *                 example: chaiwat
+ *               user_last_name:
+ *                 type: string
+ *                 description: Last name
+ *                 example: chaiwut
+ *               user_email:
+ *                 type: string
+ *                 description: Email
+ *                 example: email.com
  *               is_active:
  *                 type: boolean
- *                 description: แสดงสถานะว่าบัญชีผู้ใช้ใช้งานอยู่หรือไม่ (true = ใช้งาน, false = ไม่ใช้งาน)
+ *                 description: Displays the status of whether the user account is active or not (true = active, false = inactive).
  *                 example: true
  *     responses:
  *       201:
- *         description: สร้างสำเร็จ
+ *         description: Create successfully
  *         content:
  *           application/json:
  *             schema:
@@ -111,7 +122,7 @@ router.post('/login', userController.login);
  *                 update_by:
  *                   type: string
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.post('/create'
 , authenticateToken
@@ -121,7 +132,7 @@ router.post('/create'
  * @swagger
  * /api/users/update/{user_id}:
  *   put:
- *     summary: แก้ไขผู้ใช้
+ *     summary: Edit user
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -132,7 +143,7 @@ router.post('/create'
  *         schema:
  *           type: integer
  *         required: true
- *         description: ไอดีของผู้ใช้ที่ต้องการแก้ไข
+ *         description: The ID of the user to be edited.
  *         example: 1
  *     requestBody:
  *       required: true
@@ -143,26 +154,37 @@ router.post('/create'
  *             properties:
  *               username:
  *                 type: string
- *                 description: ชื่อผู้ใช้ใหม่
+ *                 description: New username
  *                 example: new_username
  *               password:
  *                 type: string
- *                 description: รหัสผ่านใหม่สำหรับบัญชีผู้ใช้ (ต้องมีตัวอักษรและตัวเลข)
+ *                 description: New password
  *                 example: new1234
  *               role_code:
  *                 type: string
- *                 enum: [ADMIN, MANAGEMENT, MANAGER, OFFICER_PC, OFFICER_TL, OWNER]
- *                 description: บทบาทใหม่ของผู้ใช้
+ *                 description: New user roles
  *                 example: USER
+ *               user_first_name:
+ *                 type: string
+ *                 description: First name
+ *                 example: chaiwat
+ *               user_last_name:
+ *                 type: string
+ *                 description: Last name
+ *                 example: chaiwut
+ *               user_email:
+ *                 type: string
+ *                 description: Email
+ *                 example: email.com
  *               is_active:
  *                 type: boolean
- *                 description: แสดงสถานะว่าบัญชีผู้ใช้ใช้งานอยู่หรือไม่ (true = ใช้งาน, false = ไม่ใช้งาน)
+ *                 description: Invalid data transmission notification message
  *                 example: true
  *     responses:
  *       204:
- *         description: แก้ไขสำเร็จ
+ *         description: Edited successfully
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.put('/update/:user_id', authenticateToken, userController.update);
 
@@ -170,7 +192,7 @@ router.put('/update/:user_id', authenticateToken, userController.update);
  * @swagger
  * /api/users/change-password/{user_id}:
  *   put:
- *     summary: เปลี่ยนรหัสผ่านของผู้ใช้
+ *     summary: Change user password
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -181,7 +203,7 @@ router.put('/update/:user_id', authenticateToken, userController.update);
  *         schema:
  *           type: integer
  *         required: true
- *         description: รหัสของผู้ใช้ที่ต้องการเปลี่ยนรหัสผ่าน
+ *         description: The ID of the user who wants to change the password.
  *         example: 1
  *     requestBody:
  *       required: true
@@ -192,11 +214,11 @@ router.put('/update/:user_id', authenticateToken, userController.update);
  *             properties:
  *               oldPassword:
  *                 type: string
- *                 description: รหัสผ่านเดิมของผู้ใช้
+ *                 description: User's original password
  *                 example: oldPassword123
  *               newPassword:
  *                 type: string
- *                 description: รหัสผ่านใหม่ของผู้ใช้
+ *                 description: New user password
  *                 example: newPassword123
  *     responses:
  *       200:
@@ -215,11 +237,11 @@ router.put('/update/:user_id', authenticateToken, userController.update);
  *                 error:
  *                   type: string
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  *       401:
- *         description: ข้อความแจ้งเตือนการไม่ได้รับอนุญาต
+ *         description: Unauthorized notification message
  *       500:
- *         description: ข้อความแจ้งเตือนข้อผิดพลาดของเซิร์ฟเวอร์
+ *         description: Server error notification message
  */
 router.put('/change-password/:user_id'
     , authenticateToken
@@ -229,7 +251,7 @@ router.put('/change-password/:user_id'
  * @swagger
  * /api/users/delete/{user_id}:
  *   delete:
- *     summary: ลบผู้ใช้
+ *     summary: Delete user
  *     tags: [Users]
 *     security:
  *       - bearerAuth: []
@@ -240,13 +262,13 @@ router.put('/change-password/:user_id'
  *         schema:
  *           type: integer
  *         required: true
- *         description: ไอดีของผู้ใช้ที่ต้องการลบ
+ *         description: The ID of the user you want to delete.
  *         example: 1
  *     responses:
  *       204:
- *         description: ลบสำเร็จ
+ *         description: Delete successfully
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.delete('/delete/:user_id'
     , authenticateToken
@@ -256,7 +278,7 @@ router.delete('/delete/:user_id'
  * @swagger
  * /api/users/search:
  *   get:
- *     summary: ค้นหาผู้ใช้
+ *     summary: Search for users
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -267,18 +289,18 @@ router.delete('/delete/:user_id'
  *         schema:
  *           type: string
  *         required: false
- *         description: ชื่อผู้ใช้ที่ต้องการค้นหา
+ *         description: Username to search
  *         example: admin
  *       - in: query
  *         name: role
  *         schema:
  *           type: string
  *         required: false
- *         description: บทบาทของผู้ใช้ที่ต้องการค้นหา
+ *         description: The role of the user who wants to search
  *         example: user
  *     responses:
  *       200:
- *         description: สำเร็จ
+ *         description: succeed
  *         content:
  *           application/json:
  *             schema:
@@ -303,7 +325,7 @@ router.delete('/delete/:user_id'
  *                   update_by:
  *                     type: string
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.get('/search'
     , authenticateToken
@@ -313,7 +335,7 @@ router.get('/search'
  * @swagger
  * /api/users/get-by-user-id/{user_id}:
  *   get:
- *     summary: ดึงข้อมูลผู้ใช้งานระบบตาม user ID
+ *     summary: Retrieve system user data by user ID
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -324,10 +346,10 @@ router.get('/search'
  *         required: true
  *         schema:
  *           type: integer
- *         description: รหัสผู้ใช้งาน (user ID)
+ *         description: User ID
  *     responses:
  *       200:
- *         description: พบข้อมูลผู้ใช้งานระบบ
+ *         description: Found system user information
  *         content:
  *           application/json:
  *             schema:
@@ -335,16 +357,16 @@ router.get('/search'
  *               properties:
  *                 message:
  *                   type: string
- *                   example: พบข้อมูลผู้ใช้งานระบบน
+ *                   example: Found user information on the system
  *                 data:
  *                   $ref: '#/components/schemas/s_user'
  *                 isCompleted:
  *                   type: boolean
  *                   example: true
  *       404:
- *         description: ไม่พบข้อมูลผู้ใช้งานระบบน
+ *         description: No user information found in the system.
  *       400:
- *         description: ข้อผิดพลาดในการดึงข้อมูลผู้ใช้งานระบบนตาม user ID
+ *         description: Error retrieving system user data by user ID
  */
 router.get('/get-by-user-id/:user_id'
     , authenticateToken
@@ -354,7 +376,7 @@ router.get('/get-by-user-id/:user_id'
  * @swagger
  * /api/users/check-username:
  *   get:
- *     summary: ตรวจสอบว่า username มีในระบบหรือไม่
+ *     summary: Check if the username exists in the system.
  *     tags: [Users]
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
@@ -363,11 +385,11 @@ router.get('/get-by-user-id/:user_id'
  *         schema:
  *           type: string
  *         required: true
- *         description: ชื่อผู้ใช้ที่ต้องการตรวจสอบ
+ *         description: Username to verify
  *         example: admin
  *     responses:
  *       200:
- *         description: สำเร็จ
+ *         description: succeed
  *         content:
  *           application/json:
  *             schema:
@@ -375,9 +397,9 @@ router.get('/get-by-user-id/:user_id'
  *               properties:
  *                 exists:
  *                   type: boolean
- *                   description: true ถ้า username มีในระบบ, false ถ้าไม่มี
+ *                   description: true if username exists in the system, false if not
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.get('/check-username'
     , authenticateToken
@@ -387,15 +409,15 @@ router.get('/check-username'
  * @swagger
  * /api/users/get-user-token:
  *   get:
- *     summary: ดึงข้อมูล user จาก token
+ *     summary: Retrieve user data from token
  *     tags: [Users]
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
  *     responses:
  *       200:
- *         description: สำเร็จ
+ *         description: succeed
  *       400:
- *         description: ข้อความแจ้งเตือนการส่งข้อมูลไม่ถูกต้อง
+ *         description: Invalid data transmission notification message
  */
 router.get('/get-user-token'
     , authenticateToken
