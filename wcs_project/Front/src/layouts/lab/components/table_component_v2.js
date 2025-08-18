@@ -4,7 +4,7 @@ import {
     Box,
     Card,
     IconButton,
-   
+
     Table,
     TableBody,
     TableCell,
@@ -16,7 +16,7 @@ import {
     Typography,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Settings as SettingsIcon, QrCode as QrCodeIcon, Print as PrintIcon } from "@mui/icons-material";
-
+import MDButton from "components/MDButton"; // ✅ เพิ่มบรรทัดนี้
 /**
  * ReusableDataTable
  * A flexible, reusable table component with:
@@ -64,6 +64,10 @@ export default function ReusableDataTable({
     onSettings,
     onPrint,
     onBarcode,
+
+    // ✅ ตัวเลือกใหม่
+    actionsVariant = "icons", // "icons" | "buttons" | "both"
+    extraActionButtons = [],  // [{label, color, onClick:(row)=>void}] ปุ่มเสริม
 }) {
     // ---- local state ----
     const [page, setPage] = useState(0);
@@ -74,17 +78,17 @@ export default function ReusableDataTable({
     // Normalize actions list
     const actionsList = useMemo(() => {
         if (!showActions) return [];
-        const all = ["edit", "delete", "settings", "print", "barcode"];
+        const all = ["edit", "delete", "settings", "print", "barcode" ,"stop"];
         return Array.isArray(showActions) ? all.filter((a) => showActions.includes(a)) : all;
     }, [showActions]);
 
     // ทำให้ rows ปลอดภัยเป็นอาเรย์เสมอ
     const safeRows = useMemo(() => {
-    if (Array.isArray(rows)) return rows;
-    if (rows && Array.isArray(rows.items)) return rows.items; // เผื่อ API คืน { items: [...] }
-    if (rows && Array.isArray(rows.data)) return rows.data;   // เผื่อ API คืน { data: [...] }
-    console.warn("ReusableDataTable: `rows` is not an array. Received:", rows);
-    return [];
+        if (Array.isArray(rows)) return rows;
+        if (rows && Array.isArray(rows.items)) return rows.items; // เผื่อ API คืน { items: [...] }
+        if (rows && Array.isArray(rows.data)) return rows.data;   // เผื่อ API คืน { data: [...] }
+        console.warn("ReusableDataTable: `rows` is not an array. Received:", rows);
+        return [];
     }, [rows]);
 
 
@@ -135,12 +139,130 @@ export default function ReusableDataTable({
         }
     };
 
-    return (
-        <Card variant="outlined" sx={{ overflow: "hidden" , borderRadius: 0 }}>
-            {/* Top controls: entries-per-page */}
-           
 
-            <TableContainer sx={{ maxHeight: 640 , borderRadius: 0 }}>
+    // ✅ เรนเดอร์ส่วน Actions เป็น “ไอคอน/ปุ่ม/ทั้งคู่”
+    const renderActions = (row) => {
+        const showIcons = actionsVariant === "icons" || actionsVariant === "both";
+        const showButtons = actionsVariant === "buttons" || actionsVariant === "both";
+
+        return (
+            <Box display="flex" alignItems="center" justifyContent="center" gap={1} flexWrap="wrap">
+                {showIcons && (
+                    <>
+                        {actionsList.includes("edit") && (
+                            <Tooltip title="Edit">
+                                <span>
+                                    <IconButton size="small" onClick={() => onEdit?.(row)}>
+                                        <EditIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("delete") && (
+                            <Tooltip title="Delete">
+                                <span>
+                                    <IconButton size="small" onClick={() => onDelete?.(row)}>
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("settings") && (
+                            <Tooltip title="Settings">
+                                <span>
+                                    <IconButton size="small" onClick={() => onSettings?.(row)}>
+                                        <SettingsIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("print") && (
+                            <Tooltip title="Print">
+                                <span>
+                                    <IconButton size="small" onClick={() => onPrint?.(row)}>
+                                        <PrintIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("barcode") && (
+                            <Tooltip title="Barcode">
+                                <span>
+                                    <IconButton size="small" onClick={() => onBarcode?.(row)}>
+                                        <QrCodeIcon fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("stop") && (
+                            <Tooltip title="Stop">
+                                <span>
+                                    <MDButton
+                                        variant="contained"
+                                        color="error"
+                                        size="small"
+                                        onClick={() => console.log("Approve row:", row)}
+                                    >
+                                        Stop
+                                    </MDButton>
+                                </span>
+                            </Tooltip>
+                        )}
+
+                    </>
+                )}
+
+                {showButtons && (
+                    <>
+                        {actionsList.includes("edit") && (
+                            <MDButton size="small" color="dark" onClick={() => onEdit?.(row)}>
+                                Edit
+                            </MDButton>
+                        )}
+                        {actionsList.includes("delete") && (
+                            <MDButton size="small" color="error" onClick={() => onDelete?.(row)}>
+                                Delete
+                            </MDButton>
+                        )}
+                        {actionsList.includes("settings") && (
+                            <MDButton size="small" color="info" onClick={() => onSettings?.(row)}>
+                                Settings
+                            </MDButton>
+                        )}
+                        {actionsList.includes("print") && (
+                            <MDButton size="small" onClick={() => onPrint?.(row)}>
+                                Print
+                            </MDButton>
+                        )}
+                        {actionsList.includes("barcode") && (
+                            <MDButton size="small" onClick={() => onBarcode?.(row)}>
+                                Barcode
+                            </MDButton>
+                        )}
+                    </>
+                )}
+
+                {/* ✅ ปุ่มเสริมที่ส่งเข้ามาเอง */}
+                {extraActionButtons.map((btn, i) => (
+                    <MDButton
+                        key={i}
+                        size="small"
+                        color={btn.color || "dark"}
+                        onClick={() => btn.onClick?.(row)}
+                    >
+                        {btn.label}
+                    </MDButton>
+                ))}
+            </Box>
+        );
+    };
+
+    return (
+        <Card variant="outlined" sx={{ overflow: "hidden", borderRadius: 0 }}>
+            {/* Top controls: entries-per-page */}
+
+
+            <TableContainer sx={{ maxHeight: 640, borderRadius: 0 }}>
                 <Table stickyHeader={stickyHeader} size={density === "compact" ? "small" : "medium"}>
                     <TableHead style={{ display: "table-header-group" }}>
                         <TableRow>
@@ -201,53 +323,7 @@ export default function ReusableDataTable({
                                 })}
 
                                 {actionsList.length > 0 && (
-                                    <TableCell align="center">
-                                        {actionsList.includes("edit") && (
-                                            <Tooltip title="Edit">
-                                                <span>
-                                                    <IconButton size="small" onClick={() => onEdit?.(row)}>
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        {actionsList.includes("delete") && (
-                                            <Tooltip title="Delete">
-                                                <span>
-                                                    <IconButton size="small" onClick={() => onDelete?.(row)}>
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        {actionsList.includes("settings") && (
-                                            <Tooltip title="Settings">
-                                                <span>
-                                                    <IconButton size="small" onClick={() => onSettings?.(row)}>
-                                                        <SettingsIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        {actionsList.includes("print") && (
-                                            <Tooltip title="Print">
-                                                <span>
-                                                    <IconButton size="small" onClick={() => onPrint?.(row)}>
-                                                        <PrintIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                        {actionsList.includes("barcode") && (
-                                            <Tooltip title="Barcode">
-                                                <span>
-                                                    <IconButton size="small" onClick={() => onBarcode?.(row)}>
-                                                        <QrCodeIcon fontSize="small" />
-                                                    </IconButton>
-                                                </span>
-                                            </Tooltip>
-                                        )}
-                                    </TableCell>
+                                    <TableCell align="center">{renderActions(row)}</TableCell>
                                 )}
                             </TableRow>
                         ))}
@@ -313,4 +389,14 @@ ReusableDataTable.propTypes = {
     onSettings: PropTypes.func,
     onPrint: PropTypes.func,
     onBarcode: PropTypes.func,
+
+    // ✅ ใหม่
+    actionsVariant: PropTypes.oneOf(["icons", "buttons", "both"]),
+    extraActionButtons: PropTypes.arrayOf(
+        PropTypes.shape({
+            label: PropTypes.string.isRequired,
+            color: PropTypes.string,
+            onClick: PropTypes.func,
+        })
+    ),
 };

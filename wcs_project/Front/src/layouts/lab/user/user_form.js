@@ -158,6 +158,7 @@ export default function UserFormDialog({
               value={form.username}
               onChange={handleChange("username")}
               InputProps={{ readOnly: isEdit }}
+              disabled={isEdit}
               error={!!errors.username}
             />
             {errors.username && (

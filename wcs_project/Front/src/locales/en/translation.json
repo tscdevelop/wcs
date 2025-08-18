@@ -155,7 +155,9 @@
         "role":"Permission",
         "view_role":"View Permission",
         "user":"User",
-        "view_user":"View User"
+        "view_user":"View User",
+        "mrs":"MRS",
+        "mrs_control":"MRS Control"
     },
     "role":{
         "role_title_1":"เพิ่มสิทธิ์การใช้งาน",

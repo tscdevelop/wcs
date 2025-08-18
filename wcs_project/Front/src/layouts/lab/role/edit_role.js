@@ -540,12 +540,8 @@ useEffect(() => {
                     </Grid>
                   </Card>
                 </MDBox>
-
               </Grid>
-
             </Grid>
-
-
           </Grid>
         </form>
       </MDBox>

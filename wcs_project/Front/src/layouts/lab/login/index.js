@@ -59,7 +59,7 @@ function LabLogin() {
 
 
   return (
-    <IllustrationLayout description="Sign in" illustration={bgImage}>
+    <IllustrationLayout description="WCS" illustration={bgImage}>
       <MDBox pt={6} component="form" role="form" onSubmit={handleLogin} >
         <Grid
           container
