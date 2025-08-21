@@ -9,7 +9,6 @@ import MDTypography from "components/MDTypography";
 import ReusableDataTable from "../components/table_component_v2";
 import { StyledMenuItem, StyledSelect } from "common/Global.style";
 import { Aisle, Destination } from "common/dataMain";
-import AisleShelfMap from "../components/aisleshelfmove";
 import { TextField, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -161,26 +160,6 @@ const MRSControl = () => {
             <DashboardNavbar />
             <MDBox mt={5}>
                 <Grid container spacing={2} >
-                    {/* Card ฝั่งซ้าย  MAP */}
-                    <Grid item xs={12}>
-                        <Card>
-                            <MDBox mt={3} p={3}>
-                                <MDBox mb={6} display="flex" alignItems="center" height="100%">
-                                    <MDTypography variant="h2" color="inherit">
-                                        T1M Store
-                                    </MDTypography>
-                                </MDBox>
-                                {/* แผนที่แสดงการขยับชั้นวาง (ดูอย่างเดียว) */}
-                                <Grid container justifyContent="center" alignContent="center">
-                                    <AisleShelfMap
-                                        initialEmpty="A"
-                                        stepDelayMs={450}
-                                        onComplete={() => console.log("Move complete")}
-                                    />
-                                </Grid>
-                            </MDBox>
-                        </Card>
-                    </Grid>
                     {/* Card Mannul control */}
                     <Grid item xs={12} >
                         <Card>
