@@ -3,18 +3,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
 import MDTypography from "components/MDTypography";
 
-const LETTERS = ["A", "B", "C", "D", "E", "F"];
+const LETTERS = ["A","B","C","D","E","F","G","H","I","J","K","L"]; // ✅ 12 ช่อง
 const idxOf = (letter) => LETTERS.indexOf(letter);
 
 export default function AisleShelfMap({
-  from,                // "A".."F"
-  to,                  // "A".."F"
-  initialEmpty = "D",  // ช่องว่างเริ่มต้น
-  stepDelayMs = 450,   // ความเร็วแอนิเมชันต่อ 1 สเต็ป
-  trigger,             // เปลี่ยนค่าตัวนี้เพื่อสั่งให้รันรอบใหม่
-  onComplete,          // (optional) callback เมื่อเสร็จ
+  from,                 // "A".."L"
+  to,                   // "A".."L"
+  initialEmpty = "D",   // ช่องว่างเริ่มต้น (ตัวเดียวในทั้ง 12 ช่อง)
+  stepDelayMs = 450,
+  trigger,              // เปลี่ยนค่านี้เพื่อสั่งรอบใหม่
+  onComplete,
 }) {
-  // state ช่องวาง: A..F, ช่องว่างเป็น null
   const [slots, setSlots] = useState(() =>
     LETTERS.map((ch) => (ch === initialEmpty ? null : ch))
   );
@@ -23,10 +22,9 @@ export default function AisleShelfMap({
   const delay = (ms) => new Promise((r) => (timerRef.current = setTimeout(r, ms)));
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
-  // รันทุกครั้งที่ trigger / from / to เปลี่ยน
   useEffect(() => {
     const run = async () => {
-      // รีเซ็ตให้กลับไปสถานะเริ่ม (ช่องว่างตาม initialEmpty)
+      // reset ตาม initialEmpty ทุกครั้ง
       let arr = LETTERS.map((ch) => (ch === initialEmpty ? null : ch));
       setSlots([...arr]);
 
@@ -47,18 +45,18 @@ export default function AisleShelfMap({
 
       let fromIdx = idxOf(from);
       const toIdx = idxOf(to);
-      if (fromIdx === -1 || toIdx === -1) return;      // ป้องกันพารามิเตอร์ผิด
+      if (fromIdx === -1 || toIdx === -1) return;
       if (fromIdx === toIdx) { onComplete?.(); return; }
-      if (arr[fromIdx] == null) return;                // ห้ามย้ายจากช่องว่าง
+      if (arr[fromIdx] == null) return; // ต้นทางต้องไม่ใช่ช่องว่าง
 
-      // 1) ดึง “ช่องว่าง” ให้มาอยู่ตำแหน่งปลายทางก่อน
+      // 1) ดึง "ช่องว่าง" ไปประจำที่ toIdx
       while (indexOfEmpty() !== toIdx) {
         const e = indexOfEmpty();
         if (e < toIdx) await slideIntoEmptyLocal(e + 1, e); // ผลักว่างไปขวา
         else            await slideIntoEmptyLocal(e - 1, e); // ผลักว่างไปซ้าย
       }
 
-      // 2) ผลักของจาก fromIdx → toIdx ทีละช่อง
+      // 2) ผลักของจาก fromIdx -> toIdx ทีละช่อง
       while (fromIdx !== toIdx) {
         const e = indexOfEmpty();
         if (fromIdx < toIdx) {
@@ -74,24 +72,20 @@ export default function AisleShelfMap({
     };
 
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger, from, to, initialEmpty, stepDelayMs]);
 
-  // UI: แถว A–F + ราง MRS ใต้แถว
+  // ===== UI =====
   return (
     <Box>
-      {/* แถวชั้นวางตามภาพที่ให้ */}
+      {/* แถวบน A–F */}
       <Box
         sx={{
-          position: "relative",
           display: "grid",
           gridTemplateColumns: "repeat(6, 1fr)",
-          gap: 0,
-          p: 0,
           border: "2px solid #000",
         }}
       >
-        {slots.map((item, i) => (
+        {slots.slice(0, 6).map((item, i) => (
           <Box
             key={i}
             sx={{
@@ -100,18 +94,61 @@ export default function AisleShelfMap({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              position: "relative",
               background: "#fff",
             }}
           >
-            <MDTypography variant="h2" sx={{ opacity: item ? 1 : 0.2 }}>
-              {LETTERS[i]}
-            </MDTypography>
+            {item ? (
+              <MDTypography variant="h2">{LETTERS[i]}</MDTypography>
+            ) : (
+              <MDTypography
+                variant="h1"
+                color="error"
+                sx={{ fontWeight: "bold", fontSize: "5rem", lineHeight: 1 }}
+              >
+                ✖
+              </MDTypography>
+            )}
           </Box>
         ))}
       </Box>
 
-      {/* รางโดรน MRS ใต้แถว */}
+      {/* แถวล่าง G–L (ทำแบบเดียวกับแถวบน) */}
+      <Box
+        sx={{
+          mt: 1,
+          display: "grid",
+          gridTemplateColumns: "repeat(6, 1fr)",
+          border: "2px solid #000",
+        }}
+      >
+        {slots.slice(6, 12).map((item, i) => (
+          <Box
+            key={i + 6}
+            sx={{
+              height: 120,
+              borderLeft: i === 0 ? "none" : "2px solid #000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#fff",
+            }}
+          >
+            {item ? (
+              <MDTypography variant="h2">{LETTERS[i + 6]}</MDTypography>
+            ) : (
+              <MDTypography
+                variant="h1"
+                color="error"
+                sx={{ fontWeight: "bold", fontSize: "5rem", lineHeight: 1 }}
+              >
+                ✖
+              </MDTypography>
+            )}
+          </Box>
+        ))}
+      </Box>
+
+      {/* ราง MRS ครอบคลุม 12 ช่อง A–L */}
       <Box
         sx={{
           position: "relative",
@@ -120,7 +157,6 @@ export default function AisleShelfMap({
           border: "1px solid rgba(0,0,0,0.12)",
           borderRadius: 1,
           background: "#f5f5f5",
-          overflow: "hidden",
         }}
       >
         <Box
@@ -128,12 +164,12 @@ export default function AisleShelfMap({
             position: "absolute",
             inset: 0,
             display: "grid",
-            gridTemplateColumns: "repeat(6, 1fr)",
+            gridTemplateColumns: "repeat(12, 1fr)", // ✅ 12 ช่อง
             "& > span": { borderRight: "1px dashed rgba(0,0,0,0.3)" },
             "& > span:last-of-type": { borderRight: "none" },
           }}
         >
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <span key={i} />
           ))}
         </Box>
@@ -149,7 +185,7 @@ export default function AisleShelfMap({
             background: "#263238",
             boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
             transition: "left 250ms ease",
-            left: `calc(${(mrsIndex + 0.5) * (100 / 6)}% - 14px)`,
+            left: `calc(${(mrsIndex + 0.5) * (100 / 12)}% - 14px)`,
           }}
         />
       </Box>

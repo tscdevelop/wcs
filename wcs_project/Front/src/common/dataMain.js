@@ -156,3 +156,7 @@ export const Aisle =[
   {value: "Gate_01" , text: "Gate 01"},
   {value: "Gate_02" , text: "Gate 02"}
 ];
+export const Destination =[ 
+  {value: "open" , text: "Open"},
+  {value: "close" , text: "Close"}
+];
