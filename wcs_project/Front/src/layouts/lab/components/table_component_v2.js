@@ -78,7 +78,7 @@ export default function ReusableDataTable({
     // Normalize actions list
     const actionsList = useMemo(() => {
         if (!showActions) return [];
-        const all = ["edit", "delete", "settings", "print", "barcode" ,"stop"];
+        const all = ["edit", "delete", "settings", "print", "barcode" ,"stop","confirm"];
         return Array.isArray(showActions) ? all.filter((a) => showActions.includes(a)) : all;
     }, [showActions]);
 
@@ -204,6 +204,20 @@ export default function ReusableDataTable({
                                         onClick={() => console.log("Approve row:", row)}
                                     >
                                         Stop
+                                    </MDButton>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {actionsList.includes("confirm") && (
+                            <Tooltip title="Confirm">
+                                <span>
+                                    <MDButton
+                                        variant="contained"
+                                        color="success"
+                                        size="small"
+                                        onClick={() => console.log("Approve row:", row)}
+                                    >
+                                        Confirm
                                     </MDButton>
                                 </span>
                             </Tooltip>

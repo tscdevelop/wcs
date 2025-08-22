@@ -92,7 +92,7 @@ import ListTaskPage from "layouts/lab/task/list";
 import MRSControlPage from "layouts/lab/mrs/mrs_control";
 import CreateTaskForm from "layouts/lab/task/add";
 import RoleEditPage from "layouts/lab/role/edit_role";
-
+import PickingCounterPage from "layouts/lab/picking-counter/view_picking";
 
 
 const getComponent = (componentName) => {
@@ -116,6 +116,8 @@ const getComponent = (componentName) => {
         return <UserPage />;
     case "mrs-control":
         return <MRSControlPage />;
+    case "view-picking":
+        return <PickingCounterPage />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:

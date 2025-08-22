@@ -156,7 +156,9 @@
         "user":"User",
         "view_user":"View User",
         "mrs":"MRS",
-        "mrs_control":"MRS Control"
+        "mrs_control":"MRS Control",
+        "picking_counter":"Picking Counter",
+        "view_picking":"View Picking"
     },
     "role":{
         "role_title_1":"เพิ่มสิทธิ์การใช้งาน",
