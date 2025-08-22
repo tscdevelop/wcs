@@ -182,7 +182,6 @@ const PickingCounter = () => {
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            label="Task ID"
                                             placeholder="Task ID"
                                             value={filters.current_task_id}
                                             onChange={handleFilterChange("current_task_id")}
