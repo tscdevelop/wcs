@@ -154,10 +154,15 @@
         "view_role": "View Permission",
         "user": "User",
         "view_user": "View User",
-        "mrs": "MRS",
-        "mrs_control": "MRS Control",
+        "store": "Store",
+        "t_store": "T1 Store",
+        "tm_store": "T1M Store",
         "picking_counter": "Picking Counter",
-        "view_picking": "View Picking"
+        "view_picking": "View Picking",
+        "logs": "Logs",
+        "view_logs": "View Logs",
+        "report": "Report",
+        "view_report": "View Report"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

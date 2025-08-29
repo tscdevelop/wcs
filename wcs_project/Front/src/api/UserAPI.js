@@ -172,50 +172,6 @@ class UserApi {
     }
   }
 
-  // static async login(username, password) {
-  //   try {
-  //     const data = { username, password };
-  //     const endpoint = `/api/users/login`;
-  //     console.log('Request Endpoint:', endpoint);
-
-  //     // เรียก API เพื่อ login
-  //     const apiResponse = await ApiProvider.postData(endpoint, data);
-  //     console.log('API Response:', apiResponse);
-
-  //     // ตรวจสอบว่าการตอบกลับจาก API มี token และ role_code หรือไม่
-  //     if (apiResponse && apiResponse.data && apiResponse.data.token) {
-  //       GlobalVar.setToken(apiResponse.data.token);  // เก็บ token ใน GlobalVar
-  //       GlobalVar.setRole(apiResponse.data.role);  // เก็บ role_code ใน GlobalVar
-  //       GlobalVar.setUserId(apiResponse.data.userID);  // เก็บ user ID ใน GlobalVar
-  //       GlobalVar.setUsername(apiResponse.data.username);  // เก็บ username ใน GlobalVar
-
-  //       return new ApiResponse({
-  //         isCompleted: true,
-  //         isError: false,
-  //         message: 'Login successful',
-  //         data: apiResponse.data
-  //       });
-  //     } else {
-  //       return new ApiResponse({
-  //         isCompleted: false,
-  //         isError: true,
-  //         message: 'Login failed',
-  //         data: null,
-  //         error: 'Invalid response format'
-  //       });
-  //     }
-  //   } catch (error) {
-  //     console.error('Error call api user data:', error.message || error);
-  //     return new ApiResponse({
-  //       isCompleted: false,
-  //       isError: true,
-  //       message: error.message || 'Error call api user data',
-  //       data: null,
-  //       error: error.message || 'Error call api user data'
-  //     });
-  //   }
-  // }
-
 
   static handleTokenExpiration() {
 

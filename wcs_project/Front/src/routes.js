@@ -89,11 +89,13 @@ import LogoutPage from "layouts/lab/logout";
 import RolePage from "layouts/lab/role";
 import UserPage from "layouts/lab/user";
 import ListTaskPage from "layouts/lab/task/list";
-import MRSControlPage from "layouts/lab/mrs/mrs_control";
+import T1StorePage from "layouts/lab/store/t_store";
+import T1MStorePage from "layouts/lab/store/tm_store";
 import CreateTaskForm from "layouts/lab/task/add";
 import RoleEditPage from "layouts/lab/role/edit_role";
 import PickingCounterPage from "layouts/lab/picking-counter/view_picking";
-
+import LogsPage from "layouts/lab/logs/view_logs";
+import ReportPage from "layouts/lab/report/view_report";
 
 const getComponent = (componentName) => {
   switch (componentName) {
@@ -114,10 +116,16 @@ const getComponent = (componentName) => {
         return <ListTaskPage />;
     case "view-user":
         return <UserPage />;
-    case "mrs-control":
-        return <MRSControlPage />;
+    case "t-store":
+        return <T1StorePage />;
+    case "tm-store":
+        return <T1MStorePage />;
     case "view-picking":
         return <PickingCounterPage />;
+    case "view-logs":
+        return <LogsPage />;
+    case "view-report":
+        return <ReportPage />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:

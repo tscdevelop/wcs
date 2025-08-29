@@ -1,30 +1,29 @@
 import React, { useState } from "react";
-import { Grid } from "@mui/material";
+import { Grid, FormControlLabel, Checkbox } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import MDBox from "components/MDBox";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
+import MDTypography from "components/MDTypography";
 import IllustrationLayout from "layouts/authentication/components/IllustrationLayout";
-import bgImage from "assets/images/bg-profile.jpeg";
-// import lgImage from "assets/images/logo.png";
+import bgImage from "assets/images/wcs.jpg";
 import UserApi from "../../../api/UserAPI";
 import { GlobalVar } from "../../../common/GlobalVar";
-import MDTypography from "components/MDTypography";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
 
-
 function LabLogin() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("1234");
-  const [errorMessage, setErrorMessage] = useState(""); // state สำหรับข้อความ error
-  const navigate = useNavigate();
+  const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    setErrorMessage(""); // เคลียร์ error ก่อนเริ่มทำการ login
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setErrorMessage("");
     try {
       const response = await UserApi.login(username, password);
       if (response.isCompleted && !response.isError) {
@@ -39,204 +38,116 @@ function LabLogin() {
           GlobalVar.setUserId(userID);
           GlobalVar.setRole(role);
           GlobalVar.setUsername(userName);
-
-
-
+          // เก็บ remember me ตามต้องการ (เช่น localStorage) ถ้าจะใช้
+          // if (remember) localStorage.setItem("remember", "1");
           navigate("/home");
         } else {
           setErrorMessage("ล็อกอินไม่สำเร็จ: ข้อมูลไม่ครบถ้วน");
-          console.error("ล็อกอินไม่สำเร็จ: ข้อมูลไม่ครบถ้วน", data);
         }
       } else {
         setErrorMessage("ล็อกอินไม่สำเร็จ");
       }
-    } catch (error) {
+    } catch (err) {
       setErrorMessage("เกิดข้อผิดพลาดระหว่างการล็อกอิน");
-      console.error("เกิดข้อผิดพลาดระหว่างการล็อกอิน", error);
+      console.error(err);
     }
   };
 
-
+  const inputSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "12px",
+      backgroundColor: "#fff",
+    },
+  };
 
   return (
-    <IllustrationLayout description="WCS" illustration={bgImage}>
-      <MDBox pt={6} component="form" role="form" onSubmit={handleLogin} >
-        <Grid
-          container
-          direction="column"
-          alignItems="center"
-          spacing={2}
-          justifyContent="center"
-        >
-          {/* Username Field */}
-          <Grid
-            item
-            sx={{
-              width: { xs: "100%", sm: "100%" },
-              maxWidth: {
-                xs: "none",
-                sm: "none",
-                md: 450,
-                lg: 500,
-                xl: 600,
-              },
-              mx: "auto",
-              p: { xs: 2, sm: 0 },
-            }}
-          >
-
+    <IllustrationLayout
+      title="Sign In"
+      // description="(optional subtitle)"
+      illustration={bgImage}
+    >
+      <MDBox component="form" role="form" onSubmit={handleLogin}>
+        <Grid container direction="column" spacing={2}>
+          {/* Username */}
+          <Grid item>
             <MDInput
-              label="Username"
-              type="text"
+              fullWidth
+              label="" // ให้เป็น placeholder แบบในรูป
+              placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              fullWidth
-              placeholder="Username"
+              sx={inputSx}
             />
           </Grid>
 
-          {/* Password Field */}
-          <Grid
-            item
-            sx={{
-              width: { xs: "100%", sm: "100%" },
-              maxWidth: {
-                xs: "none",
-                sm: "none",
-                md: 450,
-                lg: 500,
-                xl: 600,
-              },
-              mx: "auto",
-              p: { xs: 2, sm: 0 },
-            }}
-          >
-            <MDBox>
-              <MDInput
-                label="Password"
-                type={showPassword ? "text" : "password"} // 👈 Toggle type
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                fullWidth
-                placeholder="Password"
-                InputProps={{
-                  endAdornment: (
-                    <IconButton
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  ),
-                }}
-              />
-            </MDBox>
-
-          </Grid>
-
-          {/* Language Selection
+          {/* Password */}
           <Grid item>
-            <Box display="flex" justifyContent="center" gap={2}>
-              <MDButton
-                onClick={() => handleLanguageChange("th")}
-                variant={language === "th" ? "contained" : "outlined"}
-                color="warning"
-                sx={{ minWidth: 70, height: 30, padding: "0 8px" }}
-                startIcon={
-                  <Box
-                    component="img"
-                    src={thaiflag}
-                    alt="TH"
-                    sx={{
-                      width: 25,
-                      height: 25,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
-                }
-              >
-                TH
-              </MDButton>
-
-              <MDButton
-                onClick={() => handleLanguageChange("en")}
-                variant={language === "en" ? "contained" : "outlined"}
-                color="warning"
-                sx={{ minWidth: 70, height: 30, padding: "0 8px" }}
-                startIcon={
-                  <Box
-                    component="img"
-                    src={ukflag}
-                    alt="EN"
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
-                }
-              >
-                EN
-              </MDButton>
-            </Box>
-          </Grid> */}
-
-          {/* Login Button */}
-          <Grid
-            item
-            sx={{
-              width: { xs: "100%", sm: "100%" },
-              maxWidth: {
-                xs: "none",
-                sm: "none",
-                md: 450,
-                lg: 500,
-                xl: 600,
-              },
-              mx: "auto",
-              p: { xs: 2, sm: 0 },
-            }}
-          >
-            <MDBox mt={2} >
-              <MDButton
-                variant="gradient"
-                size="large"
-                fullWidth
-                type="submit"
-                sx={{
-                  background: "linear-gradient(180deg, #2c2c2c, #1a1a1a)",
-                  color: "#fff", // ตัวหนังสือสีขาว
-                }}
-              >
-                Login
-              </MDButton>
-            </MDBox>
-
+            <MDInput
+              fullWidth
+              label=""
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              sx={inputSx}
+              InputProps={{
+                endAdornment: (
+                  <IconButton onClick={() => setShowPassword((p) => !p)} edge="end" size="small">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                ),
+              }}
+            />
           </Grid>
 
-          {/* แสดงข้อความ Error */}
-          {errorMessage && (
-            <Grid
-              item
-              container
-              justifyContent="flex-end"
+          {/* Remember me */}
+          <Grid item>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <MDTypography variant="button" color="text" sx={{ opacity: 0.9 }}>
+                  Remember me
+                </MDTypography>
+              }
+              sx={{ ml: 0.4 }}
+            />
+          </Grid>
+
+          {/* Login button */}
+          <Grid item sx={{ display: "flex", justifyContent: "center" }}>
+            <MDButton
+              size="large"
+              type="submit"
               sx={{
-                width: { xs: "100%", sm: "100%" },
-                maxWidth: {
-                  xs: "none",
-                  sm: "none",
-                  md: 450,
-                  lg: 500,
-                  xl: 600,
+                width: 300,  // ✅ ลดความกว้าง (ปรับตัวเลขได้)
+                color: "#fff",                 // ✅ ตัวหนังสือสีขาว
+                height: 46,
+                borderRadius: "24px",
+                textTransform: "none",
+                fontWeight: 500,
+                fontSize: 16,
+                background: "linear-gradient(180deg,#4f85ff,#2f66f5)",
+                boxShadow: "0 8px 18px rgba(47,102,245,0.35)",
+                "&:hover": {
+                  background: "linear-gradient(180deg,#4a7df2,#2b5de2)",
                 },
-                mx: "auto",
-                p: { xs: 2, sm: 0 },
               }}
             >
-              <MDTypography variant="caption" color="error" align="center">
+              Log in
+            </MDButton>
+          </Grid>
+
+
+          {/* Error */}
+          {errorMessage && (
+            <Grid item>
+              <MDTypography variant="caption" color="error">
                 {errorMessage}
               </MDTypography>
             </Grid>

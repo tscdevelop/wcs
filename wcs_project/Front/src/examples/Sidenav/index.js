@@ -1210,6 +1210,7 @@ function Sidenav({ color, routes, ...rest }) {
   const location = useLocation();
   const navigate = useNavigate(); // เพิ่ม useNavigate
   const { pathname } = location;
+  // eslint-disable-next-line no-unused-vars
   const [logoUrl, setLogoUrl] = useState(""); // สถานะสำหรับเก็บ URL ของโลโก้
   const [userID, setUserID] = useState(null);
 
@@ -1288,6 +1289,7 @@ function Sidenav({ color, routes, ...rest }) {
   }, []);
 
   // const closeSidenav = () => setMiniSidenav(dispatch, true);
+  // eslint-disable-next-line no-unused-vars
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
   useEffect(() => {
     setOpenCollapse(collapseName);
@@ -1321,73 +1323,95 @@ function Sidenav({ color, routes, ...rest }) {
   // });
 
   const renderHeader = () => (
+  <MDBox
+    display="flex"
+    flexDirection="column"
+    justifyContent="center"
+    alignItems="center"
+    sx={{
+      position: "relative",
+      backgroundColor: "#fff",
+      height: { xs: 72, sm: 84 },
+    }}
+  >
+    {/* แถวโลโก้ + ชื่อระบบ */}
     <MDBox
       display="flex"
-      flexDirection="column"
-      justifyContent="center"
       alignItems="center"
-      sx={{
-        position: "relative", // ใช้สำหรับการวางตำแหน่งเส้นด้านล่าง
-        backgroundColor: "#ffffffff", // สีพื้นหลังของ Header
-        height: "100px", // ปรับความสูง Header ตามต้องการ
-      }}
+      justifyContent="flex-start"
+      width="100%"
+      px={3}
+      sx={{ height: "100%" }}
     >
-      {/* Logo และ Hamburger Icon */}
-      <MDBox
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        width="100%" // จัดเรียงให้ปุ่ม Hamburger และ Logo อยู่ในแกนเดียวกัน
-        px={4} // ระยะห่างด้านข้าง
-        sx={{
-          height: "80px", // ความสูงสำหรับเนื้อหาใน Header
-        }}
+      {/* ✅ โลโก้ (SVG) — แสดงตลอด */}
+      <svg
+        viewBox="0 0 64 64"
+        width="26"
+        height="26"
+        style={{ display: "block", flexShrink: 0, marginRight: 10 }}
+        role="img"
+        aria-label="WCS logo"
       >
-        {/* Logo */}
-        <MDBox component={Link} to="/home" display="flex" alignItems="center">
-          {logoUrl && (
-            <MDBox
-              component="img"
-              src={logoUrl} // โลโก้จาก API
-              alt="Hospital Logo"
-              sx={{
-                maxHeight: "60px",
-                objectFit: "contain", // ปรับขนาดโลโก้ให้พอดี
-              }}
-            />
-          )}
-        </MDBox>
-        {/* Hamburger Icon */}
-        <MDBox
-          onClick={handleMiniSidenav}
-          sx={{
-            cursor: "pointer",
-            "&:hover": {
-              backgroundColor: "white",
-              borderRadius: "50%", // ให้มีความโค้งเมื่อ hover
-            },
-          }}
-        >
-          <Icon sx={{ fontSize: "30px", color: "#FFFFFF !important" }}>
-            {miniSidenav ? "menu_open" : "menu"}
-          </Icon>
-        </MDBox>
-      </MDBox>
+        <path
+          d="M12 20v24l20 10 20-10V20L32 10 12 20z"
+          fill="none"
+          stroke="#2b2b6a"
+          strokeWidth="3"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M32 10v40"
+          fill="none"
+          stroke="#2b2b6a"
+          strokeWidth="3"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d="M12 20l20 10 20-10"
+          fill="none"
+          stroke="#2b2b6a"
+          strokeWidth="3"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
-      {/* เส้นชิดขอบล่าง */}
-      <MDBox
-        sx={{
-          position: "absolute",
-          bottom: 0, // ชิดขอบล่าง
-          left: "50%", // ตั้งจุดเริ่มต้นให้อยู่กึ่งกลาง
-          transform: "translateX(-50%)", // เลื่อนเส้นให้อยู่ตรงกลาง
-          width: "70%", // ครอบคลุมความกว้างทั้งหมด
-          height: "1px", // ความหนาของเส้น
-          backgroundColor: "#565656ff", // สีของเส้น
-        }}
-      />
+      {/* ชื่อระบบ — โชว์เมื่อไม่ mini (ถ้าอยากให้โชว์ตลอด ให้เอาเงื่อนไข !miniSidenav ออก) */}
+      {!miniSidenav && (
+  <MDTypography
+    variant="subtitle1"        // เล็กลงกว่าก่อน (เดิม h6)
+    fontWeight="bold"
+    sx={{
+      fontSize: { xs: 12, sm: 12 }, // ✅ ปรับขนาดตามหน้าจอ
+      lineHeight: 1.2,
+      color: "#0b0b0b",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      flex: 1,                     // ✅ ให้ยืด/หดได้ใน flex row
+      minWidth: 0,                 // ✅ จำเป็นเพื่อให้ ellipsis ทำงานใน flex
+    }}
+  >
+    Warehouse Control System
+  </MDTypography>
+)}
+
     </MDBox>
-  );
+
+    {/* เส้นคั่นด้านล่าง */}
+    <MDBox
+      sx={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        height: "1px",
+        backgroundColor: "#e5e7eb",
+      }}
+    />
+  </MDBox>
+);
+
 
   // ฟังก์ชันสำหรับเรนเดอร์ nested collapse
   const renderNestedCollapse = (collapse) => {

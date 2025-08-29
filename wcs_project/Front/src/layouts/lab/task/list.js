@@ -1,5 +1,5 @@
-import React, { useState,useMemo } from "react"; // นำเข้า useState และ useEffect จาก React
-import { Card,Grid } from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
+import React, { useState, useMemo } from "react"; // นำเข้า useState และ useEffect จาก React
+import { Card, Grid } from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout"; // นำเข้า layout component
 import DashboardNavbar from "examples/Navbars/DashboardNavbar"; // นำเข้า navbar component
 import MDBox from "components/MDBox";
@@ -13,6 +13,10 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 // import { GlobalVar } from "../../../common/GlobalVar";
 import ReusableDataTable from "../components/table_component_v2";
 // import MDButton from "components/MDButton";
+import TaskDetailDialog from "../components/task_detail_component";
+import Link from "@mui/material/Link"; // ใช้ลิงก์ของ MUI
+import TaskAPI from "api/TaskAPI";
+import CreateTaskDialog from "../components/card_create_task";
 
 
 const ListTask = () => {
@@ -27,6 +31,60 @@ const ListTask = () => {
         task_state: "",
         user_id: "",
     });
+
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [openCreate, setOpenCreate] = useState(false);
+
+
+    const handleCreateTask = async (payload) => {
+        // payload: { sku, qty, priority }
+        await TaskAPI.createTask(payload);
+        // TODO: ถ้าต้องการรีเฟรชตาราง ให้ดึงข้อมูลใหม่ที่นี่
+    };
+
+    const openTaskDialog = (row) => {
+        // map row -> โครง task ของ Dialog (ใส่ mock ให้ field ที่ไม่มี)
+        setSelectedTask({
+            header: {
+                taskId: row.task_id,
+                store: row.store,
+                priority: row.priority,
+                dateTime: row.date,
+            },
+            left: {
+                taskState: row.task_state,
+                user: row.user_id,
+                orderId: "-",
+                skus: "-",
+                qty: "-",
+                errorMessage: "-",
+            },
+            right: {
+                mrsId: "-",
+                taskId: row.task_id,
+                sourceId: "-",
+                targetAisleId: "-",
+                action: "-",
+            },
+            middle: {
+                operatorMode: "-",
+                result: "-",
+                retryCount: "-",
+                errorCode: "-",
+                errorMessage: "-",
+            },
+            times: {
+                lastOpen: "-",
+                lastClose: "-",
+                lastEvent: "-",
+                userConfirmAt: "-",
+                finishAll: "-",
+            },
+            battery: { before: "-", after: "-" },
+        });
+        setOpenDialog(true);
+    };
 
 
     const Task_rows = [
@@ -151,14 +209,33 @@ const ListTask = () => {
     const Task_columns = [
         { field: "date", label: "Date/Time" },
         { field: "req_date", label: "Req.Date/Time" },
-        { field: "task_id", label: "Task ID" },
+        {
+            field: "task_id",
+            label: "Task ID",
+            renderCell: (value, row) => (
+                <Link
+                    component="button"
+                    underline="hover"
+                    sx={{ fontWeight: 700 }}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openTaskDialog(row);
+                    }}
+                >
+                    {value}
+                </Link>
+            ),
+        },
         { field: "priority", label: "Priority" },
         { field: "store", label: "Store" },
         { field: "task_state", label: "Task State" },
         { field: "user_id", label: "User" },
     ];
 
- const handleFilterChange = (name) => (e) =>
+
+
+    const handleFilterChange = (name) => (e) =>
         setFilters((prev) => ({ ...prev, [name]: e.target.value }));
 
 
@@ -269,7 +346,7 @@ const ListTask = () => {
                                             }}
                                         />
                                     </Grid>
-                                    
+
                                     {/* Priority  */}
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
@@ -360,9 +437,9 @@ const ListTask = () => {
                                     </Grid>
                                     {/*  ปุ่มกด  */}
                                     <Grid item xs={12} sm={6} md={3} display="flex" justifyContent="center" alignItems="flex-end">
-                                            <MDButton variant="outlined" color="info" hight="100">
-                                                +  New Task
-                                            </MDButton>
+                                        <MDButton variant="outlined" color="info" hight="100" onClick={() => setOpenCreate(true)}>
+                                            +  New Task
+                                        </MDButton>
                                     </Grid>
                                 </Grid>
 
@@ -370,10 +447,15 @@ const ListTask = () => {
                                 <MDBox mt={5}>
                                     <ReusableDataTable
                                         columns={Task_columns}
-                                        rows={filteredTaskRows}   // ✅ ส่งผลลัพธ์ที่ถูกกรองเข้า table
+                                        rows={filteredTaskRows}
                                         idField="task_id"
                                         defaultPageSize={10}
-                                        
+                                        // ✅ ส่ง callback ตอนคลิก cell
+                                        onCellClick={(row, column) => {
+                                            if (column.field === "task_id") {
+                                                openTaskDialog(row);
+                                            }
+                                        }}
                                     />
                                 </MDBox>
                             </MDBox>
@@ -382,6 +464,17 @@ const ListTask = () => {
                 </Grid>
             </MDBox>
 
+            <TaskDetailDialog
+                open={openDialog}
+                onClose={() => setOpenDialog(false)}
+                task={selectedTask}
+            />
+
+            <CreateTaskDialog
+                open={openCreate}
+                onClose={() => setOpenCreate(false)}
+                onSave={handleCreateTask}
+            />
 
         </DashboardLayout>
     );
