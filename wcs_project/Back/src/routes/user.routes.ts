@@ -36,7 +36,7 @@ const router = Router();
  *                 example: 1234
  *     responses:
  *       200:
- *         description: สำเร็จ
+ *         description: Login Successfully
  *         content:
  *           application/json:
  *             schema:
