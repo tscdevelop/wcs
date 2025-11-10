@@ -72,3 +72,31 @@ export const getAll = async (req: Request, res: Response) => {
         return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.aisle', true, reqUsername);
     }
 };
+
+
+export const getCodeDropdown = async (req: Request, res: Response) => {
+    const operation = 'AisleController.getCodeDropdown';
+
+    // ดึง username จาก token
+    const reqUsername = RequestUtils.getUsernameToken(req, res);
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
+    try {
+
+        // เรียก service getCodeDropdown เพื่อดึงข้อมูล
+        const response = await aisleService.getCodeDropdown();
+
+        // ส่ง response กลับ
+        return ResponseUtils.handleResponse(res, response);
+
+    } catch (error: any) {
+        // Log ข้อผิดพลาด
+        console.error(`Error during ${operation}:`, error);
+
+        // จัดการข้อผิดพลาดและส่ง response
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.aisle', true, reqUsername);
+    }
+};
+
