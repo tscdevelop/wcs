@@ -17,23 +17,23 @@ const HomePage = () => {
 
   // รายการเมนู
   const menuItems = [
-    { title: lang.msg("home.factory"), path: "/data/factory" },
-    { title: lang.msg("home.warehouse"), path: "/data/warehouse" },
-    { title: lang.msg("home.zone"), path: "/data/zone" },
-    { title: lang.msg("home.location"), path: "/data/location" },
-    { title: lang.msg("home.supplier"), path: "/data/supplier" },
-    { title: lang.msg("home.transportyard"), path: "/data/dockyard" },
-    { title: lang.msg("home.raw_material_setting"), path: "/data/raw" },
-    { title: lang.msg("home.fg_setting"), path: "/data/finishedgood" },
-    { title: lang.msg("home.semi_fg_setting"), path: "/data/semi" },
-    { title: lang.msg("home.tooling_setting"), path: "/data/tooling" },
-    { title: lang.msg("home.unit"), path: "/data/unit" },
-    { title: lang.msg("home.criterion"), path: "/data/criterion" },
-    { title: lang.msg("home.raw_info"), path: "/data/rawinfo" },
-    { title: lang.msg("home.fg_info"), path: "/data/fginfo" },
-    { title: lang.msg("home.semi_fg_info"), path: "/data/semifg" },
-    { title: lang.msg("home.tooling_info"), path: "/data/toolinginfo" },
-    { title: lang.msg("home.role"), path: "/data/role" },
+    // { title: lang.msg("home.factory"), path: "/data/factory" },
+    // { title: lang.msg("home.warehouse"), path: "/data/warehouse" },
+    // { title: lang.msg("home.zone"), path: "/data/zone" },
+    // { title: lang.msg("home.location"), path: "/data/location" },
+    // { title: lang.msg("home.supplier"), path: "/data/supplier" },
+    // { title: lang.msg("home.transportyard"), path: "/data/dockyard" },
+    // { title: lang.msg("home.raw_material_setting"), path: "/data/raw" },
+    // { title: lang.msg("home.fg_setting"), path: "/data/finishedgood" },
+    // { title: lang.msg("home.semi_fg_setting"), path: "/data/semi" },
+    // { title: lang.msg("home.tooling_setting"), path: "/data/tooling" },
+    // { title: lang.msg("home.unit"), path: "/data/unit" },
+    // { title: lang.msg("home.criterion"), path: "/data/criterion" },
+    // { title: lang.msg("home.raw_info"), path: "/data/rawinfo" },
+    // { title: lang.msg("home.fg_info"), path: "/data/fginfo" },
+    // { title: lang.msg("home.semi_fg_info"), path: "/data/semifg" },
+    // { title: lang.msg("home.tooling_info"), path: "/data/toolinginfo" },
+    // { title: lang.msg("home.role"), path: "/data/role" },
   ];
 
   const Officer_Table = [
@@ -111,7 +111,7 @@ if (userRole === "OFFICER_TL") {
         {!hiddenRoles.includes(userRole) && (
           <>
             <Typography variant="h4" fontWeight="bold" gutterBottom>
-              {lang.msg("title.menu")}
+              {lang.msg("Home Page")}
             </Typography>
             <Box
               mb={2}

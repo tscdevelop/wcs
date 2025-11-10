@@ -53,6 +53,9 @@ export default function ReusableDataTable({
   // ✅ ใหม่สำหรับ Confirm SKU column
   confirmSkuDisabled = false, // boolean หรือ (row)=>boolean
   onConfirmSku,
+
+  onRowClick,
+  selectedId,
 }) {
   // ---- local state ----
   const [page, setPage] = useState(0);
@@ -317,43 +320,59 @@ export default function ReusableDataTable({
           </TableHead>
 
           <TableBody>
-            {pagedRows.map((row, idx) => (
-              <TableRow hover key={getRowId(row, idx)}>
-                {columns.map((col) => {
-                  // ✅ ถ้าเป็นคอลัมน์ยืนยัน SKU ให้ใช้ปุ่ม
-                  if (col.type === "confirmSku") {
-                    return (
-                      <TableCell key={col.field} align={col.align || "left"}>
-                        {renderConfirmSkuCell(row)}
-                      </TableCell>
-                    );
-                  }
+  {pagedRows.map((row, idx) => {
+    const rowId = getRowId(row, idx);
+    const isSelected = rowId === selectedId;
 
-                  // คอลัมน์ทั่วไป
-                  const value = getValue(row, col);
-                  return (
-                    <TableCell key={col.field} align={col.align || "left"}>
-                      {col.renderCell ? col.renderCell(value, row) : value}
-                    </TableCell>
-                  );
-                })}
+    return (
+      <TableRow
+        hover
+        key={rowId}
+        onClick={() => onRowClick?.(row)}
+        selected={isSelected}
+        sx={{
+          cursor: "pointer",
+          backgroundColor: isSelected ? "rgba(25, 118, 210, 0.12)" : "inherit",
+          "&:hover": { backgroundColor: isSelected ? "rgba(25, 118, 210, 0.18)" : "#f5f5f5" },
+        }}
+      >
+        {columns.map((col) => {
+          // ✅ ถ้าเป็นคอลัมน์ยืนยัน SKU ให้ใช้ปุ่ม
+          if (col.type === "confirmSku") {
+            return (
+              <TableCell key={col.field} align={col.align || "left"}>
+                {renderConfirmSkuCell(row)}
+              </TableCell>
+            );
+          }
 
-                {actionsList.length > 0 && (
-                  <TableCell align="center">{renderActions(row)}</TableCell>
-                )}
-              </TableRow>
-            ))}
+          // คอลัมน์ทั่วไป
+          const value = getValue(row, col);
+          return (
+            <TableCell key={col.field} align={col.align || "left"}>
+              {col.renderCell ? col.renderCell(value, row) : value}
+            </TableCell>
+          );
+        })}
 
-            {safeRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={columns.length + (actionsList.length > 0 ? 1 : 0)}>
-                  <Typography variant="body2" color="text.secondary" align="center">
-                    No data
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+        {actionsList.length > 0 && (
+          <TableCell align="center">{renderActions(row)}</TableCell>
+        )}
+      </TableRow>
+    );
+  })}
+
+  {safeRows.length === 0 && (
+    <TableRow>
+      <TableCell colSpan={columns.length + (actionsList.length > 0 ? 1 : 0)}>
+        <Typography variant="body2" color="text.secondary" align="center">
+          No data
+        </Typography>
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
         </Table>
       </TableContainer>
 
@@ -418,4 +437,8 @@ ReusableDataTable.propTypes = {
   // ✅ ใหม่
   confirmSkuDisabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onConfirmSku: PropTypes.func,
+
+  onRowClick: PropTypes.func,
+selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
 };

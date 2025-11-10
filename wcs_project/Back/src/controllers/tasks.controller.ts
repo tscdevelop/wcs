@@ -86,6 +86,31 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
         }
     };
 
+    const deleteTask = async (req: Request, res: Response) => {
+        const operation = 'TasksController.deleteTask';
 
-    return { create, confirm, getAll };
+        // ดึง username ของผู้ทำการลบ
+        const reqUsername = RequestUtils.getUsernameToken(req, res);
+        if (!reqUsername) {
+            return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+        }
+
+        const task_id = req.params.task_id;
+        if (!task_id) {
+            return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
+        }
+
+        try {
+            // เรียก service deleteTask
+            const response = await orchestrator.deleteTask(task_id, reqUsername);
+
+            // ส่งผลลัพธ์กลับ client
+            return ResponseUtils.handleResponse(res, response);
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error);
+            return ResponseUtils.handleErrorDelete(res, operation, error.message, 'item.task', true, reqUsername);
+        }
+    };
+
+    return { create, confirm, getAll, deleteTask };
 }

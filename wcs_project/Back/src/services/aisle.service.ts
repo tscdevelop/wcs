@@ -9,6 +9,7 @@ import { AisleStatus, ControlSource, LogResult, MrsLogAction } from "../common/g
 import { MRS } from "../entities/mrs.entity";
 import { MrsLog } from "../entities/mrs_log.entity";
 import { MrsGateway } from "../gateways/mrs.gateway";
+import { AisleDropdownModel } from "../models/aisle_dropdown.model";
 
 export class AisleService {
     private aisleRepository : Repository<Aisle>;
@@ -329,6 +330,7 @@ export class AisleService {
                     `DATE_FORMAT(aisle.last_closed_at, '%d/%m/%Y %H:%i:%s') AS last_closed_at`,
                     `DATE_FORMAT(aisle.last_event_at, '%d/%m/%Y %H:%i:%s') AS last_event_at`,
                 ])
+                .orderBy('aisle.aisle_id', 'ASC')
                 .getRawMany();
     
             if (!rawData || rawData.length === 0) {
@@ -344,6 +346,41 @@ export class AisleService {
                 return response.setIncomplete(lang.msgErrorFunction(operation, error.message));
             }
     
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        }
+    }
+
+    async getCodeDropdown(
+        manager?: EntityManager
+    ): Promise<ApiResponse<any>> {
+        const response = new ApiResponse<any>();
+        const operation = 'AisleService.getCodeDropdown';
+    
+        try {
+            const repository = manager ? manager.getRepository(Aisle) : this.aisleRepository;
+    
+            // Query ข้อมูลทั้งหมดที่มี so_id เดียวกัน
+            const rawData = await repository.createQueryBuilder('aisle')
+                .select([
+                    "aisle.aisle_id",
+                    "CONCAT(aisle.aisle_code, ' ', aisle.bank_code) AS aisle_code_zone",
+                ])
+                .where("aisle.aisle_code IS NOT NULL") // กรองค่า null ออก
+                .distinct(true) // เพื่อให้ได้ค่าที่ไม่ซ้ำกัน
+                .getRawMany();
+    
+            // หากไม่พบข้อมูล
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('item.aisle'));
+            }
+    
+            // แปลงข้อมูลให้อยู่ในรูปแบบ AisleDropdownModel
+            const data = rawData.map((so) => new AisleDropdownModel(so.aisle_aisle_id, so.aisle_code_zone));
+    
+            // ส่งข้อมูลกลับ
+            return response.setComplete(lang.msgFound('item.aisle'), data);
+        } catch (error: any) {
+            console.error(`Error in ${operation}`, error);
             throw new Error(lang.msgErrorFunction(operation, error.message));
         }
     }

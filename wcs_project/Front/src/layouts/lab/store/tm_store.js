@@ -11,7 +11,7 @@ import { StyledMenuItem, StyledSelect } from "common/Global.style";
 import { Aisle } from "common/dataMain";
 import { TextField, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+// import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AisleAPI from "api/AisleAPI";
 import MrsAPI from "api/MrsAPI";
 
@@ -30,7 +30,7 @@ const T1MStore = () => {
     // สำหรับฟิลเตอร์ Aisle
     const [filters, setFilters] = useState({
         aisle_code: "",
-        status: "",
+        mrs_status: "",
         bank_code: "",
         last_opened_at: "",   // dd/mm/yyyy
         last_closed_at: "",  // dd/mm/yyyy
@@ -40,10 +40,10 @@ const T1MStore = () => {
     // ...เเสดงข้อมูล Row ใน Table MRS
     const [MrsAll, setMrsAll] = useState([]);
     const [filtersMrs, setFiltersMrs] = useState({
-        task_code: "",
-        target_aisle_id: "",
-        target_bank_code: "",
-        status: "",
+        mrs_code: "",
+        current_aisle_code: "",
+        waiting_id: "",
+        mrs_status: "",
     });
 
 
@@ -123,36 +123,36 @@ const T1MStore = () => {
 
 
     // แปลงสตริงวันที่ให้เป็น dd/mm/yyyy (รองรับ dd-mm-yyyy, dd.mm.yyyy, ISO, Date)
-    const normalizeDMY = (v) => {
-        if (!v) return "";
-        const s = String(v).trim();
+    // const normalizeDMY = (v) => {
+    //     if (!v) return "";
+    //     const s = String(v).trim();
 
-        // จับ dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy ที่โผล่ที่ไหนก็ได้
-        const m = s.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
-        if (m) {
-            const d = m[1].padStart(2, "0");
-            const mo = m[2].padStart(2, "0");
-            return `${d}/${mo}/${m[3]}`;
-        }
+    //     // จับ dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy ที่โผล่ที่ไหนก็ได้
+    //     const m = s.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+    //     if (m) {
+    //         const d = m[1].padStart(2, "0");
+    //         const mo = m[2].padStart(2, "0");
+    //         return `${d}/${mo}/${m[3]}`;
+    //     }
 
-        // ลอง parse date อื่น ๆ (เช่น ISO) แล้ว format เป็น dd/mm/yyyy
-        const d = new Date(s);
-        if (!isNaN(d)) {
-            const dd = String(d.getDate()).padStart(2, "0");
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const yy = d.getFullYear();
-            return `${dd}/${mm}/${yy}`;
-        }
-        return "";
-    };
+    //     // ลอง parse date อื่น ๆ (เช่น ISO) แล้ว format เป็น dd/mm/yyyy
+    //     const d = new Date(s);
+    //     if (!isNaN(d)) {
+    //         const dd = String(d.getDate()).padStart(2, "0");
+    //         const mm = String(d.getMonth() + 1).padStart(2, "0");
+    //         const yy = d.getFullYear();
+    //         return `${dd}/${mm}/${yy}`;
+    //     }
+    //     return "";
+    // };
 
-    // ใช้เทียบ rowDate กับ filterDate (ให้ผ่านถ้าตรงเป๊ะหรือเริ่มต้นตรง)
-    const matchDate = (rowDate, filterDate) => {
-        const rowNorm = normalizeDMY(rowDate);
-        const fNorm = normalizeDMY(filterDate);
-        if (!fNorm) return true;           // ไม่มีฟิลเตอร์ = ผ่าน
-        return rowNorm === fNorm || rowNorm.startsWith(fNorm);
-    };
+    // // ใช้เทียบ rowDate กับ filterDate (ให้ผ่านถ้าตรงเป๊ะหรือเริ่มต้นตรง)
+    // const matchDate = (rowDate, filterDate) => {
+    //     const rowNorm = normalizeDMY(rowDate);
+    //     const fNorm = normalizeDMY(filterDate);
+    //     if (!fNorm) return true;           // ไม่มีฟิลเตอร์ = ผ่าน
+    //     return rowNorm === fNorm || rowNorm.startsWith(fNorm);
+    // };
 
 
     // กรองข้อมูลตาม filters
@@ -162,23 +162,23 @@ const T1MStore = () => {
             const codeOk = !filters.aisle_code || (r.aisle_code ?? "").toString().toLowerCase().includes((filters.aisle_code ?? "").toString().toLowerCase());
             const zoneOk = !filters.bank_code || (r.bank_code ?? "").toString().toLowerCase().includes((filters.bank_code ?? "").toString().toLowerCase());
             const statusOk = !filters.status || (r.status ?? "").toString().toLowerCase().includes((filters.status ?? "").toString().toLowerCase());
-            const openOk = matchDate(r.last_opened_at, filters.last_opened_at);
-            const closeOk = matchDate(r.last_closed_at, filters.last_closed_at);
-            const eventOk = matchDate(r.last_event_at, filters.last_event_at);
+            // const openOk = matchDate(r.last_opened_at, filters.last_opened_at);
+            // const closeOk = matchDate(r.last_closed_at, filters.last_closed_at);
+            // const eventOk = matchDate(r.last_event_at, filters.last_event_at);
 
-            return codeOk && statusOk && zoneOk && openOk && closeOk && eventOk;
+            return codeOk && statusOk && zoneOk;
         });
     }, [aisleAll, filters]);
 
 
     // ฟิลด์คอลัมน์
     const Aisle_Columns = [
-        { field: "aisle_code", label: "Code" },
+        { field: "aisle_code", label: "Aisle Code" },
+        { field: "bank_code", label: "Zone" },
         { field: "status", label: "Status" },
         { field: "last_opened_at", label: "Last Open" },
         { field: "last_closed_at", label: "Last Close" },
         { field: "last_event_at", label: "Last Event" },
-        { field: "bank_code", label: "Zone" },
     ];
 
     const handleFilterChange = (name) => (e) =>
@@ -191,23 +191,24 @@ const T1MStore = () => {
     const filteredMrsRows = useMemo(() => {
         const listMrs = Array.isArray(MrsAll) ? MrsAll : [];
         return listMrs.filter((r) => {
-            const taskOk = !filtersMrs.task_code || r.task_code.toLowerCase().includes(filtersMrs.task_code.toLowerCase());
-            const targetOk = !filtersMrs.target_aisle_id || r.target_aisle_id.toLowerCase().includes(filtersMrs.target_aisle_id.toLowerCase());
-            const modeOk = !filtersMrs.target_bank_code || r.target_bank_code.toLowerCase().includes(filtersMrs.target_bank_code.toLowerCase());
-            const statusOk = !filtersMrs.status || r.status.toLowerCase().includes(filtersMrs.status.toLowerCase());
+            const taskOk = !filtersMrs.mrs_code || r.mrs_code?.toLowerCase().includes(filtersMrs.mrs_code.toLowerCase());
+            const mrs_statusOk = !filtersMrs.mrs_status || r.mrs_status?.toLowerCase().includes(filtersMrs.mrs_status.toLowerCase());
+            const zoneOk = !filtersMrs.bank_code || (r.bank_code ?? "").toString().toLowerCase().includes((filtersMrs.bank_code ?? "").toString().toLowerCase());
+            const currentOk = !filtersMrs.current_aisle_code || (r.current_aisle_code ?? "").toString().toLowerCase().includes((filtersMrs.current_aisle_code ?? "").toString().toLowerCase());
 
-            return taskOk && statusOk && modeOk && targetOk;
+            return taskOk && mrs_statusOk && zoneOk && currentOk;
         });
     }, [MrsAll, filtersMrs]);
 
 
+
     const MRS_Columns = [
-        { field: "task_code", label: "Current Task ID" },
-        { field: "target_aisle_id", label: "Target Aisle" },
-        { field: "target_bank_code", label: "Zone" },
-        { field: "status", label: "Status" },
-        { field: "fault_massage", label: "Fault Massage" },
-        { field: "confirmSku", label: "Confirm SKU", type: "confirmSku" },
+        { field: "mrs_code", label: "MRS Code" },
+        { field: "current_aisle_code", label: "Current Aisle" },
+        { field: "bank_code", label: "Zone" },
+        { field: "waiting_id", label: "Order ID" },
+        { field: "mrs_status", label: "Status" },
+        { field: "fault_msg", label: "Fault Massage" },
     ];
 
     const handleFilterMrsChange = (name) => (e) =>
@@ -306,7 +307,7 @@ const T1MStore = () => {
                                 <Grid container spacing={2}>
 
 
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    {/* <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
                                             <MDTypography variant="h6">Last Open</MDTypography>
                                         </MDBox>
@@ -360,16 +361,16 @@ const T1MStore = () => {
                                                 ),
                                             }}
                                         />
-                                    </Grid>
+                                    </Grid> */}
 
-                                    <Grid item xs={12} sm={6} md={3}></Grid>
+                                    {/* <Grid item xs={12} sm={6} md={3}></Grid> */}
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Code</MDTypography>
+                                            <MDTypography variant="h6">Aisle Code</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Code"
+                                            placeholder="Aisle Code"
                                             value={filters.aisle_code}
                                             onChange={handleFilterChange("aisle_code")}
                                             InputProps={{
@@ -448,13 +449,13 @@ const T1MStore = () => {
                                 <Grid container spacing={2}>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Task ID</MDTypography>
+                                            <MDTypography variant="h6">MRS Code</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Task ID"
-                                            value={filtersMrs.task_code}
-                                            onChange={handleFilterMrsChange("task_code")}
+                                            placeholder="MRS Code"
+                                            value={filtersMrs.mrs_code}
+                                            onChange={handleFilterMrsChange("mrs_code")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -466,13 +467,13 @@ const T1MStore = () => {
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Target Aisle</MDTypography>
+                                            <MDTypography variant="h6">Current Aisle</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Target Aisle"
-                                            value={filtersMrs.target_aisle_id}
-                                            onChange={handleFilterMrsChange("target_aisle_id")}
+                                            placeholder="Current Aisle"
+                                            value={filtersMrs.current_aisle_code}
+                                            onChange={handleFilterMrsChange("current_aisle_code")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -492,8 +493,8 @@ const T1MStore = () => {
                                         <MDInput
                                             fullWidth
                                             placeholder="Zone"
-                                            value={filtersMrs.target_bank_code}
-                                            onChange={handleFilterMrsChange("target_bank_code")}
+                                            value={filtersMrs.bank_code}
+                                            onChange={handleFilterMrsChange("bank_code")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -510,8 +511,8 @@ const T1MStore = () => {
                                         <MDInput
                                             fullWidth
                                             placeholder="Status"
-                                            value={filtersMrs.status}
-                                            onChange={handleFilterMrsChange("status")}
+                                            value={filtersMrs.mrs_status}
+                                            onChange={handleFilterMrsChange("mrs_status")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -530,7 +531,7 @@ const T1MStore = () => {
                                         idField="code"
                                         defaultPageSize={10}
                                         showActions={["stop"]}
-                                        confirmSkuDisabled={(row) => row.status === "ERROR"}
+                                        confirmSkuDisabled={(row) => row.mrs_status === "ERROR"}
                                     />
                                 </MDBox>
 

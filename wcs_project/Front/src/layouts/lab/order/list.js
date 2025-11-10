@@ -432,14 +432,31 @@ const WaitingExecutionPage = () => {
   // --- + (Move to Execution) ---
   const handleMoveToExecution = async () => {
     if (!selectedWaiting) return;
-    const row = waitingList.find((item) => item.waiting_id === selectedWaiting);
-    if (!row) return;
 
-    const { waiting_id, stock_item, plan_qty, priority, type, store_type, from_location } = row;
-    const response = await TaskAPI.createTask({ waiting_id, stock_item, plan_qty, priority, type, store_type, from_location });
-    if (response?.isCompleted) {
-      await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
-      setSelectedWaiting(null); // reset selection
+    const payload = [
+      {
+        waiting_id: selectedWaiting.waiting_id,
+        stock_item: selectedWaiting.stock_item,
+        plan_qty: selectedWaiting.plan_qty,
+        priority: 5, // fix value
+        type: selectedWaiting.type,
+        store_type: selectedWaiting.store_type,
+        from_location: selectedWaiting.from_location,
+      },
+    ];
+
+    console.log("Sending payload:", payload);
+
+    try {
+      const response = await TaskAPI.createTask(payload);
+      console.log("Response:", response);
+
+      if (response?.isCompleted) {
+        await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
+        setSelectedWaiting(null);
+      }
+    } catch (err) {
+      console.error("API error:", err.response?.data || err);
     }
   };
 
@@ -477,13 +494,16 @@ const WaitingExecutionPage = () => {
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox mt={5}>
-        <MDTypography variant="h3" mb={2}>Waiting and Execution List</MDTypography>
+        <MDTypography variant="h3" mb={2}>
+          Waiting and Execution List
+        </MDTypography>
         <Grid container spacing={1.5} alignItems="stretch">
-
           {/* LEFT: Waiting List */}
           <Grid item xs={12} md={5.8}>
             <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: "500px" }}>
-              <MDTypography variant="h5" mb={1}>Waiting List</MDTypography>
+              <MDTypography variant="h5" mb={1}>
+                Waiting List
+              </MDTypography>
               <Grid container spacing={1} mb={1}>
                 <Grid item xs={6}>
                   <MDTypography variant="h6">Date</MDTypography>
@@ -492,7 +512,11 @@ const WaitingExecutionPage = () => {
                     value={searchWaiting.date}
                     onChange={(e) => setSearchWaiting({ ...searchWaiting, date: e.target.value })}
                     InputProps={{
-                      endAdornment: (<InputAdornment position="end"><CalendarMonthIcon fontSize="small" /></InputAdornment>),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <CalendarMonthIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -503,7 +527,11 @@ const WaitingExecutionPage = () => {
                     value={searchWaiting.time}
                     onChange={(e) => setSearchWaiting({ ...searchWaiting, time: e.target.value })}
                     InputProps={{
-                      endAdornment: (<InputAdornment position="end"><AccessTimeIcon fontSize="small" /></InputAdornment>),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <AccessTimeIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -513,9 +541,8 @@ const WaitingExecutionPage = () => {
                   columns={columns}
                   rows={filteredWaiting}
                   idField="waiting_id"
-                  checkboxSelection  
-                  onRowClick={(row) => setSelectedWaiting(row.waiting_id)}
-                  selectedId={selectedWaiting}
+                  onRowClick={(row) => setSelectedWaiting(row)} // เก็บ row ทั้งหมด
+                  selectedId={selectedWaiting?.waiting_id} // สำหรับ highlight
                   fontSize="0.8rem"
                   autoHeight
                 />
@@ -524,11 +551,30 @@ const WaitingExecutionPage = () => {
           </Grid>
 
           {/* MIDDLE Buttons */}
-          <Grid item xs={12} md={0.4} container direction="column" alignItems="center" justifyContent="center" sx={{ gap: 3 }}>
-            <IconButton color="primary" onClick={handleMoveToExecution} disabled={!selectedWaiting || loading} sx={{ p: 0.3 }}>
+          <Grid
+            item
+            xs={12}
+            md={0.4}
+            container
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ gap: 3 }}
+          >
+            <IconButton
+              color="primary"
+              onClick={handleMoveToExecution}
+              disabled={!selectedWaiting || loading}
+              sx={{ p: 0.3 }}
+            >
               <AddCircleIcon sx={{ fontSize: 36 }} />
             </IconButton>
-            <IconButton color="error" onClick={handleDeleteTask} disabled={!selectedExecution || loading} sx={{ p: 0.3 }}>
+            <IconButton
+              color="error"
+              onClick={handleDeleteTask}
+              disabled={!selectedExecution || loading}
+              sx={{ p: 0.3 }}
+            >
               <RemoveCircleIcon sx={{ fontSize: 36 }} />
             </IconButton>
           </Grid>
@@ -536,16 +582,24 @@ const WaitingExecutionPage = () => {
           {/* RIGHT: Execution List */}
           <Grid item xs={12} md={5.8}>
             <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: "500px" }}>
-              <MDTypography variant="h5" mb={1}>Execution List</MDTypography>
+              <MDTypography variant="h5" mb={1}>
+                Execution List
+              </MDTypography>
               <Grid container spacing={1} mb={1}>
                 <Grid item xs={6}>
                   <MDTypography variant="h6">Date</MDTypography>
                   <MDInput
                     placeholder="dd/mm/yyyy"
                     value={searchExecution.date}
-                    onChange={(e) => setSearchExecution({ ...searchExecution, date: e.target.value })}
+                    onChange={(e) =>
+                      setSearchExecution({ ...searchExecution, date: e.target.value })
+                    }
                     InputProps={{
-                      endAdornment: (<InputAdornment position="end"><CalendarMonthIcon fontSize="small" /></InputAdornment>),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <CalendarMonthIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -554,9 +608,15 @@ const WaitingExecutionPage = () => {
                   <MDInput
                     placeholder="-- : --"
                     value={searchExecution.time}
-                    onChange={(e) => setSearchExecution({ ...searchExecution, time: e.target.value })}
+                    onChange={(e) =>
+                      setSearchExecution({ ...searchExecution, time: e.target.value })
+                    }
                     InputProps={{
-                      endAdornment: (<InputAdornment position="end"><AccessTimeIcon fontSize="small" /></InputAdornment>),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <AccessTimeIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -579,6 +639,5 @@ const WaitingExecutionPage = () => {
     </DashboardLayout>
   );
 };
-
 
 export default WaitingExecutionPage;

@@ -26,6 +26,29 @@ class AisleAPI {
     }
   }
 
+    static async AisleDropdown() {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = "/api/aisle/get-code-dropdown";
+      const apiResponse = await ApiProvider.getData(endpoint, {}, token);
+
+
+      return new ApiResponse({
+        isCompleted: true,
+        isError: false,
+        message: "Success",
+        data: apiResponse,
+        error: null
+      });
+
+    } catch (error) {
+      console.error("Error search Role:", error.message || error);
+      throw new Error(`Error: ${error.message}`);
+
+    }
+  }
+
+
  
   
 }

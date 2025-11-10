@@ -35,7 +35,7 @@ export default function WaitingFormDialog({
     cond: "",
     split: "0",
     plan_qty: "",
-    from_location: "",
+    from_location: "AA - TSS STORE",
   });
 
   const [errors, setErrors] = useState({});
@@ -56,7 +56,8 @@ export default function WaitingFormDialog({
           cond: initialData.cond ?? "",
           split: "0",
           plan_qty: initialData.plan_qty ?? "",
-          from_location: initialData.from_location ?? "",
+          //from_location: initialData.from_location ?? "",
+          from_location: "AA - TSS STORE",
         });
       } else {
         setForm({
@@ -70,7 +71,7 @@ export default function WaitingFormDialog({
           cond: "",
           split: "0",
           plan_qty: "",
-          from_location: "",
+          from_location: "AA - TSS STORE",
         });
       }
     }
@@ -122,7 +123,7 @@ export default function WaitingFormDialog({
     { field: "cond", label: "Condition", select: true, options: ["NEW", "CAPITAL"] },
     { field: "split", label: "Split", readOnly: true },
     { field: "plan_qty", label: "Quantity to be handled" },
-    { field: "from_location", label: "From Location" },
+    { field: "from_location", label: "From Location(Mocking)", readOnly: true },
   ];
 
   return (

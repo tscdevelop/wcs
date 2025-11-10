@@ -36,7 +36,7 @@ export default function WaitingReceiptFormDialog({
     po_num: "",
     object_id: "",
     plan_qty: "",
-    from_location: "",
+    from_location: "LMC-M240-STORE (BHS)",
   });
 
   const [errors, setErrors] = useState({});
@@ -58,7 +58,7 @@ export default function WaitingReceiptFormDialog({
           po_num: initialData.po_num ?? "",
           object_id: initialData.object_id ?? "",
           plan_qty: initialData.plan_qty ?? "",
-          from_location: initialData.from_location ?? "",
+          from_location: "LMC-M240-STORE (BHS)",
         });
       } else {
         setForm({
@@ -73,7 +73,7 @@ export default function WaitingReceiptFormDialog({
           po_num: "",
           object_id: "",
           plan_qty: "",
-          from_location: "",
+          from_location: "LMC-M240-STORE (BHS)",
         });
       }
     }
@@ -121,7 +121,7 @@ export default function WaitingReceiptFormDialog({
     { field: "po_num", label: "PO Number"},
     { field: "object_id", label: "Object ID"},
     { field: "plan_qty", label: "Quantity to be handled" },
-    { field: "from_location", label: "From Location" },
+    { field: "from_location", label: "From Location(Mocking)", readOnly: true },
   ];
 
   return (

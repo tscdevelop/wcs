@@ -7,6 +7,8 @@ import * as validate from '../utils/ValidationUtils';
 import { MRS } from "../entities/mrs.entity";
 import { TaskMrs } from "../entities/task_mrs.entity";
 import { StatusTasks } from "../common/global.enum";
+import { Aisle } from "../entities/aisle.entity";
+import { WaitingTasks } from "../entities/waiting_tasks.entity";
 
 export class MRSService {
     private mrsRepository : Repository<MRS>;
@@ -102,25 +104,45 @@ export class MRSService {
         const operation = 'MRSService.getAll';
 
         try {
-            const repository = manager ? manager.getRepository(TaskMrs) : this.taskRepository;
+            const repository = manager ? manager.getRepository(MRS) : this.mrsRepository;
+
+            // const rawData = await repository
+            // .createQueryBuilder('task')
+            // .leftJoin(MRS, 'mrs', 'mrs.current_task_id = task.task_id')
+            // .select([
+            //     'task.task_id AS task_id',
+            //     'task.task_code AS task_code',
+            //     "task.status AS status", 
+            //     'task.target_aisle_id AS target_aisle_id',
+            //     'task.target_bank_code AS target_bank_code',
+            //     'task.error_msg AS error_msg',
+            //     'task.stock_item AS stock_item',
+            //     'mrs.mrs_id AS mrs_id',
+            //     'mrs.e_stop AS mrs_e_stop',
+            // ])
+            // .where("task.status <> :done", { done: StatusTasks.COMPLETED }) // ✅ เอาเฉพาะงานที่ “ไม่ใช่ DONE”
+            // .orderBy('task.task_id', 'ASC') // หรือ .orderBy('task.created_at', 'DESC') ถ้ามีคอลัมน์เวลา
+            // .getRawMany();
 
             const rawData = await repository
-            .createQueryBuilder('task')
-            .leftJoin(MRS, 'mrs', 'mrs.current_task_id = task.task_id')
-            .select([
-                'task.task_id AS task_id',
-                'task.task_code AS task_code',
-                "task.status AS status", 
-                'task.target_aisle_id AS target_aisle_id',
-                'task.target_bank_code AS target_bank_code',
-                'task.error_msg AS error_msg',
-                'task.stock_item AS stock_item',
-                'mrs.mrs_id AS mrs_id',
-                'mrs.e_stop AS mrs_e_stop',
-            ])
-            .where("task.status <> :done", { done: StatusTasks.COMPLETED }) // ✅ เอาเฉพาะงานที่ “ไม่ใช่ DONE”
-            .orderBy('task.task_id', 'ASC') // หรือ .orderBy('task.created_at', 'DESC') ถ้ามีคอลัมน์เวลา
-            .getRawMany();
+                .createQueryBuilder('mrs')
+                .leftJoin(Aisle, 'aisle', 'mrs.current_aisle_id = aisle.aisle_id')
+                .leftJoin(TaskMrs, 'task', 'mrs.current_task_id = task.task_id')
+                .select([
+                    'mrs.mrs_id AS mrs_id',
+                    'mrs.mrs_code AS mrs_code',
+                    "mrs.mrs_status AS mrs_status", 
+                    'mrs.target_aisle_id AS target_aisle_id',
+                    'mrs.current_task_id AS current_task_id',
+                    'task.waiting_id AS waiting_id',
+                    'mrs.fault_msg AS fault_msg',
+                    'mrs.current_aisle_id AS current_aisle_id',
+                    'aisle.aisle_code AS current_aisle_code',
+                    'mrs.bank_code AS bank_code',
+                    'mrs.e_stop AS e_stop',
+                ])
+                .orderBy('mrs.mrs_id', 'ASC')
+                .getRawMany();
 
             if (!rawData || rawData.length === 0) {
             return response.setIncomplete(lang.msgNotFound('item.mrs'));
