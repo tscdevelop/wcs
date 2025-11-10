@@ -1,15 +1,17 @@
 // tasks.dto.ts
 export type CreateTaskItem = {
-  sku: string;
-  qty?: string;
-  priority?: number; // 1–9 (ตรวจช่วงที่ runtime)
+  waiting_id?: string;
+  stock_item: string;
+  plan_qty?: string;
+  priority?: number;
+  type: string;
+  store_type: 'T1' | 'T1M';   // ✅ เพิ่มฟิลด์คลัง
+  from_location: string;
 };
 
 export type CreateTaskBatchDto = {
-  order_id?: string;            // optional: ถ้า client ไม่ส่งมา ระบบจะตั้งจาก task ตัวแรก
   items: CreateTaskItem[];      // อาร์เรย์เสมอ (แม้มี 1 รายการ)
 };
 
-export type CreateT1MTaskDto = CreateTaskItem & {
-  order_id?: string;            // ส่งจาก orchestrator → T1M
-};
+export type CreateT1MTaskDto = Omit<CreateTaskItem, 'store_type'>;
+

@@ -1,82 +1,92 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-import { ControlSource, LogResult, TaskMrsAction } from '../common/global.enum';
+import { ScanStatus, StatusTasks , TypeInfm} from '../common/global.enum';
 
 /**
- * task_mrs: รายการย่อยของ task สำหรับฝั่ง MRS
- * - บันทึกว่า MRS เครื่องไหน เปิด/ปิด aisle ไหน ใช้ค่าควบคุมอะไร ผลลัพธ์เป็นอย่างไร
- * - ใช้เป็นทั้ง "detail" และ "log ต่อรอบงาน" ได้
+ * tasks: งานกลางที่ผู้ใช้ร้องขอ (SKU/จำนวน/priority)
+ * - ใช้ควบคุมวงจรงานรวม และเป็นแม่ของงานย่อยฝั่ง MRS (task_mrs)
+ * - สำหรับ T1M ให้ตั้ง store_type = 'T1M'
  */
 @Entity({ name: 'task_mrs' })
 export class TaskMrs {
-    /** รหัสรายละเอียด (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of task_mrs' })
-    id!: string;
-
-    /** อ้างถึงงานแม่ (logical FK → tasks.task_id) */
-    @Column({ type: 'bigint', unsigned: true, comment: 'FK -> tasks.task_id (logical)' })
+    /** รหัสงาน (PK) */
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of task' })
     task_id!: string;
+    
+    /*รหัสงาน TID-YYYYMMDD-NNN*/
+    @Column({ type: 'varchar', length: 32, unique: true })
+    task_code: string;
 
-    /** อุปกรณ์ MRS ที่ทำงานนี้ */
-    @Column({ type: 'bigint', unsigned: true, comment: 'MRS device id' })
-    mrs_id!: string;
+    /** หมายเลข waiting ID (FK → waiting_id) */
+    @Column({ type: 'varchar', length: 50, comment: 'Waiting id', nullable: true, default: null})
+    waiting_id?: string;
 
-    /** ช่องทางเดินที่เกี่ยวข้องกับงานนี้ */
-    @Column({ type: 'bigint', unsigned: true, comment: 'Target aisle id for this action (optional)' })
-    target_aisle_id!: string;
+    /** SKU ที่ร้องขอ */
+    @Column({ type: 'varchar', length: 100, comment: 'Requested SKU' })
+    stock_item!: string;
 
-    /** ประเภทการกระทำของ MRS */
-    @Column({ type: 'enum', enum: TaskMrsAction , comment: 'คำสั่งที่สั่งให้ MRS ทำ” (เปิด หรือ ปิด)' })
-    action: TaskMrsAction;
+    /** จำนวนที่ต้องการ */
+    @Column({ type: 'int', default: 0, comment: 'Plan Quantity' })
+    plan_qty?: number;
 
-    /** โหมดการสั่งงาน (AUTO/ผู้ใช้กด MANUAL) */
-    @Column({ type: 'enum', enum: ControlSource, default: ControlSource.AUTO, comment: 'Operator mode: AUTO or MANUAL' })
-    operator!: ControlSource;
+    /** จำนวนที่ยิงจริง */
+    @Column({ type: 'int', default: 0, comment: 'Actual Quantity' })
+    actual_qty?: number;
 
-    /** โปรไฟล์ควบคุมที่ใช้งาน (ถ้ามี) */
-    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'robot_control_profile.control_id (optional)' })
-    control_id?: string;
+    /** ลำดับความสำคัญ 1–9 (น้อย→มาก) */
+    @Column({ type: 'tinyint', unsigned: true, default: 5, comment: 'Priority 1-9 (low→high)' })
+    priority!: number;
 
-    /** สแนปช็อตค่าควบคุมที่ส่งจริงกับงานนี้ (setpoints/limits) */
-    @Column({ type: 'json', nullable: true, comment: 'Snapshot of control params (e.g., {maxSpeed, accel})' })
-    control_params_json?: object;
+    /** ประเภท: Inbound(Receipt) or Outbound(Usage) or Transfer */
+    @Column({ type: 'enum', enum:TypeInfm, comment: 'Type of the task' })
+    type!: TypeInfm;
 
-    /** เวลาเริ่ม/จบการกระทำ */
-    @Column({ type: 'timestamp',  nullable: true, comment: 'Action start time (ms precision)' })
-    started_at?: Date;
+    /** สถานะงานรวม */
+    @Column({ type: 'enum',enum:StatusTasks ,comment: 'Overall task state'})
+    status!: StatusTasks;
 
-    @Column({ type: 'timestamp',  nullable: true, comment: 'Action finish time (ms precision)' })
-    finished_at?: Date;
+    @Column({ type: 'bigint', nullable: true})
+    target_aisle_id: string | null;
 
-    /** ผลลัพธ์สุดท้ายของการกระทำ */
-    @Column({ type: 'enum', enum: LogResult, default: LogResult.SUCCESS, comment: 'Final result' })
-    result!: LogResult;
+    @Column({ type: 'varchar', length: 16, nullable: true })
+    target_bank_code: string | null;
 
-    /** จำนวนครั้งที่สั่งซ้ำ */
-    @Column({ type: 'int', unsigned: true, default: 0, comment: 'Retry count' })
-    retry_count!: number;
+    /** โค้ด/ข้อความความผิดพลาด (ระดับงานรวม) */
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Error code (if failed)' })
+    error_code?: string;
 
-    /** มีสิ่งกีดขวางหรือไม่ + เหตุผล */
-    @Column({ type: 'tinyint', width: 1, default: 0, comment: 'Blocked by object (0/1)' })
-    blocked_flag!: boolean;
+    @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Error message (if failed)' })
+    error_msg?: string;
 
-    @Column({ type: 'varchar', length: 100, nullable: true, comment: 'Blocking reason (if any)' })
-    blocked_reason?: string;
+    /** ผู้ร้องขอ */
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Requester user id/name' })
+    requested_by?: string;
 
-    /** ช่วยรายงาน: เวลาเปิด/ปิดจริง (ms) */
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Open duration (ms)' })
-    open_duration_ms?: number;
+    /** เวลารับคำขอ */
+    @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Requested at' })
+    requested_at!: Date;
 
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Close duration (ms)' })
-    close_duration_ms?: number;
+    /** เวลาอัปเดตล่าสุดของงาน */
+    @Column({  type: 'timestamp',  nullable: true, default: () => null })
+    updated_at?: Date;
 
-    /** ค่า max speed/accel ที่สังเกตหรือที่ตั้ง (สะดวกทำสรุปต่อรอบงาน) */
-    @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, comment: 'Max speed (m/s) observed or set' })
-    speed_max?: string;
+    /** สถานะที่แสกน */
+    @Column({  type: 'enum', enum: ScanStatus , nullable: false, default: ScanStatus.PENDING  })
+    actual_status: ScanStatus;
 
-    @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, comment: 'Max acceleration (m/s^2) observed or set' })
-    accel_max?: string;
+    /** ผู้ร้องขอแสกนของ */
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    actual_by?: string;
 
-    /** เวลาแทรกแถวนี้ (เพื่อ audit) */
-    @Column({ type: 'timestamp',  default: () => "CURRENT_TIMESTAMP" })
-    created_at!: Date;
+    /** เวลาที่ยิงของ */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null})
+    actual_at?: Date;
+
+    /** สถานะการคอนเฟิร์ม */
+    @Column({ default: false, nullable: false })
+    is_confirm: boolean;
+
+    /** เวลาที่กดคอนเฟิร์ม */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null})
+    confirm_at?: Date;
+
 }

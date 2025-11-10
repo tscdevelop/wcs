@@ -96,6 +96,9 @@ import RoleEditPage from "layouts/lab/role/edit_role";
 import PickingCounterPage from "layouts/lab/picking-counter/view_picking";
 import LogsPage from "layouts/lab/logs/view_logs";
 import ReportPage from "layouts/lab/report/view_report";
+import WaitingExecutionPage from "layouts/lab/order/list";
+import UsageHistory from "layouts/lab/transactions/usage_history";
+import ReceiptHistory from "layouts/lab/transactions/receipt_history";
 
 const getComponent = (componentName) => {
   switch (componentName) {
@@ -126,6 +129,12 @@ const getComponent = (componentName) => {
         return <LogsPage />;
     case "view-report":
         return <ReportPage />;
+    case "list":
+        return <WaitingExecutionPage />;
+    case "transactions-usage":
+        return <UsageHistory />;
+    case "transactions-receipt":
+        return <ReceiptHistory />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:

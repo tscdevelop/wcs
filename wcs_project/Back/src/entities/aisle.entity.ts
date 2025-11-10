@@ -12,11 +12,11 @@ export class Aisle {
     aisle_id!: string;
 
     /** รหัสช่อง (A, B, C, …) */
-    @Column({ type: 'varchar', length: 20, comment: 'Aisle code, e.g., A/B/C' })
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Aisle code' })
     aisle_code!: string;
 
     /** กลุ่มชั้นวางเคลื่อนที่ที่ “แชร์ราง/คอนโทรลชุดเดียวกัน” เปิดได้ทีละช่องในกลุ่มนั้นเท่านั้น */
-    @Column({ type: 'varchar', length: 16, default: 'B1' })
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Bank code (group of MRS)' })
     bank_code!: string;
 
     /** สถานะของช่อง */

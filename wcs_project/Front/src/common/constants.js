@@ -7,7 +7,7 @@ export const BASE_URL = "http://localhost:3502";
 export const API_KEY = "SecretKey@TW-EP_WebAPI";
 export const APP_NAME = "LPI";
 export const SYS_NAME = "ระบบควบคุมคลังสินค้า";
-export const DEFAULT_LANGUAGE = "th";
+export const DEFAULT_LANGUAGE = "en";
 
 
 export const CONNECTION_TIMEOUT = 1800000; // กำหนดเวลาที่ใช้ในการเชื่อมต่อ (milliseconds)

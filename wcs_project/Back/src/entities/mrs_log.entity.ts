@@ -25,10 +25,10 @@ export class MrsLog {
 
     /** งานที่เกี่ยวข้อง (เชื่อมกับ task_mrs ถ้ามี) */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Task id linked to this action (logical FK)' })
-    task_id?: string;
+    task_id?: string | null;
 
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'FK -> task_mrs.id (logical)' })
-    task_mrs_id?: string;
+    task_mrs_id?: string | null;
 
     /** ผู้ควบคุม: AUTO/Manual */
     @Column({ type: 'enum', enum:ControlSource, default: ControlSource.AUTO, comment: 'Operator mode: AUTO/MANUAL' })

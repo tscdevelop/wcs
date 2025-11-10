@@ -1,49 +1,60 @@
+// controllers/aisle.controller.ts
 import { Request, Response } from 'express';
 import ResponseUtils, { HttpStatus } from '../utils/ResponseUtils';
 import { AisleService } from '../services/aisle.service';
 import RequestUtils from '../utils/RequestUtils';
 import * as lang from '../utils/LangHelper';
-
 import dotenv from 'dotenv';
-import { DataSanitizer } from '../utils/DataSanitizer';
-import { Aisle } from '../entities/aisle.entity';
+
+import { MockMrsGateway } from '../gateways/mrs.gateway.mock';
 
 dotenv.config();
 
-const aisleService = new AisleService();
+// หรือใช้ mock สำหรับ testing
+const mockGateway = new MockMrsGateway({
+    onOpenFinished: (p) => console.log('OPEN finished', p),
+    onCloseFinished: (p) => console.log('CLOSE finished', p),
+});
+const aisleService = new AisleService(mockGateway);
 
-export const updateControl = async (req: Request, res: Response) => {
-    const operation = 'AisleController.updateControl'; // เดิมเป็น AreaController
+// ถ้า AisleService ของคุณไม่ต้องการ MrsGateway ให้ใช้แบบเดิม:
+// const aisleService = new AisleService();
+
+export const manualControl = async (req: Request, res: Response) => {
+    const operation = 'AisleController.manualControl';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) return; // handle ในตัว util แล้ว
 
     try {
-        console.log('Raw req.body:', req.body);
+        // รับค่าจาก path หรือ body (รองรับทั้งสองช่องทาง)
+        const aisleIdParam = req.params.aisle_id;
+        const { aisle_id: aisleIdBody, action: actionRaw, mrs_id: mrsIdRaw } = req.body || {};
 
-        // เดิมคุณ sanitize ทั้ง body
-        const body = DataSanitizer.fromObject<Aisle>(req.body, Aisle);
+        const aisle_id = String(aisleIdParam ?? aisleIdBody ?? '').trim();
+        const action = String(actionRaw ?? '').trim().toUpperCase(); // "OPEN" | "CLOSE"
+        const mrs_id = mrsIdRaw != null && mrsIdRaw !== '' ? String(mrsIdRaw) : undefined;
 
-        // รองรับทั้ง path param และ body (เผื่อ transition)
-        const aisleIdFromPath = req.params.aisle_id ? Number(req.params.aisle_id) : undefined;
+        // ----- Validate ขั้นต้น -----
+        if (!aisle_id) {
+            return ResponseUtils.handleBadRequest(res, lang.msgRequired('aisle.aisle_id'));
+        }
+        if (!action || !['OPEN', 'CLOSE'].includes(action)) {
+            return ResponseUtils.handleBadRequest(
+                res,
+                lang.msg('validation.enum_invalid', { field: 'action', allow: 'OPEN, CLOSE' })
+            );
+        }
 
-        const data: Partial<Aisle> = {
-        aisle_id: (aisleIdFromPath ?? body.aisle_id) as any,
-        // normalize สถานะให้เป็นตัวใหญ่เพื่อเทียบ enum ได้ชัวร์
-        status: typeof body.status === 'string' ? (body.status as string).toUpperCase() as any : body.status,
-        };
+        // เรียก service ด้วย DTO ที่ถูกต้อง
+        const response = await aisleService.manualControl({ aisle_id, action: action as 'OPEN' | 'CLOSE', mrs_id }, reqUsername);
 
-        const response = await aisleService.updateControl(data, reqUsername);
-
-        // อัปเดต -> 200 OK (ไม่ใช่ 201)
+        // manual control = update state → 200 OK
         return ResponseUtils.handleCustomResponse(res, response, HttpStatus.OK);
-
     } catch (error: any) {
-        // ถ้าไม่มี handleErrorUpdate ก็ใช้ของเดิมได้
         return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.aisle', true, reqUsername);
     }
 };
-
 
 export const getAll = async (req: Request, res: Response) => {
     const operation = 'AisleController.getAll';

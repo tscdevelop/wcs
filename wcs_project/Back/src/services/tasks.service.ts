@@ -2,7 +2,7 @@
 import { AppDataSource } from "../config/app-data-source";
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { ApiResponse } from '../models/api-response.model';
-import { Task } from '../entities/tasks.entity';
+import { TaskMrs } from '../entities/task_mrs.entity';
 import { StatusTasks } from '../common/global.enum';
 import * as validate from '../utils/ValidationUtils';
 import * as lang from '../utils/LangHelper';
@@ -10,44 +10,67 @@ import { T1MTaskService } from './task_mrs.service';
 // (ถ้ามี) import { WRSTaskService } from './wrs-task.service';
 
 // services/tasks.service.ts
-type CreateTaskItem = { sku: string; qty?: string; priority?: number };
-type CreateTaskBatchDto = { items: CreateTaskItem[] };
+// tasks.dto.ts
+export type CreateTaskItem = {
+    waiting_id?: string;
+    stock_item: string;
+    plan_qty?: string;
+    priority?: number;
+    type: string;
+    store_type: 'T1' | 'T1M';   // ✅ ใช้เลือก service เท่านั้น
+    from_location: string
+};
 
+export type CreateTaskBatchDto = {
+  items: CreateTaskItem[];     // อาร์เรย์เสมอ (แม้มี 1 รายการ)
+};
+
+// services/tasks.service.ts
 export class OrchestratedTaskService {
-    private taskRepository: Repository<Task>;
+    private taskRepository: Repository<TaskMrs>;
 
     constructor(private t1m: T1MTaskService) {
-        this.taskRepository    = AppDataSource.getRepository(Task);
+        this.taskRepository = AppDataSource.getRepository(TaskMrs);
     }
 
-    async createAndOpenBatch(dto: CreateTaskBatchDto, reqUser: string): Promise<ApiResponse<any>> {
+    // ✅ รับเป็น array ของ CreateTaskItem
+    async createAndOpenBatch(items: CreateTaskItem[], reqUser: string): Promise<ApiResponse<any>> {
         const res = new ApiResponse<any>();
-        const items = dto.items?.filter(i => i?.sku) ?? [];
-        if (!items.length) return res.setIncomplete(lang.msgRequired('field.sku'));
+        if (!items?.length) return res.setIncomplete(lang.msgRequired('field.stock_item'));
 
         try {
         const results: any[] = [];
-        let batchOrderId: string | undefined;
 
-        for (let i = 0; i < items.length; i++) {
-            const it = items[i];
-            if (!it.sku.startsWith('M')) return res.setIncomplete('ตอนนี้รองรับเฉพาะ T1M (SKU ขึ้นต้น M-)');
+        for (const it of items) {
+            if (!it.store_type) return res.setIncomplete(lang.msgRequired('field.store_type'));
 
-            // ตัวแรก: ไม่ส่ง order_id → ให้ T1M ตั้งจาก task_id ตัวแรกเอง
-            const passOrderId = i === 0 ? undefined : batchOrderId;
+            // ✅ แยกคลัง: ตอนนี้รองรับเฉพาะ T1M
+            if (it.store_type === 'T1M') {
+            // if (!it.stock_item.startsWith('M')) {
+            //     return res.setIncomplete('T1M รองรับเฉพาะ SKU ที่ขึ้นต้นด้วย "M-"');
+            // }
 
-            // อย่าส่ง manager → ให้ T1M ทำ txn per task เอง
+            // แยก field ที่จำเป็นออกมา เพื่อส่งให้ createAndOpen
+            const { waiting_id, stock_item, plan_qty, priority, type, from_location } = it;
+
             const r = await this.t1m.createAndOpen(
-                { sku: it.sku, qty: it.qty, priority: it.priority, order_id: passOrderId },
+                { waiting_id, stock_item, plan_qty, priority, type, from_location},
                 reqUser
             );
-            if (!r.isCompleted) throw new Error(r.message || 'createAndOpen failed');
 
-            results.push(r.data);
-            if (i === 0) batchOrderId = String(r.data.order_id);
+            if (!r.isCompleted) throw new Error(r.message || 'T1M createAndOpen failed');
+
+            // เก็บผลลัพธ์ พร้อมระบุ store_type เฉยๆ
+            results.push({ ...r.data, store_type: 'T1M' });
+            }
+
+            // ส่วนอื่น ๆ ของคลัง จะทำทีหลัง
+            else {
+            return res.setIncomplete(`ไม่รู้จัก store_type: ${it.store_type}`);
+            }
         }
 
-        return res.setComplete(lang.msgSuccessAction('created', 'item.t1m_task'), { order_id: batchOrderId, results });
+        return res.setComplete(lang.msgSuccessAction('created', 'item.task_batch'), { results });
         } catch (e: any) {
         const op = 'OrchestratedTaskService.createAndOpenBatch';
         return res.setError(lang.msgErrorFunction(op, e.message), op, e, reqUser, true);
@@ -55,41 +78,41 @@ export class OrchestratedTaskService {
     }
 
 
-
-    // ผู้ใช้ยืนยันหยิบเสร็จ
+    // ผู้ใช้ยืนยันหยิบเสร็จ เฉพาะของ T1M
     async confirm(task_id: string, reqUser: string): Promise<ApiResponse<any>> {
-        const task = await AppDataSource.getRepository(Task).findOne({ where: { task_id } });
+        const task = await AppDataSource.getRepository(TaskMrs).findOne({ where: { task_id } });
         if (!task) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
 
-        if (task.store_type === 'T1M') {
+        // สำหรับ T1M โดยตรง ไม่ต้องเช็ค store_type
         return this.t1m.closeAfterConfirm(task_id, reqUser);
-        } else {
-        // return this.wrs.returnAfterConfirm(task_id, task_wrs_id);
-        return new ApiResponse().setIncomplete('WRS flow ยังไม่ได้ติดตั้ง (stub)');
-        }
     }
+
 
     // // สถานะรวม (ช่วยให้ controller แสดงผล)
     // async getStatus(task_id: string): Promise<ApiResponse<any>> {
-    //     const t = await AppDataSource.getRepository(Task).findOne({ where: { task_id } });
+    //     const t = await AppDataSource.getRepository(TaskMrs).findOne({ where: { task_id } });
     //     if (!t) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
     //     return new ApiResponse().setComplete('OK', t);
     // }
 
+    //ต้องจอย ทั้ง2คลัง
     async getAll(manager?: EntityManager): Promise<ApiResponse<any | null>> {
         const response = new ApiResponse<any | null>();
         const operation = 'OrchestratedTaskService.getAll';
     
         try {
-            const repository = manager ? manager.getRepository(Task) : this.taskRepository;
+            const repository = manager ? manager.getRepository(TaskMrs) : this.taskRepository;
     
             const rawData = await repository
                 .createQueryBuilder('task')
+                .leftJoin('waiting_tasks', 'waiting', 'task.waiting_id = waiting.waiting_id')
                 .select([
                     'task.task_id AS task_id',
-                    'task.task_code AS task_code',
-                    'task.priority AS priority',
-                    'task.store_type AS store_type',
+                    'task.stock_item AS stock_item',
+                    'waiting.waiting_id AS waiting_id',
+                    'waiting.from_location AS from_location',
+                    'waiting.store_type AS store_type',
+                    'task.plan_qty AS plan_qty',
                     'task.status AS status',
                     'task.requested_by AS requested_by',
                     `DATE_FORMAT(task.requested_at, '%d/%m/%Y %H:%i:%s') AS requested_at`,

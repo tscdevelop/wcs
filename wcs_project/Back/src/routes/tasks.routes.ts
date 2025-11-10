@@ -20,6 +20,7 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      * /api/tasks/create:
      *   post:
      *     summary: สร้างงานจาก SKU (ส่งเป็นอาร์เรย์เสมอ) และเริ่มต้น flow อัตโนมัติ
+     *     description: stock_item=รหัสสินค้า / plan_qty=จำนวนที่ต้องการ / priority=ลำดับความสำคัญ(1-9) / type=ประเภท(USAGE, RECEIPT. TRANSFER)
      *     tags: [Tasks]
      *     security:
      *       - bearerAuth: []
@@ -33,32 +34,47 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *             type: array
      *             items:
      *               type: object
-     *               required: [sku]
+     *               required: [stock_item, type, store_type, from_location]
      *               properties:
-     *                 sku:
+     *                 waiting_id:
+     *                   type: string
+     *                   example: "1"
+     *                 stock_item:
      *                   type: string
      *                   example: "M-ABC-001"
-     *                 qty:
-     *                   type: string
-     *                   example: "2.000"
+     *                 plan_qty:
+     *                   type: integer
+     *                   example: 2
      *                 priority:
      *                   type: integer
      *                   minimum: 1
      *                   maximum: 9
      *                   example: 5
+     *                 type:
+     *                   type: string
+     *                   example: "USAGE"
+     *                 store_type:
+     *                   type: string
+     *                   enum: ["T1", "T1M"]
+     *                   example: "T1M"
+     *                   description: "ประเภทคลัง เช่น T1 หรือ T1M"
+     *                 from_location:
+     *                   type: string
+     *                   example: "LMC-M240-STORE (BHS)"
+     *                   description: "ตำแหน่งต้นทาง เช่น MRS หรือ Location code"
      *           examples:
      *             multi:
-     *               summary: หลาย SKU (order_id เดียวกันทั้งชุด)
+     *               summary: หลาย SKU 
      *               value:
-     *                 - { "sku": "M-ABC-001", "qty": "2.000", "priority": 5 }
-     *                 - { "sku": "M-ABC-002", "qty": "2.000", "priority": 5 }
+     *                 - { "waiting_id": "1", stock_item": "M-ABC-001", "plan_qty": 2, "priority": 5, "type": "USAGE", "store_type": "T1M", "from_location": "LMC-M240-STORE (BHS)" }
+     *                 - { "waiting_id": "2", "stock_item": "M-ABC-002", "plan_qty": 2, "priority": 5, "type": "USAGE", "store_type": "T1M", "from_location": "AA - TSS STORE" }
      *             single:
      *               summary: 1 SKU ก็ส่งเป็นอาร์เรย์ 1 ตัว
      *               value:
-     *                 - { "sku": "M-ABC-002", "qty": "2.000", "priority": 5 }
+     *                 - { "waiting_id": "1", "stock_item": "M-ABC-002", "plan_qty": 2, "priority": 5, "type": "USAGE", "store_type": "T1M", "from_location": "LMC-M240-STORE (BHS)" }
      *     responses:
      *       201:
-     *         description: งานถูกสร้าง/คิวแล้ว (EXECUTING/QUEUED ตาม bank)
+     *         description: งานถูกสร้าง/คิวแล้ว (IN_PROGRESS/QUEUED ตาม bank)
      *       400:
      *         description: ค่าที่ส่งมาไม่ถูกต้อง
      *       401:

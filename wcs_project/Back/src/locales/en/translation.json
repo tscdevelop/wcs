@@ -52,7 +52,8 @@
     "user_change_password": "change password",
     "lab_form_header": "Lab Form Header",
     "menu": "Menu",
-    "role":"Role"
+    "role":"Role",
+    "waiting": "Waiting List"
   },
   "field": {
     "user_id": "User ID",

@@ -5,9 +5,7 @@ import RequestUtils from '../utils/RequestUtils';
 import * as lang from '../utils/LangHelper';
 import { OrchestratedTaskService } from '../services/tasks.service';
 import { ApiResponse } from '../models/api-response.model';
-
-type CreateTaskItem = { sku: string; qty?: string; priority?: number };
-type CreateTaskBatchDto = { items: CreateTaskItem[] };
+import { CreateTaskItem } from '../dtos/tasks.dto';
 
 export function buildTasksController(orchestrator: OrchestratedTaskService) {
     const create = async (req: Request, res: Response) => {
@@ -21,16 +19,32 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
                 return ResponseUtils.handleBadRequest(res, lang.msg('request.body.must_be_array'));
             }
 
+            // ✅ map req.body ให้ตรงกับ CreateTaskItem
             const items: CreateTaskItem[] = (req.body as any[])
-                .map(x => (x && x.sku ? { sku: String(x.sku), qty: x.qty, priority: x.priority } : null))
+                .map(x => {
+                    if (!x || !x.stock_item) return null;
+
+                    // ตรวจว่า store_type ถูกส่งมาหรือไม่
+                    if (!x.store_type) throw new Error('field.store_type is required');
+
+                    return {
+                        waiting_id: x.waiting_id,
+                        stock_item: String(x.stock_item),
+                        plan_qty: x.plan_qty,
+                        priority: x.priority,
+                        type: x.type,
+                        store_type: x.store_type,  // ✅ ต้องส่ง
+                        from_location: x.from_location,
+                    };
+                })
                 .filter(Boolean) as CreateTaskItem[];
 
             if (!items.length) {
-                return ResponseUtils.handleBadRequest(res, lang.msgRequired('field.sku'));
+                return ResponseUtils.handleBadRequest(res, lang.msgRequired('field.stock_item'));
             }
 
-            const dto: CreateTaskBatchDto = { items };
-            const response: ApiResponse<any> = await orchestrator.createAndOpenBatch(dto, reqUsername);
+            // ไม่ต้องห่อใน dto อีกแล้ว เพราะ createAndOpenBatch ของคุณตอนนี้รับ array โดยตรง
+            const response: ApiResponse<any> = await orchestrator.createAndOpenBatch(items, reqUsername);
 
             const status = response.isCompleted ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
             return ResponseUtils.handleCustomResponse(res, response, status);

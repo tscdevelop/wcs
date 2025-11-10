@@ -5,16 +5,16 @@ import * as lang from '../utils/LangHelper';
 import * as validate from '../utils/ValidationUtils';
 
 import { MRS } from "../entities/mrs.entity";
-import { Task } from "../entities/tasks.entity";
+import { TaskMrs } from "../entities/task_mrs.entity";
 import { StatusTasks } from "../common/global.enum";
 
 export class MRSService {
     private mrsRepository : Repository<MRS>;
-    private taskRepository : Repository<Task>;
+    private taskRepository : Repository<TaskMrs>;
 
     constructor(){
         this.mrsRepository = AppDataSource.getRepository(MRS);
-        this.taskRepository = AppDataSource.getRepository(Task);
+        this.taskRepository = AppDataSource.getRepository(TaskMrs);
     }
 
     // async updateStop(
@@ -102,7 +102,7 @@ export class MRSService {
         const operation = 'MRSService.getAll';
 
         try {
-            const repository = manager ? manager.getRepository(Task) : this.taskRepository;
+            const repository = manager ? manager.getRepository(TaskMrs) : this.taskRepository;
 
             const rawData = await repository
             .createQueryBuilder('task')
@@ -114,13 +114,11 @@ export class MRSService {
                 'task.target_aisle_id AS target_aisle_id',
                 'task.target_bank_code AS target_bank_code',
                 'task.error_msg AS error_msg',
-                'task.sku AS sku',
-                'task.store_type AS store_type', 
+                'task.stock_item AS stock_item',
                 'mrs.mrs_id AS mrs_id',
                 'mrs.e_stop AS mrs_e_stop',
             ])
-            .where('task.store_type = :storeType', { storeType: 'T1M' }) // << เงื่อนไขหลัก
-            .andWhere("task.status <> :done", { done: StatusTasks.DONE }) // ✅ เอาเฉพาะงานที่ “ไม่ใช่ DONE”
+            .where("task.status <> :done", { done: StatusTasks.COMPLETED }) // ✅ เอาเฉพาะงานที่ “ไม่ใช่ DONE”
             .orderBy('task.task_id', 'ASC') // หรือ .orderBy('task.created_at', 'DESC') ถ้ามีคอลัมน์เวลา
             .getRawMany();
 

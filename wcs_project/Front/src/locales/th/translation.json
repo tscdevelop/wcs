@@ -1,8 +1,8 @@
 {
     "control": {
         "ok": "ตกลง",
-        "save": "Save",
-        "cancel": "Cancel",
+        "save": "บันทึก",
+        "cancel": "ยกเลิก",
         "check": "ตรวจสอบ",
         "reset": "รีเซ็ต",
         "delete": "ลบ",
@@ -162,7 +162,12 @@
         "logs": "Logs",
         "view_logs": "View Logs",
         "report": "Report",
-        "view_report": "View Report"
+        "view_report": "View Report",
+        "order_manage": "Order Management",
+        "list": "Waiting Execution List",
+        "transactions": "Transactions",
+        "usage_history": "Usage History",
+        "receipt_history": "Receipt History"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

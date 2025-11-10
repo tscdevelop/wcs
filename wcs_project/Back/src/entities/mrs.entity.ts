@@ -93,9 +93,6 @@ export class MRS {
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Aisle id for the open session' })
     open_session_aisle_id?: string | null;
 
-    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Order id bound to the open session (optional)' })
-    open_session_order_id?: string | null;
-
     @Column({ type: 'timestamp', nullable: true, comment: 'Session idle timeout' })
     open_session_expires_at?: Date | null;
 }

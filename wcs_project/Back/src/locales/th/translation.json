@@ -53,7 +53,8 @@
         "user_change_password": "เปลี่ยนรหัสผ่าน",
         "lab_form_header": "หัวออกรีพอร์ตแลป",
         "menu": "เมนู",
-        "role":"สิทธิ์การใช้งานระบบ"
+        "role":"สิทธิ์การใช้งานระบบ",
+        "waiting": "Waiting List"
     },
     "field": {
         "user_id": "ไอดีผู้ใช้",

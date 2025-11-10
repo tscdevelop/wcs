@@ -19,6 +19,18 @@ export enum Directories {
     outbound_tooling_image = "dirUploadOutboundToolingImage",
 }
 
+export enum ScanStatus {
+    COMPLETED = "COMPLETED",  //ยิงครบ
+    PARTIAL = "PARTIAL", //ยิงแต่ไม่ครบ
+    PENDING = "PENDING", //ไม่ได้ยิง
+}
+
+export enum TypeInfm {
+    USAGE = 'USAGE',
+    RECEIPT = 'RECEIPT',
+    TRANSFER = 'TRANSFER'
+}
+
 export enum Mode {
     AUTO = 'AUTO',
     MANUAL = 'MANUAL',
@@ -72,31 +84,39 @@ export enum ControlSource {
     AUTO = 'AUTO'
 }
 
+export enum StatusWaiting {
+    WAITING = 'WAITING',
+    IN_PROGRESS = 'IN_PROGRESS', //อยู่ระหว่างดำเนินการ
+    WAITING_CONFIRM = 'WAITING_CONFIRM',
+    COMPLETED = 'COMPLETED',
+    FAILED = 'FAILED',
+    CANCELLED = 'CANCELLED'
+}
+
 export enum StatusTasks {
     NEW = 'NEW',
     ROUTING = 'ROUTING',
-    EXECUTING = 'EXECUTING',
-    WAIT_CONFIRM = 'WAIT_CONFIRM',
-    CLOSING = 'CLOSING',
-    DONE = 'DONE',
+    IN_PROGRESS = 'IN_PROGRESS',
+    AISLE_OPEN = 'AISLE_OPEN',   
+    WAITING_CONFIRM = 'WAITING_CONFIRM',       
+    WAITING_FINISH = 'WAITING_FINISH',
+    AISLE_CLOSE = 'AISLE_CLOSE',
+    COMPLETED = 'COMPLETED',
     FAILED = 'FAILED',
     CANCELLED ='CANCELLED',
     QUEUED = 'QUEUED', 
 }
 /*
-ตอนสร้างงาน → NEW
+| Step | StatusTasks Enum | Function / Trigger                   | Comment          |
+| ---- | ---------------- | ------------------------------------ | ---------------- |
+| 1    | `QUEUED`         | `createAndOpen()` (รอ bank ว่าง)     | งานรอเปิด        |
+| 2    | `IN_PROGRESS`      | `createAndOpen()` → `gw.openAisle()` | Opening-Aisle    |
+| 3    | `AISLE_OPEN`     | `onOpenFinished()`                   | Aisle-Open       |
+| 4    | `WAITING_FINISH` | `onOpenFinished()` (ต่อท้าย)         | Waiting-Finish   |
+| 5    | `AISLE_CLOSE`    | `closeAfterConfirm()`                | Closing-Aisle    |
+| 6    | `COMPLETED`           | `onCloseFinished()`                  | Completed        |
+| 7    | `FAILED`         | `closeAfterConfirm()` (obstacle)     | Failed(Obstacle) |
 
-ระหว่าง resolve SKU→aisle (ถ้าทำแยกเฟส) → ROUTING
-
-หลังจอง MRS และยิงคำสั่ง OPEN แล้ว → EXECUTING [กำลัง “เปิดช่อง” อยู่ (สั่ง openAisle ไปแล้ว แต่ onOpenFinished ยังไม่มา)]
-
-เปิดสำเร็จ รอผู้ใช้ → WAIT_CONFIRM [เปิดเสร็จแล้ว (ได้รับ onOpenFinished หรือเป็นเคส “ทำต่อในช่องเดิม” ที่เรา mark OPEN = SUCCESS แบบ synthetic) กำลังรอคนกดคอนเฟิร์มเพื่อปิด]
-
-ยิงคำสั่ง CLOSE แล้ว → CLOSING [สั่งปิดแล้ว (ส่ง closeAisle) แต่ onCloseFinished ยังไม่มา]
-
-ปิดสำเร็จ → DONE [(ได้ onCloseFinished)]
-
-ผิดพลาด → FAILED, ยกเลิก → CANCELLED
 */
 
 export enum AisleStatus {
@@ -127,12 +147,14 @@ export enum WrsAction {
 export enum TaskEvent {
     TASK_CREATED = 'TASK_CREATED',
     TASK_ROUTING = 'TASK_ROUTING',
+    TASK_AISLE_OPEN = 'TASK_AISLE_OPEN',
     TASK_EXECUTING = 'TASK_EXECUTING',
-    TASK_WAIT_CONFIRM = 'TASK_WAIT_CONFIRM',
+    TASK_WAITING_CONFIRM = 'TASK_WAITING_CONFIRM',
+    TASK_WAITING_FINISH = 'TASK_WAITING_FINISH',
     QUEUED = 'QUEUED',
     USER_CONFIRM = 'USER_CONFIRM',
     USER_CONFIRM_BLOCKED = 'USER_CONFIRM_BLOCKED',
-    TASK_CLOSING = 'TASK_CLOSING',
+    TASK_CLOSING_AISLE = 'TASK_CLOSING_AISLE',
     TASK_DONE = 'TASK_DONE',
     TASK_FAILED = 'TASK_FAILED',
     TASK_CANCELLED = 'TASK_CANCELLED',

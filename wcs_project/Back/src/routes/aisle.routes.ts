@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as aisleController from '../controllers/aisle.controller';
 import { authenticateToken } from '../common/auth.token';
 import { patch } from '.';
+import { manualControl } from '../controllers/aisle.controller';
 
 const router = Router();
 
@@ -14,20 +15,14 @@ const router = Router();
 
 /**
  * @swagger
- * /api/aisle/{aisle_id}:
- *   patch:
- *     summary: Update aisle status (Manual Control)
- *     description: Update status to OPEN/CLOSED/BLOCKED
+ * /api/aisle/manual-control:
+ *   post:
+ *     summary: Manual open/close an aisle (via gateway) — body variant
+ *     description: Same as the path variant but accepts aisle_id in the body for convenience.
  *     tags: [Aisle]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: aisle_id
- *         in: path
- *         required: true
- *         description: Aisle ID
- *         schema:
- *           type: integer
  *       - $ref: '#/components/parameters/lng'
  *     requestBody:
  *       required: true
@@ -35,25 +30,33 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [status]
+ *             required: [aisle_id, action]
  *             properties:
- *               status:
+ *               aisle_id:
  *                 type: string
- *                 enum: [OPEN, CLOSED, BLOCKED]
- *                 example: "CLOSED"
+ *                 example: "A12"
+ *               action:
+ *                 type: string
+ *                 enum: [OPEN, CLOSE]
+ *                 example: CLOSE
+ *               mrs_id:
+ *                 type: string
+ *                 description: Force using a specific MRS (optional)
+ *                 example: "1"
  *     responses:
  *       200:
- *         description: updated successful
+ *         description: Manual control accepted
  *       400:
- *         description: bad request
+ *         description: Bad request
  *       404:
- *         description: aisle not found
+ *         description: Not found
  *       409:
- *         description: conflict
+ *         description: Conflict
  *       500:
- *         description: internal server error
+ *         description: Internal server error
  */
-router.patch('/:aisle_id', authenticateToken, aisleController.updateControl);
+router.post('/manual-control', authenticateToken, manualControl);
+
 
 
 /**

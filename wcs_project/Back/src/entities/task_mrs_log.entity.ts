@@ -1,9 +1,9 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 import { StatusTasks, TaskReason, TaskSource, TaskSubsystem } from "../common/global.enum";
 
-// entities/tasks_history.entity.ts
-@Entity({ name: 'tasks_history' })
-export class TaskHistory {
+// entities/task_mrs_log.entity.ts
+@Entity({ name: 'task_mrs_log' })
+export class TaskMrsLog {
     @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
     id!: string;
 

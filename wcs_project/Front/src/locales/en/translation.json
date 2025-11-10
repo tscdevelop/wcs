@@ -1,13 +1,13 @@
 {
     "control": {
-        "ok": "ตกลง",
+        "ok": "OK",
         "save": "Save",
         "cancel": "Cancel",
-        "check": "ตรวจสอบ",
-        "reset": "รีเซ็ต",
-        "delete": "ลบ",
-        "search": "ค้นหา",
-        "add": "เพิ่ม",
+        "check": "Check",
+        "reset": "Reset",
+        "delete": "Delete",
+        "search": "Search",
+        "add": "Add",
         "edit": "Edit",
         "add_pet": "เพิ่มข้อมูลสัตว์เลี้ยงใหม่",
         "download_qr": "ดาวน์โหลด QR",
@@ -162,7 +162,12 @@
         "logs": "Logs",
         "view_logs": "View Logs",
         "report": "Report",
-        "view_report": "View Report"
+        "view_report": "View Report",
+        "order_manage": "Order Management",
+        "list": "Waiting Execution List",
+        "transactions": "Transactions",
+        "usage_history": "Usage History",
+        "receipt_history": "Receipt History"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

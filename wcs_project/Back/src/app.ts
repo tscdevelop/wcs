@@ -23,6 +23,7 @@ import roleRouter from './routes/role.routes';
 import menuRouter from './routes/menu.routes';
 import aisleRouter from './routes/aisle.routes';
 import mrsRouter from './routes/mrs.routes';
+import waitingRouter from './routes/waiting.routes';
 
 import swaggerApp from './swagger'; // นำเข้า swagger
 
@@ -115,6 +116,7 @@ app.use('/api/menus', menuRouter);
 
 app.use('/api/aisle', aisleRouter);
 app.use('/api/mrs', mrsRouter);
+app.use('/api/waiting', waitingRouter);
 
 // ใช้ Swagger UI
 app.use(swaggerApp);

@@ -1,29 +1,30 @@
-// gateways/mrs.gateway.ts
-// types = รูปร่างของข้อมูล (ระบุว่ามีฟิลด์อะไรบ้าง ชนิดไหน)
-
 import mqtt, { IClientOptions, MqttClient } from 'mqtt';
 
-// ACK ของคำสั่งเปิด/ปิด (ของเดิม)
+// ACK ของคำสั่งเปิด/ปิด
 export type OpenCloseAck =
-  | {
-      ok: true;
-      status: 'accepted' | 'queued';
-      task_mrs_id: string;
-      controller_job_id: string;
-      received_at: string;
-    }
-  | {
-      ok: false;
-      code: string;
-      message: string;
-      retryable?: boolean;
-    };
+    | {
+        ok: true;
+        status: 'accepted' | 'queued';
+        task_mrs_id: string;
+        controller_job_id: string;
+        received_at: string;
+        }
+    | {
+        ok: false;
+        code: string;
+        message: string;
+        retryable?: boolean;
+        };
 
-// สัญญา Gateway (ของเดิม)
+// สัญญา Gateway (interface)
 export interface MrsGateway {
     openAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck>;
     closeAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck>;
     isAisleSensorClear?(aisle_id?: number): Promise<boolean>;
+
+    /** ✅ เพิ่มใหม่ (ใช้ใน SystemStartupService) */
+    healthCheck?(): Promise<boolean>;
+    disconnect?(): Promise<void>;
 }
 
 /**
@@ -43,9 +44,13 @@ export class MqttMrsGateway implements MrsGateway {
         brokerUrl: string,
         clientOpts?: IClientOptions,
         private opts: { ackTimeoutMs?: number; topicPrefix?: string } = {},
-        private cb?: { onOpenFinished?(p:{task_mrs_id:string;duration_ms?:number}):void; onCloseFinished?(p:{task_mrs_id:string;duration_ms?:number}):void }
+        private cb?: {
+        onOpenFinished?(p: { task_mrs_id: string; duration_ms?: number }): void;
+        onCloseFinished?(p: { task_mrs_id: string; duration_ms?: number }): void;
+        }
     ) {
         this.client = mqtt.connect(brokerUrl, clientOpts);
+
         this.client.on('connect', () => {
         const prefix = this.opts.topicPrefix ?? 'mrs';
         this.client.subscribe([`${prefix}/+/ack`, `${prefix}/+/event`], { qos: 1 });
@@ -59,18 +64,46 @@ export class MqttMrsGateway implements MrsGateway {
 
         this.client.on('close', () => this.flushPendingOnDisconnect());
     }
-    private handleEvent(msg:any){
-        // คาดรูปแบบจาก controller:
-        // { type:'OPEN_FINISHED', task_mrs_id:'123', duration_ms:1200 } หรือ { type:'CLOSE_FINISHED', ... }
-        if (msg?.type === 'OPEN_FINISHED') this.cb?.onOpenFinished?.({ task_mrs_id: String(msg.task_mrs_id), duration_ms: msg.duration_ms });
-        if (msg?.type === 'CLOSE_FINISHED') this.cb?.onCloseFinished?.({ task_mrs_id: String(msg.task_mrs_id), duration_ms: msg.duration_ms });
+
+    /** ✅ เพิ่ม method healthCheck (mock) */
+    async healthCheck(): Promise<boolean> {
+        // ถ้ามี client เชื่อม broker อยู่ ถือว่า online
+        return this.client.connected;
     }
 
-    private flushPendingOnDisconnect(){
-        // กัน promise แขวนถ้า broker หลุด
+    /** ✅ เพิ่ม method disconnect (ปลอดภัย) */
+    async disconnect(): Promise<void> {
+        return new Promise((resolve) => {
+        if (!this.client.connected) return resolve();
+        this.client.end(true, {}, () => {
+            this.flushPendingOnDisconnect();
+            resolve();
+        });
+        });
+    }
+
+    private handleEvent(msg: any) {
+        if (msg?.type === 'OPEN_FINISHED')
+        this.cb?.onOpenFinished?.({
+            task_mrs_id: String(msg.task_mrs_id),
+            duration_ms: msg.duration_ms,
+        });
+        if (msg?.type === 'CLOSE_FINISHED')
+        this.cb?.onCloseFinished?.({
+            task_mrs_id: String(msg.task_mrs_id),
+            duration_ms: msg.duration_ms,
+        });
+    }
+
+    private flushPendingOnDisconnect() {
         for (const [key, entry] of this.pending) {
         clearTimeout(entry.timer);
-        entry.resolve({ ok:false, code:'MQTT_DISCONNECTED', message:'Broker disconnected', retryable:true });
+        entry.resolve({
+            ok: false,
+            code: 'MQTT_DISCONNECTED',
+            message: 'Broker disconnected',
+            retryable: true,
+        });
         this.pending.delete(key);
         }
     }
@@ -83,26 +116,24 @@ export class MqttMrsGateway implements MrsGateway {
         return this.sendCommand('CLOSE_AISLE', cmd);
     }
 
-    // ตัวช่วยส่งคำสั่ง + รอ ACK
     private sendCommand(
         type: 'OPEN_AISLE' | 'CLOSE_AISLE',
         cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }
     ): Promise<OpenCloseAck> {
-        const key = String(cmd.task_mrs_id); // correlation key
+        const key = String(cmd.task_mrs_id);
         const prefix = this.opts.topicPrefix ?? 'mrs';
         const topic = `${prefix}/${cmd.mrs_id}/cmd`;
         const payload = {
         type,
         aisle_id: cmd.aisle_id,
-        task_mrs_id: key,                      // ให้ device สะท้อนคืนมาใน ACK
+        task_mrs_id: key,
         ts: new Date().toISOString(),
         };
 
-        // ทำ promise ที่จะ resolve เมื่อได้ ACK (หรือ timeout)
-        const ackTimeout = this.opts.ackTimeoutMs ?? 10000; // 10s
+        const ackTimeout = this.opts.ackTimeoutMs ?? 10000;
+
         return new Promise<OpenCloseAck>((resolve) => {
         const timer = setTimeout(() => {
-            // timeout: ถ้ามี pending อยู่ให้ลบ แล้วคืน error
             this.pending.delete(key);
             resolve({
             ok: false,
@@ -114,17 +145,11 @@ export class MqttMrsGateway implements MrsGateway {
 
         this.pending.set(key, { resolve, reject: resolve, timer });
 
-        // publish คำสั่ง
         this.client.publish(topic, JSON.stringify(payload), { qos: 1 });
         });
     }
 
-    // รับ ACK จากอุปกรณ์แล้วแมปเป็น OpenCloseAck
     private handleAck(msg: any) {
-        // คาดรูปแบบ ACK จาก device เช่น:
-        // { task_mrs_id: "123", ok: true, status: "accepted", controller_job_id: "job-abc", ts: "..." }
-        // หรือ { task_mrs_id: "123", ok: false, code: "BUSY", message: "device busy", retryable: true }
-
         const key = String(msg?.task_mrs_id ?? '');
         if (!key || !this.pending.has(key)) return;
 
@@ -149,6 +174,6 @@ export class MqttMrsGateway implements MrsGateway {
             retryable: Boolean(msg.retryable),
         };
         }
-        entry.resolve(ack); 
+        entry.resolve(ack);
     }
 }
