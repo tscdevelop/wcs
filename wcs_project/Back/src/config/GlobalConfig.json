@@ -25,15 +25,15 @@
     },
     "DatabaseServer": {
       "type": "mysql",
-      "host": "tw-server",
-      "port": 3306,
-      "username": "sa",
-      "password": "sysdba",
-      "database": "db_wcs"
+      "host": "metro.proxy.rlwy.net",
+      "port": 50136,
+      "username": "root",
+      "password": "YKsMiJkfcYezDKXxmZvlgeckUdEEYXov",
+      "database": "railway"
     },
     "DatabaseConnections": {
-        "ConnStr": "mysql://sa:sysdba@localhost/db_wcs",
-        "ConnStrServer": "mysql://sa:sysdba@tw-server/db_wcs"
+        "ConnStr": "mysql://root:YKsMiJkfcYezDKXxmZvlgeckUdEEYXov@metro.proxy.rlwy.net:50136/railway",
+        "ConnStrServer": "mysql://root:YKsMiJkfcYezDKXxmZvlgeckUdEEYXov@metro.proxy.rlwy.net:50136/railway"
     },
     "PathFile":
     {
