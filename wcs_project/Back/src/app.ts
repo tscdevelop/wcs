@@ -99,7 +99,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
-  origin: 'https://wcs-front.vercel.app',
+  origin: 'https://wcs-gold-two.vercel.app/',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 200
