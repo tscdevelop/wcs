@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "set PORT=3502 && ts-node-dev --respawn --transpile-only src/app.ts",
+    "start": "PORT=3502 ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
     "serve": "node dist/app.js"
   },
