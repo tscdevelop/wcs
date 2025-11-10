@@ -19,16 +19,16 @@
       "type": "mysql",
       "host": "metro.proxy.rlwy.net",
       "port": 50136,
-      "username": "root",
-      "password": "YKsMiJkfcYezDKXxmZvlgeckUdEEYXov",
+      "username": "myuser",
+      "password": "StrongPassword123!",
       "database": "railway"
     },
     "DatabaseServer": {
       "type": "mysql",
       "host": "metro.proxy.rlwy.net",
       "port": 50136,
-      "username": "root",
-      "password": "YKsMiJkfcYezDKXxmZvlgeckUdEEYXov",
+      "username": "myuser",
+      "password": "StrongPassword123!",
       "database": "railway"
     },
     "DatabaseConnections": {
