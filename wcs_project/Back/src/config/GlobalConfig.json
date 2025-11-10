@@ -17,11 +17,11 @@
     },
     "Database": {
       "type": "mysql",
-      "host": "localhost",
-      "port": 3306,
-      "username": "sa",
-      "password": "sysdba",
-      "database": "db_wcs"
+      "host": "metro.proxy.rlwy.net",
+      "port": 50136,
+      "username": "root",
+      "password": "YKsMiJkfcYezDKXxmZvlgeckUdEEYXov",
+      "database": "railway"
     },
     "DatabaseServer": {
       "type": "mysql",
