@@ -207,7 +207,7 @@ const T1MStore = () => {
         { field: "target_bank_code", label: "Zone" },
         { field: "status", label: "Status" },
         { field: "fault_massage", label: "Fault Massage" },
-        { field: "confirmSku", label: "Confirm SKU", type: "confirmSku" },
+        // { field: "confirmSku", label: "Confirm SKU", type: "confirmSku" },
     ];
 
     const handleFilterMrsChange = (name) => (e) =>

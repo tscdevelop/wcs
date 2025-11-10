@@ -3,10 +3,14 @@ import { AppDataSource } from "../config/app-data-source";
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { ApiResponse } from '../models/api-response.model';
 import { TaskMrs } from '../entities/task_mrs.entity';
-import { StatusTasks } from '../common/global.enum';
+import { StatusTasks, StatusWaiting } from '../common/global.enum';
 import * as validate from '../utils/ValidationUtils';
 import * as lang from '../utils/LangHelper';
 import { T1MTaskService } from './task_mrs.service';
+
+import { TaskMrsDetail } from "../entities/task_mrs_detail.entity";
+import { TaskMrsLog } from "../entities/task_mrs_log.entity";
+import { WaitingTasks } from "../entities/waiting_tasks.entity";
 // (ถ้ามี) import { WRSTaskService } from './wrs-task.service';
 
 // services/tasks.service.ts
@@ -135,4 +139,76 @@ export class OrchestratedTaskService {
             throw new Error(lang.msgErrorFunction(operation, error.message));
         }
     }
+
+    async deleteTask(task_id: string, reqUsername: string, manager?: EntityManager): Promise<ApiResponse<void>> {
+        const response = new ApiResponse<void>();
+        const operation = 'TaskService.deleteTask';
+
+        const queryRunner = manager ? null : AppDataSource.createQueryRunner();
+        const useManager = manager || queryRunner?.manager;
+
+        if (!useManager) {
+            return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
+        }
+
+        if (!manager && queryRunner) {
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+        }
+
+        try {
+            // 1️⃣ ตรวจสอบ task หลัก
+            const taskRepo = useManager.getRepository(TaskMrs);
+            const task = await taskRepo.findOne({ where: { task_id } });
+
+            if (!task) {
+                return response.setIncomplete(lang.msgNotFound('task.task_id'));
+            }
+
+            // ✅ เพิ่มเงื่อนไข status = QUEUED
+            if (task.status !== StatusTasks.QUEUED) {
+                return response.setIncomplete(lang.msg('validation.only_queued_tasks_can_be_deleted'));
+            }
+
+            // 2️⃣ อัปเดต waitingTasks เป็น WAITING
+            if (task.waiting_id) {
+                const waitingRepo = useManager.getRepository(WaitingTasks);
+                await waitingRepo.update({ waiting_id: task.waiting_id }, { status: StatusWaiting.WAITING });
+            }
+
+            // 3️⃣ ลบ TaskMrsDetail (task_mrs detail)
+            const tmRepo = useManager.getRepository(TaskMrsDetail);
+            await tmRepo.delete({ task_id });
+
+            // 4️⃣ ลบ TaskLog
+            const logRepo = useManager.getRepository(TaskMrsLog);
+            await logRepo.delete({ task_id });
+
+            // 5️⃣ ลบ Task หลัก
+            await taskRepo.delete({ task_id });
+
+            if (!manager && queryRunner) {
+                await queryRunner.commitTransaction();
+            }
+
+            return response.setComplete(lang.msgSuccessAction('deleted', 'item.task'));
+        } catch (error: any) {
+            if (!manager && queryRunner) {
+                await queryRunner.rollbackTransaction();
+            }
+            console.error(`Error during ${operation}:`, error);
+
+            if (error instanceof QueryFailedError) {
+                return response.setIncomplete(lang.msgErrorFunction(operation, error.message));
+            }
+
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        } finally {
+            if (!manager && queryRunner) {
+                await queryRunner.release();
+            }
+        }
+    }
+
+
 }

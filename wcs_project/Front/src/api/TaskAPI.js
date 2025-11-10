@@ -43,6 +43,22 @@ class TaskAPI {
       }
   }
 
+  static async deleteTask(task_id) {
+        try {
+            const token = GlobalVar.getToken();
+            const endpoint = `/api/tasks/delete/${task_id}`;
+            
+            // ทำการเรียก API ด้วย token และ endpoint
+            const response = await ApiProvider.deleteData(endpoint, {}, token);
+            console.log("API Response:", response);
+            
+            return response; // ส่งค่ากลับไป
+        } catch (error) {
+            console.error("Error in Task:", error);
+            throw error;
+        }
+    }
+
   static async TaskAll() {
       try {
       const token = GlobalVar.getToken();

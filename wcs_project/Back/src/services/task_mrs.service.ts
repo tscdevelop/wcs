@@ -1504,7 +1504,7 @@ export class T1MTaskService {
                 return response.setIncomplete(lang.msg("validation.mrs_not_found"));
 
             // 1.1) mock target aisle (ชั่วคราว)
-            const targetAisleId = "1"; // mock fix
+            const targetAisleId = "2"; // mock fix
             const bankCode = device.bank_code ?? "B1";
 
             // 1.2) ออก task code
@@ -1821,12 +1821,7 @@ export class T1MTaskService {
         try {
             const { useManager, taskRepo, tmRepo, logRepo, mrsRepo, waitingTasksRepo } = ctx;
 
-            // const task = await taskRepo.findOne({ where: { task_id } });
-            const task = await taskRepo.findOne({
-    where: { task_id },
-    select: ["task_id", "waiting_id", "status"] // ต้องมี waiting_id ด้วย
-});
-
+            const task = await taskRepo.findOne({ where: { task_id } });
             if (!task) return response.setIncomplete(lang.msg("validation.not_found"));
 
             const lastOpen = await tmRepo.findOne({
@@ -1878,6 +1873,14 @@ export class T1MTaskService {
                     error_msg: "Sensor detects object; mark task FAILED",
                 } as any));
 
+                // อัปเดต waiting_tasks เป็น COMPLETED กรณีไม่มี nextTask
+                if (task.waiting_id) {
+                    await waitingTasksRepo.update(
+                        { waiting_id: task.waiting_id },
+                        { status: StatusWaiting.COMPLETED }
+                    );
+                }
+
                 await ctx.commit();
                 return response.setIncomplete(lang.msg("validation.sensor_detect_object_discard_close"));
             }
@@ -1903,18 +1906,28 @@ export class T1MTaskService {
 
             if (nextTask && device) {
                 // ปิดงานปัจจุบันเป็น COMPLETED
-                await taskRepo.update({ task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+                task.status = StatusTasks.COMPLETED;
+                task.updated_at = now;
+                await taskRepo.save(task); // save จะอัปเดต entity + DB
 
-                // โหลด task ใหม่เพื่อให้ได้ waiting_id
-                const updatedTask = await taskRepo.findOne({ where: { task_id } });
-                if (updatedTask?.waiting_id) {
+                // ตอนนี้ task.waiting_id ต้องมีค่า
+                if (task.waiting_id) {
                     await waitingTasksRepo.update(
-                        { waiting_id: updatedTask.waiting_id },
-                        { status: StatusWaiting.COMPLETED}
+                        { waiting_id: task.waiting_id },
+                        { status: StatusWaiting.COMPLETED }
                     );
-                    console.log("updatedTask",updatedTask.waiting_id)
+                    console.log("task.waiting_id:", task.waiting_id);
                 }
-                
+
+                // ✅ ถ้ามี nextTask → อัปเดต waiting_id ของ nextTask เป็น WAITING_CONFIRM
+                if (nextTask?.waiting_id) {
+                    await waitingTasksRepo.update(
+                        { waiting_id: nextTask.waiting_id },
+                        { status: StatusWaiting.WAITING_CONFIRM }
+                    );
+                    console.log("nextTask.waiting_id → WAITING_CONFIRM:", nextTask.waiting_id);
+                }
+
 
                 await this.logTaskEvent(useManager, task, TaskEvent.TASK_DONE, {
                     actor: reqUsername,
@@ -2021,6 +2034,15 @@ export class T1MTaskService {
             });
 
             await taskRepo.update({ task_id }, { status: StatusTasks.AISLE_CLOSE, updated_at: now });
+            // ✅ ไม่มี nextTask → ปิดงานปัจจุบันให้ waiting_tasks เป็น COMPLETED
+if (task.waiting_id) {
+    await waitingTasksRepo.update(
+        { waiting_id: task.waiting_id },
+        { status: StatusWaiting.COMPLETED }
+    );
+    console.log("No nextTask → waiting_id COMPLETED:", task.waiting_id);
+}
+
             await this.logTaskEvent(useManager, task, TaskEvent.TASK_CLOSING_AISLE, {
                 actor: reqUsername,
                 prev: StatusTasks.WAITING_FINISH,
@@ -2127,6 +2149,24 @@ export class T1MTaskService {
             if (nextTask && device) {
                 // ปิดงานปัจจุบันเป็น COMPLETED
                 await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+                // อัปเดต waiting_tasks เป็น COMPLETED ด้วย
+const updatedTask = await taskRepo.findOne({ where: { task_id: detail.task_id } });
+if (updatedTask?.waiting_id) {
+    await waitingTasksRepo.update(
+        { waiting_id: updatedTask.waiting_id },
+        { status: StatusWaiting.COMPLETED }
+    );
+}
+// ✅ nextTask ต้องถูกอัปเดต waiting_tasks เป็น WAITING_CONFIRM
+    if (nextTask.waiting_id) {
+        await waitingTasksRepo.update(
+            { waiting_id: nextTask.waiting_id },
+            { status: StatusWaiting.WAITING_CONFIRM }
+        );
+        console.log("➡️ Next waiting_id updated to WAITING_CONFIRM:", nextTask.waiting_id);
+    }
+
+
                 await this.logTaskEvent(useManager, detail as any, TaskEvent.TASK_DONE, {
                     source: TaskSource.SYSTEM,
                     subsystem: TaskSubsystem.MRS,
@@ -2213,6 +2253,15 @@ export class T1MTaskService {
 
             // ปิดงานปัจจุบันเป็น COMPLETED
             await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+
+            // อัปเดต waiting_tasks เป็น COMPLETED ด้วย
+const updatedTask = await taskRepo.findOne({ where: { task_id: detail.task_id } });
+if (updatedTask?.waiting_id) {
+    await waitingTasksRepo.update(
+        { waiting_id: updatedTask.waiting_id },
+        { status: StatusWaiting.COMPLETED }
+    );
+}
 
             await ctx.commit();
             return response.setComplete(lang.msgSuccessAction("updated", "item.task_mrs"), {

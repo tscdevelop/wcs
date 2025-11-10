@@ -116,6 +116,36 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
 
     /**
      * @swagger
+     * /api/tasks/delete/{task_id}:
+     *   delete:
+     *     summary: ลบข้อมูลรายการ tasks ตามไอดีรายการ tasks 
+     *     tags: [Tasks]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - $ref: '#/components/parameters/lng'
+     *       - in: path
+     *         name: task_id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: ไอดีรายการ tasks ที่ต้องการลบ
+     *     responses:
+     *       200:
+     *         description: ลบข้อมูลรายการ tasks สำเร็จ
+     *       400:
+     *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+     *       404:
+     *         description: ไม่พบข้อมูลรายการ tasks ที่ร้องขอ
+     *       500:
+     *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+     */
+    router.delete('/delete/:task_id'
+        , authenticateToken
+        , c.deleteTask);
+    
+    /**
+     * @swagger
      * /api/tasks/get-all:
      *   get:
      *     summary: ดึงข้อมูล Tasks ทั้งหมด
