@@ -97,7 +97,16 @@ app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors({ origin: '*', optionsSuccessStatus: 200 }));
+
+app.use(cors({
+  origin: 'https://wcs-front.vercel.app', // your frontend URL
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors()); // handle preflight for all routes
+
 
 // Use express-fileupload middleware
 app.use(fileUpload());
