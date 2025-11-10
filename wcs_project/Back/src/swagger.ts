@@ -16,7 +16,7 @@ const swaggerOptions = {
         email: 'Transformative.developer@gmail.com'
       },
       servers: [
-        { url: process.env.BASE_URL || 'http://localhost:3502' }
+        { url: 'https://wcs-production.up.railway.app' }
       ]
     },
     components: {
