@@ -97,11 +97,23 @@ app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors({ origin: '*', optionsSuccessStatus: 200 }));
+
+app.use(cors({
+  origin: 'https://wcs-front.vercel.app',
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors()); // preflight for all routes
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+//app.use(cookieParser());
 
 // Use express-fileupload middleware
 app.use(fileUpload());
-app.use(express.json()); // ต้องใช้ เพื่ออ่านค่า req.body
+//app.use(express.json()); // ต้องใช้ เพื่ออ่านค่า req.body
 
 app.use('/', indexRouter);
 app.use('/usertest', usersRouter);
@@ -191,13 +203,10 @@ AppDataSource.initialize()
     });
 
     // 8) Start server (ครั้งเดียว)
-    const server = app.listen(process.env.PORT || 3502, () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') {
-        console.log(`Server is running on http://${addr.address}:${(addr as any).port}`);
-      } else {
-        console.log(`Server is running on ${addr}`);
-      }
+    const PORT = Number(process.env.PORT) || 3502;
+
+    const server = app.listen(3502, '0.0.0.0', () => {
+      console.log(`Server running on port ${3502}`);
     });
   })
   .catch((error: any) => console.log('Error: ', error));
