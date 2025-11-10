@@ -19,7 +19,7 @@ export const AppDataSource = new DataSource({
     database: dbConfig.database,
     synchronize: false, // ควรตั้งค่าเป็น false ใน production
     logging: true,
-    entities: isDevelopment ? ["src/entities/*.ts"] : ["dist/entities/*.js"],
+    entities: ["dist/entities/*.js"],
     migrations: ["src/migrations/**/*.ts"],
     subscribers: [],
     cache: false, // ✅ เปิด Query Cache ที่ระดับ Database
