@@ -99,18 +99,21 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
-  origin: 'https://wcs-front.vercel.app', // your frontend URL
+  origin: 'https://wcs-front.vercel.app',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 200
 }));
 
-app.options('*', cors()); // handle preflight for all routes
+app.options('*', cors()); // preflight for all routes
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+//app.use(cookieParser());
 
 // Use express-fileupload middleware
 app.use(fileUpload());
-app.use(express.json()); // ต้องใช้ เพื่ออ่านค่า req.body
+//app.use(express.json()); // ต้องใช้ เพื่ออ่านค่า req.body
 
 app.use('/', indexRouter);
 app.use('/usertest', usersRouter);
