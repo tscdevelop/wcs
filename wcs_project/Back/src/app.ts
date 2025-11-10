@@ -200,13 +200,8 @@ AppDataSource.initialize()
     });
 
     // 8) Start server (ครั้งเดียว)
-    const server = app.listen(process.env.PORT || 3502, () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') {
-        console.log(`Server is running on http://${addr.address}:${(addr as any).port}`);
-      } else {
-        console.log(`Server is running on ${addr}`);
-      }
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error: any) => console.log('Error: ', error));
