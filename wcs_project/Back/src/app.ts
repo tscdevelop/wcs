@@ -205,8 +205,8 @@ AppDataSource.initialize()
     // 8) Start server (ครั้งเดียว)
     const PORT = Number(process.env.PORT) || 3502;
 
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
+    const server = app.listen(3502, '0.0.0.0', () => {
+      console.log(`Server running on port ${3502}`);
     });
   })
   .catch((error: any) => console.log('Error: ', error));
