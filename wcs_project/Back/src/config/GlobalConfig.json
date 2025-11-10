@@ -16,7 +16,7 @@
         "ExpireMinutes": "480"
     },
     "Database": {
-      "type": "mysql",
+      "type": "mysql2",
       "host": "metro.proxy.rlwy.net",
       "port": 50136,
       "username": "myuser",
@@ -24,7 +24,7 @@
       "database": "railway"
     },
     "DatabaseServer": {
-      "type": "mysql",
+      "type": "mysql2",
       "host": "metro.proxy.rlwy.net",
       "port": 50136,
       "username": "myuser",
