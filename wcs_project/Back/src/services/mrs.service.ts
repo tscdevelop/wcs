@@ -5,18 +5,17 @@ import * as lang from '../utils/LangHelper';
 import * as validate from '../utils/ValidationUtils';
 
 import { MRS } from "../entities/mrs.entity";
-import { TaskMrs } from "../entities/task_mrs.entity";
-import { StatusTasks } from "../common/global.enum";
+import { StatusOrders } from "../common/global.enum";
 import { Aisle } from "../entities/aisle.entity";
-import { WaitingTasks } from "../entities/waiting_tasks.entity";
+import { Orders } from "../entities/orders.entity";
 
 export class MRSService {
     private mrsRepository : Repository<MRS>;
-    private taskRepository : Repository<TaskMrs>;
+    private taskRepository : Repository<Orders>;
 
     constructor(){
         this.mrsRepository = AppDataSource.getRepository(MRS);
-        this.taskRepository = AppDataSource.getRepository(TaskMrs);
+        this.taskRepository = AppDataSource.getRepository(Orders);
     }
 
     // async updateStop(
@@ -106,40 +105,29 @@ export class MRSService {
         try {
             const repository = manager ? manager.getRepository(MRS) : this.mrsRepository;
 
-            // const rawData = await repository
-            // .createQueryBuilder('task')
-            // .leftJoin(MRS, 'mrs', 'mrs.current_task_id = task.task_id')
-            // .select([
-            //     'task.task_id AS task_id',
-            //     'task.task_code AS task_code',
-            //     "task.status AS status", 
-            //     'task.target_aisle_id AS target_aisle_id',
-            //     'task.target_bank_code AS target_bank_code',
-            //     'task.error_msg AS error_msg',
-            //     'task.stock_item AS stock_item',
-            //     'mrs.mrs_id AS mrs_id',
-            //     'mrs.e_stop AS mrs_e_stop',
-            // ])
-            // .where("task.status <> :done", { done: StatusTasks.COMPLETED }) // ✅ เอาเฉพาะงานที่ “ไม่ใช่ DONE”
-            // .orderBy('task.task_id', 'ASC') // หรือ .orderBy('task.created_at', 'DESC') ถ้ามีคอลัมน์เวลา
-            // .getRawMany();
-
             const rawData = await repository
                 .createQueryBuilder('mrs')
                 .leftJoin(Aisle, 'aisle', 'mrs.current_aisle_id = aisle.aisle_id')
-                .leftJoin(TaskMrs, 'task', 'mrs.current_task_id = task.task_id')
+                .leftJoin(Orders, 'order', 'mrs.current_order_id = order.order_id')
+                .leftJoin('m_stock_items', 'stock', 'stock.stock_item = order.stock_item')
                 .select([
                     'mrs.mrs_id AS mrs_id',
                     'mrs.mrs_code AS mrs_code',
                     "mrs.mrs_status AS mrs_status", 
                     'mrs.target_aisle_id AS target_aisle_id',
-                    'mrs.current_task_id AS current_task_id',
-                    'task.waiting_id AS waiting_id',
-                    'mrs.fault_msg AS fault_msg',
-                    'mrs.current_aisle_id AS current_aisle_id',
-                    'aisle.aisle_code AS current_aisle_code',
                     'mrs.bank_code AS bank_code',
-                    'mrs.e_stop AS e_stop',
+                    'mrs.current_aisle_id AS current_aisle_id',
+                    // 'aisle.aisle_code AS current_aisle_code',
+                    'order.order_id AS order_id',
+                    'order.type AS type',
+                    'order.stock_item AS stock_item',
+                    'stock.item_name AS item_name',
+                    'stock.item_desc AS item_desc',
+                    'order.from_location AS from_location',
+                    'order.status AS status',
+                    "DATE_FORMAT(order.requested_at, '%d %b %y %H:%i:%s') AS requested_at",
+                    "order.plan_qty AS plan_qty",
+                    "order.actual_qty AS actual_qty",
                 ])
                 .orderBy('mrs.mrs_id', 'ASC')
                 .getRawMany();

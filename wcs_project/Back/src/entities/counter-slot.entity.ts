@@ -66,7 +66,7 @@
 
 //     /** เวลา confirm ล่าสุดของผู้ใช้ (เช่นกดปุ่ม/สแกน) */
 //     @Column({ type: 'timestamp',  nullable: true, comment: 'Last user confirm at this slot (optional)' })
-//     last_confirm_at?: Date;
+//     last_finish_at?: Date;
 
 //     /** เวลาที่สถานะช่องเปลี่ยนล่าสุด */
 //     @Column({

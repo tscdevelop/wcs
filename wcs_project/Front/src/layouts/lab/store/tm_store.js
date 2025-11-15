@@ -41,8 +41,8 @@ const T1MStore = () => {
     const [MrsAll, setMrsAll] = useState([]);
     const [filtersMrs, setFiltersMrs] = useState({
         mrs_code: "",
-        current_aisle_code: "",
-        waiting_id: "",
+        type: "",
+        stock_item: "",
         mrs_status: "",
     });
 
@@ -193,10 +193,10 @@ const T1MStore = () => {
         return listMrs.filter((r) => {
             const taskOk = !filtersMrs.mrs_code || r.mrs_code?.toLowerCase().includes(filtersMrs.mrs_code.toLowerCase());
             const mrs_statusOk = !filtersMrs.mrs_status || r.mrs_status?.toLowerCase().includes(filtersMrs.mrs_status.toLowerCase());
-            const zoneOk = !filtersMrs.bank_code || (r.bank_code ?? "").toString().toLowerCase().includes((filtersMrs.bank_code ?? "").toString().toLowerCase());
-            const currentOk = !filtersMrs.current_aisle_code || (r.current_aisle_code ?? "").toString().toLowerCase().includes((filtersMrs.current_aisle_code ?? "").toString().toLowerCase());
+            const stock_itemOk = !filtersMrs.stock_item || r.stock_item ?.toLowerCase().includes(filtersMrs.stock_item.toLowerCase());
+            const typeOk = !filtersMrs.type || r.type?.toLowerCase().includes(filtersMrs.type.toLowerCase());
 
-            return taskOk && mrs_statusOk && zoneOk && currentOk;
+            return taskOk && mrs_statusOk && stock_itemOk && typeOk;
         });
     }, [MrsAll, filtersMrs]);
 
@@ -204,11 +204,17 @@ const T1MStore = () => {
 
     const MRS_Columns = [
         { field: "mrs_code", label: "MRS Code" },
-        { field: "current_aisle_code", label: "Current Aisle" },
-        { field: "bank_code", label: "Zone" },
-        { field: "waiting_id", label: "Order ID" },
-        { field: "mrs_status", label: "Status" },
-        { field: "fault_msg", label: "Fault Massage" },
+        { field: "requested_at", label: "Date" },
+        { field: "type", label: "Transaction Type" },
+        { field: "stock_item", label: "Stock Item ID" },
+        { field: "item_name", label: "Stock Item Name" },
+        { field: "item_desc", label: "Stock Item Description" },
+        { field: "from_location", label: "From Location" },
+        { field: "plan_qty", label: "Quantity to be handled" },
+        { field: "actual_qty", label: "Scanned Quantity" },
+        { field: "mrs_status", label: "MRS Status" },
+        { field: "status", label: "Order Status" },
+
     ];
 
     const handleFilterMrsChange = (name) => (e) =>
@@ -467,13 +473,13 @@ const T1MStore = () => {
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Current Aisle</MDTypography>
+                                            <MDTypography variant="h6">Transaction Type</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Current Aisle"
-                                            value={filtersMrs.current_aisle_code}
-                                            onChange={handleFilterMrsChange("current_aisle_code")}
+                                            placeholder="Transaction Type"
+                                            value={filtersMrs.type}
+                                            onChange={handleFilterMrsChange("type")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -488,13 +494,13 @@ const T1MStore = () => {
                                     <Grid item xs={12} sm={6} md={6}></Grid>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Zone</MDTypography>
+                                            <MDTypography variant="h6">Stock Item ID</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Zone"
-                                            value={filtersMrs.bank_code}
-                                            onChange={handleFilterMrsChange("bank_code")}
+                                            placeholder="Stock Item ID"
+                                            value={filtersMrs.stock_item}
+                                            onChange={handleFilterMrsChange("stock_item")}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">

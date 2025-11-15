@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { StatusTasks, TaskReason, TaskSource, TaskSubsystem } from "../common/global.enum";
+import { StatusOrders, TaskReason, TaskSource, TaskSubsystem } from "../common/global.enum";
 
 // entities/task_mrs_log.entity.ts
 @Entity({ name: 'task_mrs_log' })
@@ -16,11 +16,11 @@ export class TaskMrsLog {
     @Column({ type: 'varchar', length: 64 })
     event!: string; // TASK_CREATED, TASK_ROUTING, TASK_EXECUTING, TASK_WAIT_CONFIRM, QUEUED, SENSOR_BLOCKED, ...
 
-    @Column({ type: 'enum', enum: StatusTasks, nullable: true })
-    prev_status?: StatusTasks | null;
+    @Column({ type: 'enum', enum: StatusOrders, nullable: true })
+    prev_status?: StatusOrders | null;
 
-    @Column({ type: 'enum', enum: StatusTasks, nullable: true })
-    new_status?: StatusTasks | null;
+    @Column({ type: 'enum', enum: StatusOrders, nullable: true })
+    new_status?: StatusOrders | null;
 
     @Column({ type: 'varchar', length: 50, nullable: true })
     actor?: string | null; // admin / SYSTEM / AUTO

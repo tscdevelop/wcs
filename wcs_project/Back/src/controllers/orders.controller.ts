@@ -5,15 +5,15 @@ import * as lang from '../utils/LangHelper'; // ใช้ helper function
 import { DataSanitizer } from '../utils/DataSanitizer'; // นำเข้า DataSanitizer
 import RequestUtils from '../utils/RequestUtils'; // Import the utility class
 
-import { WaitingService } from '../services/waiting.service';
-import { WaitingTasks } from '../entities/waiting_tasks.entity';
+import { OrdersService } from '../services/orders.service';
+import { Orders } from '../entities/orders.entity';
 
 dotenv.config();
 
-const waitingService = new WaitingService();
+const ordersService = new OrdersService();
 
 export const create = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.create';
+    const operation = 'OrderController.create';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) {
@@ -24,9 +24,9 @@ export const create = async (req: Request, res: Response) => {
         console.log('Raw req.body:', req.body);
 
         // Sanitization ข้อมูลจาก req.body
-        const data: Partial<WaitingTasks> = DataSanitizer.fromObject<WaitingTasks>(req.body, WaitingTasks);
+        const data: Partial<Orders> = DataSanitizer.fromObject<Orders>(req.body, Orders);
 
-        const response = await waitingService.create(data, reqUsername);
+        const response = await ordersService.create(data, reqUsername);
 
         return ResponseUtils.handleCustomResponse(res, response, HttpStatus.CREATED);
 
@@ -35,12 +35,12 @@ export const create = async (req: Request, res: Response) => {
         console.error(`Error during ${operation}:`, error);
 
         // จัดการข้อผิดพลาดและส่ง response
-        return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
-export const updateWaiting = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.updateWaiting';
+export const updateOrder = async (req: Request, res: Response) => {
+    const operation = 'OrderController.updateOrder';
 
     // ดึง username ของผู้ทำการอัปเดตจาก token
     const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -48,28 +48,28 @@ export const updateWaiting = async (req: Request, res: Response) => {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    // รับ waiting_id จากพารามิเตอร์
-    const waiting_id = req.params.waiting_id;
-    if (!waiting_id) {
+    // รับ order_id จากพารามิเตอร์
+    const order_id = req.params.order_id;
+    if (!order_id) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     try {
         // ทำ sanitize ข้อมูลจาก body
-        const data: Partial<WaitingTasks> = DataSanitizer.fromObject<WaitingTasks>(req.body, WaitingTasks);
+        const data: Partial<Orders> = DataSanitizer.fromObject<Orders>(req.body, Orders);
         // เรียก service update
-        const response = await waitingService.updateWaiting(waiting_id, data, reqUsername);
+        const response = await ordersService.updateOrder(order_id, data, reqUsername);
 
         // ส่งผลลัพธ์กลับ client
         return ResponseUtils.handleCustomResponse(res, response, HttpStatus.OK);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorUpdate(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorUpdate(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const del = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.delete';
+    const operation = 'OrderController.delete';
 
     // ดึง username ของผู้ทำการลบ
     const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -77,120 +77,120 @@ export const del = async (req: Request, res: Response) => {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    const waiting_id = req.params.waiting_id;
-    if (!waiting_id) {
+    const order_id = req.params.order_id;
+    if (!order_id) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     try {
         // เรียก service delete
-        const response = await waitingService.delete(waiting_id, reqUsername);
+        const response = await ordersService.delete(order_id, reqUsername);
 
         // ส่งผลลัพธ์กลับ client
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorDelete(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorDelete(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const getAll = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.getAll';
+    const operation = 'OrderController.getAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) return;
 
     try {
-        const response = await waitingService.getAll();
+        const response = await ordersService.getAll();
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const getUsageAll = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.getUsageAll';
+    const operation = 'OrderController.getUsageAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) return;
 
     try {
-        const response = await waitingService.getUsageAll();
+        const response = await ordersService.getUsageAll();
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const getUsageById = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.getUsageById';
+    const operation = 'OrderController.getUsageById';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    const waiting_id_str = req.params.waiting_id;
-    if (!waiting_id_str) {
+    const order_id_str = req.params.order_id;
+    if (!order_id_str) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     // แปลง string เป็น number
-    const waiting_id = Number(waiting_id_str);
-    if (isNaN(waiting_id)) {
+    const order_id = Number(order_id_str);
+    if (isNaN(order_id)) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     try {
-        const response = await waitingService.getUsageById(waiting_id); // ✅ now it's a number
+        const response = await ordersService.getUsageById(order_id); // ✅ now it's a number
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const getReceiptAll = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.getReceiptAll';
+    const operation = 'OrderController.getReceiptAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) return;
 
     try {
-        const response = await waitingService.getReceiptAll();
+        const response = await ordersService.getReceiptAll();
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };
 
 export const getReceiptById = async (req: Request, res: Response) => {
-    const operation = 'WaitingController.getReceiptById';
+    const operation = 'OrderController.getReceiptById';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    const waiting_id_str = req.params.waiting_id;
-    if (!waiting_id_str) {
+    const order_id_str = req.params.order_id;
+    if (!order_id_str) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     // แปลง string เป็น number
-    const waiting_id = Number(waiting_id_str);
-    if (isNaN(waiting_id)) {
+    const order_id = Number(order_id_str);
+    if (isNaN(order_id)) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     try {
-        const response = await waitingService.getReceiptById(waiting_id); // ✅ now it's a number
+        const response = await ordersService.getReceiptById(order_id); // ✅ now it's a number
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.waiting', true, reqUsername);
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
     }
 };

@@ -1,14 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-import { StatusWaiting, TypeInfm } from '../common/global.enum';
+import { ScanStatus, StatusOrders, TypeInfm } from '../common/global.enum';
 
 /**
- * waiting tasks: ใช้ควบคุมรายการที่ต้องการทำ task ทั้งหมด รวมทั้ง MRS และ WRS
+ * order tasks: ใช้ควบคุมรายการที่ต้องการทำ task ทั้งหมด รวมทั้ง MRS และ WRS
  */
-@Entity({ name: 'waiting_tasks' })
-export class WaitingTasks {
+@Entity({ name: 'orders' })
+export class Orders {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of waiting task' })
-    waiting_id!: string;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order task' })
+    order_id!: string;
 
     /** ประเภทคลัง: T1 (WRS) หรือ T1M (MRS) */
     @Column({ type: 'enum', enum: ['T1','T1M'], default: 'T1M', comment: 'Store type of the task' })
@@ -19,8 +19,8 @@ export class WaitingTasks {
     type!: TypeInfm;
 
     /** สถานะงานที่รอ */
-    @Column({ type: 'enum',enum:StatusWaiting ,default: StatusWaiting.WAITING, comment: 'Overall waiting task state'})
-    status!: StatusWaiting;
+    @Column({ type: 'enum',enum:StatusOrders ,default: StatusOrders.WAITING, comment: 'Overall order task state'})
+    status!: StatusOrders;
 
     /** หมายเลขออเดอร์/ใบคำขอ */
     @Column({ type: 'varchar', length: 50, nullable: true, default: null, comment: 'Order ID to group multiple SKU tasks'})
@@ -38,13 +38,13 @@ export class WaitingTasks {
     @Column({ type: 'varchar', length: 100, comment: 'Requested SKU' })
     stock_item!: string;
 
-    /** คำอธิบายสินค้า */
-    @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Item description' })
-    item_desc?: string;
-
     /** จำนวนที่ต้องการ */
     @Column({ type: 'int', nullable: true, default: null, comment: 'Plan Quantity' })
     plan_qty?: number;
+    
+    /** จำนวนที่ยิงจริง */
+    @Column({ type: 'int', default: 0, comment: 'Actual Quantity' })
+    actual_qty?: number;
 
     /** จำนวน cat */
     @Column({ type: 'int', nullable: true, default: null, comment: 'Cat Quantity' })
@@ -135,5 +135,40 @@ export class WaitingTasks {
     /** เวลารับคำขอ */
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Requested at' })
     requested_at!: Date;
+
+    /** เวลาอัปเดตล่าสุดของงาน ตาม log*/
+    @Column({  type: 'timestamp',  nullable: true, default: () => null })
+    updated_at?: Date;
+
+    /** สถานะที่แสกน */
+    @Column({  type: 'enum', enum: ScanStatus , nullable: false, default: ScanStatus.PENDING  })
+    actual_status: ScanStatus;
+
+    /** ผู้ร้องขอแสกนของ */
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    actual_by?: string;
+
+    /** เวลาที่ยิงของ */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null})
+    actual_at?: Date;
+
+    /** สถานะการคอนเฟิร์ม */
+    @Column({ default: false, nullable: false })
+    is_confirm: boolean;
+
+    /** เวลาที่กดคอนเฟิร์ม */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null})
+    confirm_at?: Date;
+
+    /** ลำดับความสำคัญ 1–9 (น้อย→มาก) */
+    @Column({ type: 'tinyint', unsigned: true, default: 5, comment: 'Priority 1-9 (low→high)' })
+    priority!: number;
+
+    /** โค้ด/ข้อความความผิดพลาด (ระดับงานรวม) */
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Error code (if failed)' })
+    error_code?: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Error message (if failed)' })
+    error_msg?: string;
 
 }

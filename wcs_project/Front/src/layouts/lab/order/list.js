@@ -53,7 +53,7 @@
 
 //   const columns = [
 //     { field: "requested_at", label: "Date/Time" },
-//     { field: "waiting_id", label: "Order ID" },
+//     { field: "order_id", label: "Order ID" },
 //     { field: "requested_by", label: "Customer" },
 //     { field: "plan_qty", label: "QTY" },
 //     { field: "from_location", label: "Location" },
@@ -363,7 +363,8 @@ import ReusableDataTable from "../components/table_component_v2";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import WaitingAPI from "api/WaitingAPI";
-import TaskAPI from "api/TaskAPI";
+import ExecutionAPI from "api/TaskAPI";
+import SweetAlertComponent from "../components/sweetAlert";
 
 const WaitingExecutionPage = () => {
   const [waitingList, setWaitingList] = useState([]);
@@ -375,13 +376,23 @@ const WaitingExecutionPage = () => {
   const [selectedWaiting, setSelectedWaiting] = useState(null); // store id
   const [selectedExecution, setSelectedExecution] = useState(null); // store id
   const [loading, setLoading] = useState(false);
+  const [confirmAlert, setConfirmAlert] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // ฟังก์ชันที่จะรันหลัง confirm
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
 
   // --- Fetch Data ---
   const fetchDataWaitingAll = async () => {
     setLoading(true);
     try {
       const response = await WaitingAPI.WaitingAll();
-      const list = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const list = Array.isArray(response?.data) ? response.data : [];
       setWaitingList(list);
     } catch (err) {
       console.error(err);
@@ -394,8 +405,8 @@ const WaitingExecutionPage = () => {
   const fetchDataExecuteAll = async () => {
     setLoading(true);
     try {
-      const response = await TaskAPI.TaskAll();
-      const list = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const response = await ExecutionAPI.TaskAll();
+      const list = Array.isArray(response?.data) ? response.data : [];
       setExecutionList(list);
     } catch (err) {
       console.error(err);
@@ -430,64 +441,128 @@ const WaitingExecutionPage = () => {
   }, [executionList, searchExecution]);
 
   // --- + (Move to Execution) ---
-  const handleMoveToExecution = async () => {
-    if (!selectedWaiting) return;
+const handleMoveToExecution = async () => {
+  if (!selectedWaiting) return;
 
-    const payload = [
-      {
-        waiting_id: selectedWaiting.waiting_id,
-        stock_item: selectedWaiting.stock_item,
-        plan_qty: selectedWaiting.plan_qty,
-        priority: 5, // fix value
-        type: selectedWaiting.type,
-        store_type: selectedWaiting.store_type,
-        from_location: selectedWaiting.from_location,
-      },
-    ];
+  const row = waitingList.find((item) => item.order_id === selectedWaiting);
+  if (!row) return;
 
-    console.log("Sending payload:", payload);
-
-    try {
-      const response = await TaskAPI.createTask(payload);
-      console.log("Response:", response);
-
-      if (response?.isCompleted) {
-        await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
-        setSelectedWaiting(null);
-      }
-    } catch (err) {
-      console.error("API error:", err.response?.data || err);
-    }
+  const payload = { 
+    order_id: row.order_id 
   };
+
+  console.log("Sending payload:", payload);
+
+  try {
+    const response = await ExecutionAPI.createTask(payload);
+
+    // ❌ ถ้า API ส่งว่าไม่สำเร็จ → ขึ้น error alert + return
+    if (!response?.isCompleted) {
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: response?.message || "API rejected",
+      });
+      return;
+    }
+
+    // ✅ ถ้าสำเร็จ → ทำงานต่อ
+    await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
+    setSelectedWaiting(null);
+
+    setAlert({
+      show: true,
+      type: "success",
+      title: "Success",
+      message: "Confirm to execution list",
+    });
+
+  } catch (err) {
+    console.error("API error:", err.response?.data || err);
+
+    setAlert({
+      show: true,
+      type: "error",
+      title: "Error",
+      message: err.response?.data?.message || "Something went wrong",
+    });
+  }
+};
+
 
   // --- - (Delete Execution Task) ---
-  const handleDeleteTask = async () => {
-    if (!selectedExecution) return;
-    const row = executionList.find((item) => item.task_id === selectedExecution);
-    if (!row) return;
+const handleDeleteTask = async () => {
+  if (!selectedExecution) return;
 
-    const response = await TaskAPI.deleteTask(row.task_id);
-    if (response?.isCompleted) {
-      await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
-      setSelectedExecution(null); // reset selection
+  const row = executionList.find((item) => item.order_id === selectedExecution);
+  if (!row) return;
+
+  try {
+    const response = await ExecutionAPI.changeToWaiting(row.order_id);
+
+    // ❌ ถ้า API ส่งว่าไม่สำเร็จ → ขึ้น error alert + return
+    if (!response?.isCompleted) {
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: response?.message || "API rejected",
+      });
+      return;
     }
-  };
 
-  const columns = [
-    { field: "requested_at", label: "Date/Time" },
-    { field: "waiting_id", label: "Order ID" },
-    { field: "requested_by", label: "Customer" },
-    { field: "plan_qty", label: "QTY" },
+    // ✅ ถ้าสำเร็จ → ทำงานต่อ
+    await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
+    setSelectedExecution(null);
+
+    setAlert({
+      show: true,
+      type: "success",
+      title: "Success",
+      message: "Confirm to order list",
+    });
+
+  } catch (err) {
+    console.error("API error:", err.response?.data || err);
+
+    setAlert({
+      show: true,
+      type: "error",
+      title: "เกิดข้อผิดพลาด",
+      message: err.response?.data?.message || "Something went wrong",
+    });
+  }
+};
+
+
+
+  const columnsWaiting = [
+    { field: "type", label: "Transaction Type" },
+    { field: "requested_at", label: "Date" },
+    { field: "stock_item", label: "Stock Item ID" },
+    { field: "item_name", label: "Stock Item Name" },
+    { field: "item_desc", label: "Stock Item Description" },
     { field: "from_location", label: "Location" },
+    { field: "cond", label: "Condition" },
+    { field: "plan_qty", label: "Quantity to be handled" },
+    { field: "actual_qty", label: "Scanned Quantity" },
+    { field: "status", label: "Status" },
+
   ];
 
   const columnsExecute = [
-    { field: "requested_at", label: "Date/Time" },
-    { field: "task_id", label: "Order ID" },
-    { field: "requested_by", label: "Customer" },
-    { field: "plan_qty", label: "QTY" },
+    { field: "type", label: "Transaction Type" },
+    { field: "requested_at", label: "Date" },
+    { field: "stock_item", label: "Stock Item ID" },
+    { field: "item_name", label: "Stock Item Name" },
+    { field: "item_desc", label: "Stock Item Description" },
     { field: "from_location", label: "Location" },
+    { field: "cond", label: "Condition" },
+    { field: "plan_qty", label: "Quantity to be handled" },
+    { field: "actual_qty", label: "Scanned Quantity" },
     { field: "status", label: "Status" },
+
   ];
 
   return (
@@ -538,13 +613,14 @@ const WaitingExecutionPage = () => {
               </Grid>
               <MDBox sx={{ fontSize: "0.85rem", maxHeight: "600px", overflowY: "auto" }}>
                 <ReusableDataTable
-                  columns={columns}
+                  columns={columnsWaiting}
                   rows={filteredWaiting}
-                  idField="waiting_id"
-                  onRowClick={(row) => setSelectedWaiting(row)} // เก็บ row ทั้งหมด
-                  selectedId={selectedWaiting?.waiting_id} // สำหรับ highlight
+                  idField="order_id"
+                  onRowClick={(row) => setSelectedWaiting(row.order_id)} // เก็บ row ทั้งหมด
+                  selectedId={selectedWaiting} // สำหรับ highlight
                   fontSize="0.8rem"
                   autoHeight
+                  
                 />
               </MDBox>
             </Card>
@@ -563,7 +639,11 @@ const WaitingExecutionPage = () => {
           >
             <IconButton
               color="primary"
-              onClick={handleMoveToExecution}
+              onClick={() => {
+    setConfirmMessage("Are you sure you want to move this Waiting to Execution?");
+    setConfirmAction(() => handleMoveToExecution); // เก็บฟังก์ชันที่จะรัน
+    setConfirmAlert(true); // เปิด SweetAlert
+  }}
               disabled={!selectedWaiting || loading}
               sx={{ p: 0.3 }}
             >
@@ -571,7 +651,11 @@ const WaitingExecutionPage = () => {
             </IconButton>
             <IconButton
               color="error"
-              onClick={handleDeleteTask}
+                onClick={() => {
+    setConfirmMessage("Are you sure you want to move this Execution to Waiting?");
+    setConfirmAction(() => handleDeleteTask);
+    setConfirmAlert(true);
+  }}
               disabled={!selectedExecution || loading}
               sx={{ p: 0.3 }}
             >
@@ -625,8 +709,8 @@ const WaitingExecutionPage = () => {
                 <ReusableDataTable
                   columns={columnsExecute}
                   rows={filteredExecution}
-                  idField="task_id"
-                  onRowClick={(row) => setSelectedExecution(row.task_id)}
+                  idField="order_id"
+                  onRowClick={(row) => setSelectedExecution(row.order_id)}
                   selectedId={selectedExecution}
                   fontSize="0.8rem"
                   autoHeight
@@ -636,6 +720,32 @@ const WaitingExecutionPage = () => {
           </Grid>
         </Grid>
       </MDBox>
+
+{confirmAlert && (
+  <SweetAlertComponent
+    type="warning"
+    title="Confirmation"
+    message={confirmMessage}
+    show={confirmAlert}
+    showCancel
+    confirmText="Yes"
+    cancelText="No"
+    onConfirm={() => {
+      if (confirmAction) confirmAction(); // รันฟังก์ชันจริง
+      setConfirmAlert(false); // ปิด alert
+    }}
+    onCancel={() => setConfirmAlert(false)}
+  />
+)}
+
+      <SweetAlertComponent
+        show={alert.show}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => setAlert({ ...alert, show: false })}
+      />
+
     </DashboardLayout>
   );
 };

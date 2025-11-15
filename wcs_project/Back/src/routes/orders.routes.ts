@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken } from '../common/auth.token';
-import * as waitingController from '../controllers/waiting.controller'
+import * as orderController from '../controllers/orders.controller'
 
 const router = Router();
 
@@ -8,14 +8,14 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Waiting
- *   description: การจัดการรายการ waiting
+ *   description: การจัดการรายการ order
  */
 
 /**
  * @swagger
  * /api/waiting/create:
  *   post:
- *     summary: สร้างรายการ waiting
+ *     summary: สร้างรายการ order
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
@@ -54,10 +54,6 @@ const router = Router();
  *                 type: string
  *                 description: รหัสสินค้า (Stock Item)
  *                 example: "BHS-CRI-02034"
- *               item_desc:
- *                 type: string
- *                 description: รายละเอียดสินค้า
- *                 example: "Activation unit, right, p/n: 293B465"
  *               plan_qty:
  *                 type: integer
  *                 description: จำนวนที่ต้องการ
@@ -105,34 +101,34 @@ const router = Router();
  *                 example: "61270"
  *     responses:
  *       201:
- *         description: สร้างข้อมูล waiting สำเร็จ
+ *         description: สร้างข้อมูล order สำเร็จ
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูล waiting ที่ร้องขอ
+ *         description: ไม่พบข้อมูล order ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
 router.post('/create'
     , authenticateToken
-    , waitingController.create);
+    , orderController.create);
 
 /**
  * @swagger
- * /api/waiting/update/{waiting_id}:
+ * /api/waiting/update/{order_id}:
  *   put:
- *     summary: แก้ไขรายการ waiting ที่มีอยู่
+ *     summary: แก้ไขรายการ order ที่มีอยู่
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
  *       - in: path
- *         name: waiting_id
+ *         name: order_id
  *         schema:
  *           type: string
  *         required: true
- *         description: ไอดีรายการ waiting 
+ *         description: ไอดีรายการ order 
  *     requestBody:
  *       required: true
  *       content:
@@ -166,10 +162,6 @@ router.post('/create'
  *                 type: string
  *                 description: รหัสสินค้า (Stock Item)
  *                 example: "BHS-CRI-02034"
- *               item_desc:
- *                 type: string
- *                 description: รายละเอียดสินค้า
- *                 example: "Activation unit, right, p/n: 293B465"
  *               plan_qty:
  *                 type: integer
  *                 description: จำนวนที่ต้องการ
@@ -217,53 +209,53 @@ router.post('/create'
  *                 example: "61270"
  *     responses:
  *       200:
- *         description: แก้ไขข้อมูล waiting สำเร็จ
+ *         description: แก้ไขข้อมูล order สำเร็จ
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูล waiting ที่ร้องขอ
+ *         description: ไม่พบข้อมูล order ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.put('/update/:waiting_id'
+router.put('/update/:order_id'
     , authenticateToken
-    , waitingController.updateWaiting);
+    , orderController.updateOrder);
 
 /**
  * @swagger
- * /api/waiting/delete/{waiting_id}:
+ * /api/waiting/delete/{order_id}:
  *   delete:
- *     summary: ลบข้อมูลรายการ waiting ตามไอดีรายการ waiting 
+ *     summary: ลบข้อมูลรายการ order ตามไอดีรายการ order 
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
  *       - in: path
- *         name: waiting_id
+ *         name: order_id
  *         required: true
  *         schema:
  *           type: string
- *         description: ไอดีรายการ waiting ที่ต้องการลบ
+ *         description: ไอดีรายการ order ที่ต้องการลบ
  *     responses:
  *       200:
- *         description: ลบข้อมูลรายการ waiting สำเร็จ
+ *         description: ลบข้อมูลรายการ order สำเร็จ
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูลรายการ waiting ที่ร้องขอ
+ *         description: ไม่พบข้อมูลรายการ order ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.delete('/delete/:waiting_id'
+router.delete('/delete/:order_id'
     , authenticateToken
-    , waitingController.del);
+    , orderController.del);
 
 /**
  * @swagger
  * /api/waiting/get-all:
  *   get:
- *     summary: ดึงข้อมูลรายการ waiting
+ *     summary: ดึงข้อมูลรายการ order
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
@@ -271,23 +263,23 @@ router.delete('/delete/:waiting_id'
  *       - $ref: '#/components/parameters/lng'
  *     responses:
  *       200:
- *         description: พบข้อมูลรายการ waiting 
+ *         description: พบข้อมูลรายการ order 
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูลรายการ waiting ที่ร้องขอ
+ *         description: ไม่พบข้อมูลรายการ order ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
 router.get('/get-all'
     , authenticateToken
-    , waitingController.getAll);
+    , orderController.getAll);
 
 /**
  * @swagger
  * /api/waiting/get-usage-all:
  *   get:
- *     summary: ดึงข้อมูลรายการ waiting เฉพาะ Type Usage
+ *     summary: ดึงข้อมูลรายการ order เฉพาะ Type Usage
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
@@ -295,37 +287,37 @@ router.get('/get-all'
  *       - $ref: '#/components/parameters/lng'
  *     responses:
  *       200:
- *         description: พบข้อมูลรายการ waiting usage
+ *         description: พบข้อมูลรายการ order usage
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูลรายการ waiting usage ที่ร้องขอ
+ *         description: ไม่พบข้อมูลรายการ order usage ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
 router.get('/get-usage-all'
     , authenticateToken
-    , waitingController.getUsageAll);
+    , orderController.getUsageAll);
 
 /**
  * @swagger
- * /api/waiting/get-usage-by-id/{waiting_id}:
+ * /api/waiting/get-usage-by-id/{order_id}:
  *   get:
- *     summary: ดึงข้อมูลรายการ waiting เฉพาะ Type Usage ตามไอดี
+ *     summary: ดึงข้อมูลรายการ order เฉพาะ Type Usage ตามไอดี
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
  *       - in: path
- *         name: waiting_id
+ *         name: order_id
  *         schema:
  *           type: string
  *         required: true
- *         description: ไอดีรายการ waiting
+ *         description: ไอดีรายการ order
  *     responses:
  *       200:
- *         description: พบข้อมูลรายการ waiting
+ *         description: พบข้อมูลรายการ order
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
@@ -333,16 +325,16 @@ router.get('/get-usage-all'
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.get('/get-usage-by-id/:waiting_id'
+router.get('/get-usage-by-id/:order_id'
     , authenticateToken
-    , waitingController.getUsageById);
+    , orderController.getUsageById);
 
 
 /**
  * @swagger
  * /api/waiting/get-receipt-all:
  *   get:
- *     summary: ดึงข้อมูลรายการ waiting เฉพาะ Type Receipt
+ *     summary: ดึงข้อมูลรายการ order เฉพาะ Type Receipt
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
@@ -350,37 +342,37 @@ router.get('/get-usage-by-id/:waiting_id'
  *       - $ref: '#/components/parameters/lng'
  *     responses:
  *       200:
- *         description: พบข้อมูลรายการ waiting receipt
+ *         description: พบข้อมูลรายการ order receipt
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูลรายการ waiting receipt ที่ร้องขอ
+ *         description: ไม่พบข้อมูลรายการ order receipt ที่ร้องขอ
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
 router.get('/get-receipt-all'
     , authenticateToken
-    , waitingController.getReceiptAll);
+    , orderController.getReceiptAll);
 
 /**
  * @swagger
- * /api/waiting/get-receipt-by-id/{waiting_id}:
+ * /api/waiting/get-receipt-by-id/{order_id}:
  *   get:
- *     summary: ดึงข้อมูลรายการ waiting เฉพาะ Type Receipt ตามไอดี
+ *     summary: ดึงข้อมูลรายการ order เฉพาะ Type Receipt ตามไอดี
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
  *       - in: path
- *         name: waiting_id
+ *         name: order_id
  *         schema:
  *           type: string
  *         required: true
- *         description: ไอดีรายการ waiting
+ *         description: ไอดีรายการ order
  *     responses:
  *       200:
- *         description: พบข้อมูลรายการ waiting
+ *         description: พบข้อมูลรายการ order
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
@@ -388,8 +380,8 @@ router.get('/get-receipt-all'
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.get('/get-receipt-by-id/:waiting_id'
+router.get('/get-receipt-by-id/:order_id'
     , authenticateToken
-    , waitingController.getReceiptById);
+    , orderController.getReceiptById);
 
 export default router;

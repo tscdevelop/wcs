@@ -7,12 +7,12 @@
 // import { MRS } from '../entities/mrs.entity';
 // import { Aisle } from '../entities/aisle.entity';
 // import { MrsLog } from '../entities/mrs_log.entity';
-// import { StatusTasks, LogResult, MrsLogAction, AisleStatus, ControlSource, TaskMrsAction } from '../common/global.enum';
+// import { StatusOrders, LogResult, MrsLogAction, AisleStatus, ControlSource, TaskMrsAction } from '../common/global.enum';
 // import * as validate from '../utils/ValidationUtils';
 // import * as lang from '../utils/LangHelper';
 // import { MrsGateway } from '../gateways/mrs.gateway';
 // import { CreateT1MTaskDto } from "../dtos/tasks.dto";
-// import { TaskMrsLog } from "../entities/task_history.entity";
+// import { TaskLog } from "../entities/task_history.entity";
 
 // export class T1MTaskService {
 //     // NOTE: เวลาอยู่ใน transaction ให้ใช้ useManager.getRepository(...) เท่านั้น
@@ -88,7 +88,7 @@
 //         try {
 //             const taskRepo   = useManager.getRepository(TaskMrs);
 //             const mrsRepo    = useManager.getRepository(MRS);
-//             const tmRepo     = useManager.getRepository(TaskMrsDetail);
+//             const taskDetailRepo     = useManager.getRepository(TaskMrsDetail);
 //             const logRepo    = useManager.getRepository(MrsLog);
 
 //             // ----- Validate -----
@@ -111,7 +111,7 @@
 //                 plan_qty: data.plan_qty,
 //                 priority: data.priority ?? 5,
 //                 store_type: 'T1M',
-//                 status: StatusTasks.NEW,
+//                 status: StatusOrders.NEW,
 //                 requested_by: reqUsername,
 //                 target_aisle_id: String(resolved.aisle_id),
 //                 target_bank_code: bankCode,
@@ -120,18 +120,18 @@
 //             // + logTaskEvent: เพิ่งสร้างงาน
 //             await this.logTaskEvent(useManager, task, 'TASK_CREATED', {
 //                 actor: reqUsername, source: 'API',
-//                 next: StatusTasks.NEW, aisle_id: String(resolved.aisle_id), reason_code: null
+//                 next: StatusOrders.NEW, aisle_id: String(resolved.aisle_id), reason_code: null
 //             });
 
 //             // 2.1) ตั้ง work_order
 //             const orderIdStr = data.work_order ?? String(task.task_id);
 //             await taskRepo.update(
 //                 { task_id: task.task_id },
-//                 { work_order: orderIdStr, status: StatusTasks.ROUTING, updated_at: new Date() }
+//                 { work_order: orderIdStr, status: StatusOrders.ROUTING, updated_at: new Date() }
 //             );
 //             // + logTaskEvent: เข้าสถานะ ROUTING
 //             await this.logTaskEvent(useManager, task, 'TASK_ROUTING', {
-//                 prev: StatusTasks.NEW, next: StatusTasks.ROUTING,
+//                 prev: StatusOrders.NEW, next: StatusOrders.ROUTING,
 //                 aisle_id: String(resolved.aisle_id), reason_code: null
 //             });
 
@@ -148,12 +148,12 @@
 //                     // คนละ aisle แต่ bank เดียวกัน → ต้องเข้าคิว ห้ามเปิดซ้อน
 //                     await taskRepo.update(
 //                         { task_id: task.task_id },
-//                         { status: StatusTasks.QUEUED, updated_at: new Date() }
+//                         { status: StatusOrders.QUEUED, updated_at: new Date() }
 //                     );
 //                     // ⬇️ logTaskEvent ที่นี่ เพราะเราจะ return ออกเลย
 //                     await this.logTaskEvent(useManager, task, 'QUEUED', {
-//                         prev: StatusTasks.ROUTING,
-//                         next: StatusTasks.QUEUED,
+//                         prev: StatusOrders.ROUTING,
+//                         next: StatusOrders.QUEUED,
 //                         reason_code: 'BANK_BUSY',               // สำคัญ: ระบุสาเหตุเข้าคิว
 //                         aisle_id: String(resolved.aisle_id),
 //                         mrs_id: String((bankOpen as any).mrs_id) // ถ้า entity มี mrs_id ใส่ได้, ไม่มีก็ละทิ้งได้
@@ -172,11 +172,11 @@
 //             if (active) {
 //                 await taskRepo.update(
 //                     { task_id: task.task_id },
-//                     { status: StatusTasks.QUEUED, updated_at: new Date() }
+//                     { status: StatusOrders.QUEUED, updated_at: new Date() }
 //                 );
 //                 // + logTaskEvent: คิวเพื่อ join session ช่องเดิม
 //                 await this.logTaskEvent(useManager, task, 'QUEUED', {
-//                     prev: StatusTasks.ROUTING, next: StatusTasks.QUEUED,
+//                     prev: StatusOrders.ROUTING, next: StatusOrders.QUEUED,
 //                     reason_code: 'JOIN_OPEN_SESSION', aisle_id: String(resolved.aisle_id), mrs_id: String(active.mrs_id)
 //                 });
 
@@ -209,10 +209,10 @@
 //             // 3) ไม่มี session → reserve MRS และสั่ง OPEN
 //             const device = await this.pickMrsForAisle(resolved.aisle_id, useManager);
 //             if (!device) {
-//                 await taskRepo.update({ task_id: task.task_id }, { status: StatusTasks.QUEUED, updated_at: new Date() });
+//                 await taskRepo.update({ task_id: task.task_id }, { status: StatusOrders.QUEUED, updated_at: new Date() });
 //                 // + logTaskEvent: เข้าคิวเพราะไม่มีเครื่องว่าง
 //                 await this.logTaskEvent(useManager, task, 'QUEUED', {
-//                     prev: StatusTasks.ROUTING, next: StatusTasks.QUEUED,
+//                     prev: StatusOrders.ROUTING, next: StatusOrders.QUEUED,
 //                     reason_code: 'NO_DEVICE', aisle_id: String(resolved.aisle_id)
 //                 });
 
@@ -236,7 +236,7 @@
 //             await mrsRepo.save(device);
 
 //             // 4) task_mrs OPEN (PENDING)
-//             const openDetail = tmRepo.create({
+//             const openDetail = taskDetailRepo.create({
 //                 task_id: String(task.task_id),
 //                 mrs_id: String(device.mrs_id),
 //                 target_aisle_id: String(resolved.aisle_id),
@@ -245,7 +245,7 @@
 //                 result: LogResult.PENDING,
 //                 started_at: new Date(),
 //             });
-//             await tmRepo.save(openDetail);
+//             await taskDetailRepo.save(openDetail);
 
 //             // 5) mrs_log start (IN_PROGRESS)
 //             await logRepo.save(logRepo.create({
@@ -267,10 +267,10 @@
 //             });
 
 //             // 7) tasks.IN_PROGRESS
-//             await taskRepo.update({ task_id: task.task_id }, { status: StatusTasks.IN_PROGRESS, updated_at: new Date() });
+//             await taskRepo.update({ task_id: task.task_id }, { status: StatusOrders.IN_PROGRESS, updated_at: new Date() });
 //             // + logTaskEvent: เริ่มทำงานกับเครื่องจริง
 //             await this.logTaskEvent(useManager, task, 'TASK_EXECUTING', {
-//                 prev: StatusTasks.ROUTING, next: StatusTasks.IN_PROGRESS,
+//                 prev: StatusOrders.ROUTING, next: StatusOrders.IN_PROGRESS,
 //                 mrs_id: String(device.mrs_id), aisle_id: String(resolved.aisle_id)
 //             });
 
@@ -310,13 +310,13 @@
 //         if (!manager && queryRunner) { await queryRunner.connect(); await queryRunner.startTransaction(); }
 
 //         try {
-//             const tmRepo    = useManager.getRepository(TaskMrsDetail);
+//             const taskDetailRepo    = useManager.getRepository(TaskMrsDetail);
 //             const logRepo   = useManager.getRepository(MrsLog);
 //             const aisleRepo = useManager.getRepository(Aisle);
 //             const taskRepo  = useManager.getRepository(TaskMrs);
 //             const mrsRepo   = useManager.getRepository(MRS);
 
-//             const detail = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//             const detail = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //             if (!detail) return response.setIncomplete(lang.msg('validation.not_found'));
 
 //             if (detail.action !== TaskMrsAction.OPEN) {
@@ -335,7 +335,7 @@
 //             detail.finished_at      = now;
 //             detail.result           = LogResult.SUCCESS;
 //             detail.open_duration_ms = payload.duration_ms;
-//             await tmRepo.save(detail);
+//             await taskDetailRepo.save(detail);
 
 //             // อัปเดตสถานะช่อง
 //             await aisleRepo.update(
@@ -361,13 +361,13 @@
 //             // เข้าสถานะรอผู้ใช้ยืนยัน
 //             await taskRepo.update(
 //                 { task_id: detail.task_id },
-//                 { status: StatusTasks.WAIT_CONFIRM, updated_at: now }
+//                 { status: StatusOrders.WAIT_CONFIRM, updated_at: now }
 //             );
 //             // + logTaskEvent: รอผู้ใช้ยืนยัน
 //             const t = await taskRepo.findOne({ where: { task_id: detail.task_id } });
 //             if (t) {
 //                 await this.logTaskEvent(useManager, t, 'TASK_WAIT_CONFIRM', {
-//                     prev: StatusTasks.IN_PROGRESS, next: StatusTasks.WAIT_CONFIRM,
+//                     prev: StatusOrders.IN_PROGRESS, next: StatusOrders.WAIT_CONFIRM,
 //                     mrs_id: String(detail.mrs_id), aisle_id: String(detail.target_aisle_id)
 //                 });
 //             }
@@ -404,7 +404,7 @@
 
 //         try {
 //             const taskRepo = useManager.getRepository(TaskMrs);
-//             const tmRepo   = useManager.getRepository(TaskMrsDetail);
+//             const taskDetailRepo   = useManager.getRepository(TaskMrsDetail);
 //             const logRepo  = useManager.getRepository(MrsLog);
 //             const mrsRepo  = useManager.getRepository(MRS);
 
@@ -412,7 +412,7 @@
 //             if (!task) return response.setIncomplete(lang.msg('validation.not_found'));
 
 //             // ต้องมีรอบ OPEN ของงานนี้
-//             const lastOpen = await tmRepo.findOne({
+//             const lastOpen = await taskDetailRepo.findOne({
 //             where: { task_id: String(task_id), action: TaskMrsAction.OPEN as any },
 //             order: { started_at: 'DESC' }
 //             });
@@ -428,7 +428,7 @@
 //             if (!sensorClear) {
 //                 // + logTaskEvent: ยืนยันแต่ปิดไม่ได้เพราะ sensor
 //                 await this.logTaskEvent(useManager, task, 'USER_CONFIRM_BLOCKED', {
-//                     prev: StatusTasks.WAIT_CONFIRM, next: StatusTasks.WAIT_CONFIRM,
+//                     prev: StatusOrders.WAIT_CONFIRM, next: StatusOrders.WAIT_CONFIRM,
 //                     reason_code: 'SENSOR_BLOCKED', aisle_id: String(lastOpen.target_aisle_id), mrs_id: String(lastOpen.mrs_id)
 //                 });
 //                 await logRepo.save(logRepo.create({
@@ -442,7 +442,7 @@
 //                     result: LogResult.DISCARDED,
 //                     error_msg: 'Sensor detects object; discard close',
 //                 } as any));
-//                 await taskRepo.update({ task_id }, { status: StatusTasks.WAIT_CONFIRM, updated_at: new Date() });
+//                 await taskRepo.update({ task_id }, { status: StatusOrders.WAIT_CONFIRM, updated_at: new Date() });
 //                 if (!manager && queryRunner) await queryRunner.commitTransaction();
 //                 return response.setIncomplete(lang.msg('validation.sensor_detect_object_discard_close'));
 //             }
@@ -469,23 +469,23 @@
 //             // 3) ไม่ preempt และมีงานต่อใน aisle เดิม → ทำต่อในช่องเดิม
 //             if (!shouldPreempt && topSameAisle && device) {
 //                 // ปิดงานปัจจุบันเป็น COMPLETED
-//                 await taskRepo.update({ task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+//                 await taskRepo.update({ task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
 //                 // + logTaskEvent: งานนี้จบ
 //                 await this.logTaskEvent(useManager, task, 'TASK_DONE', {
-//                     prev: StatusTasks.WAIT_CONFIRM, next: StatusTasks.COMPLETED,
+//                     prev: StatusOrders.WAIT_CONFIRM, next: StatusOrders.COMPLETED,
 //                     aisle_id: String(lastOpen.target_aisle_id), mrs_id: String(device.mrs_id)
 //                 });
 
 //                 // โปรโมตงานถัดไปขึ้น WAIT_CONFIRM + ยึด device ต่อ (เปิดค้าง)
 //                 await taskRepo.update(
 //                     { task_id: topSameAisle.task_id },
-//                     { status: StatusTasks.WAIT_CONFIRM, updated_at: now }
+//                     { status: StatusOrders.WAIT_CONFIRM, updated_at: now }
 //                 );
 //                  // + logTaskEvent: โปรโมตงานถัดไปในช่องเดิม (ข้าม IN_PROGRESS เพราะเปิดค้าง)
 //                 const next = await taskRepo.findOne({ where: { task_id: topSameAisle.task_id } });
 //                 if (next) {
 //                     await this.logTaskEvent(useManager, next, 'TASK_WAIT_CONFIRM', {
-//                     prev: StatusTasks.QUEUED, next: StatusTasks.WAIT_CONFIRM,
+//                     prev: StatusOrders.QUEUED, next: StatusOrders.WAIT_CONFIRM,
 //                     reason_code: 'CONTINUE_IN_OPEN_SESSION', aisle_id: String(next.target_aisle_id), mrs_id: String(device.mrs_id)
 //                     });
 //                 }
@@ -496,12 +496,12 @@
 //                 await mrsRepo.save(device);
 
 //                 // สร้าง task_mrs OPEN (synthetic) ให้ task ใหม่ ถ้ายังไม่มี
-//                 let tmOpen = await tmRepo.findOne({
+//                 let tmOpen = await taskDetailRepo.findOne({
 //                     where: { task_id: String(topSameAisle.task_id), action: TaskMrsAction.OPEN as any },
 //                     order: { started_at: 'DESC' }
 //                 });
 //                 if (!tmOpen) {
-//                     tmOpen = tmRepo.create({
+//                     tmOpen = taskDetailRepo.create({
 //                         task_id: String(topSameAisle.task_id),
 //                         mrs_id: String(device.mrs_id),
 //                         target_aisle_id: String(topSameAisle.target_aisle_id),
@@ -512,7 +512,7 @@
 //                         finished_at: now,
 //                         open_duration_ms: 0,
 //                     });
-//                     await tmRepo.save(tmOpen);
+//                     await taskDetailRepo.save(tmOpen);
 
 //                     await logRepo.save(logRepo.create({
 //                         mrs_id: String(device.mrs_id),
@@ -534,7 +534,7 @@
 //             }
 
 //             // 4) preempt (หรือไม่มีงาน same-aisle) → สร้าง CLOSE แล้วสั่งปิด
-//             const closeDetail = tmRepo.create({
+//             const closeDetail = taskDetailRepo.create({
 //                 task_id: String(task_id),
 //                 mrs_id: lastOpen.mrs_id,
 //                 target_aisle_id: lastOpen.target_aisle_id,
@@ -543,7 +543,7 @@
 //                 result: LogResult.PENDING,
 //                 started_at: now,
 //             });
-//             await tmRepo.save(closeDetail);
+//             await taskDetailRepo.save(closeDetail);
 
 //             await logRepo.save(logRepo.create({
 //                 mrs_id: lastOpen.mrs_id,
@@ -561,11 +561,11 @@
 //                 task_mrs_id: closeDetail.id,
 //             });
 
-//             await taskRepo.update({ task_id }, { status: StatusTasks.CLOSING, updated_at: now });
+//             await taskRepo.update({ task_id }, { status: StatusOrders.CLOSING, updated_at: now });
 
 //             // + logTaskEvent: เข้าสถานะปิดช่อง
 //             await this.logTaskEvent(useManager, task, 'TASK_CLOSING', {
-//                 prev: StatusTasks.WAIT_CONFIRM, next: StatusTasks.CLOSING,
+//                 prev: StatusOrders.WAIT_CONFIRM, next: StatusOrders.CLOSING,
 //                 aisle_id: String(lastOpen.target_aisle_id), mrs_id: String(lastOpen.mrs_id),
 //                 reason_code: shouldPreempt ? 'PREEMPT' : 'NO_NEXT_SAME_AISLE'
 //             });
@@ -601,13 +601,13 @@
 //         if (!manager && queryRunner) { await queryRunner.connect(); await queryRunner.startTransaction(); }
 
 //         try {
-//             const tmRepo    = useManager.getRepository(TaskMrsDetail);
+//             const taskDetailRepo    = useManager.getRepository(TaskMrsDetail);
 //             const logRepo   = useManager.getRepository(MrsLog);
 //             const taskRepo  = useManager.getRepository(TaskMrs);
 //             const aisleRepo = useManager.getRepository(Aisle);
 //             const mrsRepo   = useManager.getRepository(MRS);
 
-//             const detail = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//             const detail = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //             if (!detail) return response.setIncomplete(lang.msg('validation.not_found'));
 
 //             if (detail.action !== TaskMrsAction.CLOSED) {
@@ -619,13 +619,13 @@
 //             // ---------- Idempotent: ปิดสำเร็จไปแล้ว ----------
 //             // idempotent: เคย SUCCESS แล้ว → ensure task COMPLETED แล้วออก
 //             if (detail.result === LogResult.SUCCESS) {
-//                 await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+//                 await taskRepo.update({ task_id: detail.task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
                 
 //                  // TASK_HISTORY: ปิดสำเร็จ (idempotent) + สถานะ COMPLETED
 //                 const taskEnt = await taskRepo.findOne({ where: { task_id: detail.task_id } });
 //                 if (taskEnt) {
 //                     await this.logTaskEvent(useManager, taskEnt, 'CLOSE_ALREADY_SUCCESS', {
-//                     prev: StatusTasks.CLOSING, next: StatusTasks.COMPLETED,
+//                     prev: StatusOrders.CLOSING, next: StatusOrders.COMPLETED,
 //                     aisle_id: String(detail.target_aisle_id),
 //                     mrs_id: String(detail.mrs_id),
 //                     reason_code: 'CLOSE_FINISHED_CALLBACK_DUP'
@@ -647,7 +647,7 @@
 //             detail.finished_at       = now;
 //             detail.result            = LogResult.SUCCESS;
 //             detail.close_duration_ms = payload.duration_ms;
-//             await tmRepo.save(detail);
+//             await taskDetailRepo.save(detail);
 
 //             // ปิด log
 //             await logRepo.update(
@@ -677,14 +677,14 @@
 //             }
 
 //             // ปิดงานรวม
-//             await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+//             await taskRepo.update({ task_id: detail.task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
 
 //             // TASK_HISTORY: ใส่เหตุการณ์ฝั่ง task ให้ครบ
 //             const taskEnt = await taskRepo.findOne({ where: { task_id: detail.task_id } });
 //             if (taskEnt) {
 //                 // 1) ปิดช่องสำเร็จ
 //                 await this.logTaskEvent(useManager, taskEnt, 'CLOSE_SUCCESS', {
-//                     prev: StatusTasks.CLOSING, next: StatusTasks.COMPLETED,
+//                     prev: StatusOrders.CLOSING, next: StatusOrders.COMPLETED,
 //                     aisle_id: String(detail.target_aisle_id),
 //                     mrs_id: String(detail.mrs_id),
 //                     reason_code: 'CLOSE_FINISHED'
@@ -692,7 +692,7 @@
 
 //                 // 2) จบงาน (COMPLETED)
 //                 await this.logTaskEvent(useManager, taskEnt, 'TASK_DONE', {
-//                     prev: StatusTasks.CLOSING, next: StatusTasks.COMPLETED,
+//                     prev: StatusOrders.CLOSING, next: StatusOrders.COMPLETED,
 //                 });
 
 //                 // 3) ปิด session (ถ้ามี device)
@@ -729,17 +729,17 @@
 //     /** MRS แจ้งมีสิ่งกีดขวาง (idempotent) */
 //     async onBlocked(payload: { task_mrs_id: string; reason?: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const logRepo = em.getRepository(MrsLog);
 
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (!d) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
 
 //         // อัปเดตแถว action ปัจจุบัน
 //         d.blocked_flag = true as any;
 //         d.blocked_reason = payload.reason ?? 'BLOCKED';
 //         // ถ้าเป็นตอนจะปิด เราจะถือว่า discard (ไม่ถือว่า fail)
-//         await tmRepo.save(d);
+//         await taskDetailRepo.save(d);
 
 //         // เขียน log ช่วยสืบเหตุ
 //         await logRepo.save(logRepo.create({
@@ -761,7 +761,7 @@
 //     async onFault(payload: { mrs_id: number; code?: string; msg?: string; task_mrs_id?: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
 //         const mrsRepo = em.getRepository(MRS);
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const taskRepo= em.getRepository(TaskMrs);
 //         const logRepo = em.getRepository(MrsLog);
 
@@ -769,11 +769,11 @@
 //         if (mrs) { mrs.fault_msg = payload.msg ?? payload.code ?? 'FAULT'; await mrsRepo.save(mrs); }
 
 //         if (payload.task_mrs_id) {
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (d && d.result !== LogResult.SUCCESS) {
 //             d.result = LogResult.FAIL;
 //             d.finished_at = new Date();
-//             await tmRepo.save(d);
+//             await taskDetailRepo.save(d);
 
 //             // ปิด log
 //             await logRepo.createQueryBuilder()
@@ -782,7 +782,7 @@
 //             .where('task_id = :t AND aisle_id = :a AND action = :act', { t: d.task_id, a: d.target_aisle_id, act: d.action === 'OPEN' ? 'OPEN_AISLE' : 'CLOSE_AISLE' })
 //             .execute();
 
-//             await taskRepo.update({ task_id: d.task_id }, { status: StatusTasks.FAILED, updated_at: new Date(), error_code: payload.code as any, error_msg: payload.msg as any });
+//             await taskRepo.update({ task_id: d.task_id }, { status: StatusOrders.FAILED, updated_at: new Date(), error_code: payload.code as any, error_msg: payload.msg as any });
 //         }
 //         }
 
@@ -792,11 +792,11 @@
 //     /** Timeout ของ action ใดๆ */
 //     async onTimeout(payload: { task_mrs_id: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const logRepo = em.getRepository(MrsLog);
 //         const taskRepo= em.getRepository(TaskMrs);
 
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (!d) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
 
 //         if (d.result === LogResult.SUCCESS) return new ApiResponse().setComplete(lang.msg('common.already_completed'), {});
@@ -804,7 +804,7 @@
 //         d.retry_count = (d.retry_count ?? 0) + 1;
 //         d.result = LogResult.FAIL; // หรือนโยบายจะตั้ง TIMEOUT แยกคอลัมน์ก็ได้
 //         d.finished_at = new Date();
-//         await tmRepo.save(d);
+//         await taskDetailRepo.save(d);
 
 //         await logRepo.createQueryBuilder()
 //         .update(MrsLog)
@@ -812,7 +812,7 @@
 //         .where('task_id = :t AND aisle_id = :a AND action = :act', { t: d.task_id, a: d.target_aisle_id, act: d.action === 'OPEN' ? 'OPEN_AISLE' : 'CLOSE_AISLE' })
 //         .execute();
 
-//         await taskRepo.update({ task_id: d.task_id }, { status: StatusTasks.FAILED, updated_at: new Date(), error_code: 'TIMEOUT' as any, error_msg: 'Action timeout' as any });
+//         await taskRepo.update({ task_id: d.task_id }, { status: StatusOrders.FAILED, updated_at: new Date(), error_code: 'TIMEOUT' as any, error_msg: 'Action timeout' as any });
 
 //         return new ApiResponse().setComplete(lang.msg('common.timeout'), {});
 //     }
@@ -833,7 +833,7 @@
 //     //     try {
 //     //     const taskRepo = em.getRepository(TaskMrs);
 //     //     const mrsRepo  = em.getRepository(MRS);
-//     //     const tmRepo   = em.getRepository(TaskMrsDetail);
+//     //     const taskDetailRepo   = em.getRepository(TaskMrsDetail);
 //     //     const logRepo  = em.getRepository(MrsLog);
 
 //     //     // 1) reserve device
@@ -846,7 +846,7 @@
 //     //         stock_item: 'MANUAL',
 //     //         priority: 5,
 //     //         store_type: 'T1M',
-//     //         status: StatusTasks.IN_PROGRESS,
+//     //         status: StatusOrders.IN_PROGRESS,
 //     //         requested_by: reqUser,
 //     //     }));
 
@@ -856,7 +856,7 @@
 //     //     await mrsRepo.save(device);
 
 //     //     // 3) OPEN detail + log
-//     //     const openDetail = await tmRepo.save(tmRepo.create({
+//     //     const openDetail = await taskDetailRepo.save(taskDetailRepo.create({
 //     //         task_id: task.task_id,
 //     //         mrs_id: String(device.mrs_id),
 //     //         target_aisle_id: String(aisle_id),
@@ -901,12 +901,12 @@
 //         if (!manager && queryRunner) { await queryRunner.connect(); await queryRunner.startTransaction(); }
 
 //         try {
-//         const tmRepo   = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo   = em.getRepository(TaskMrsDetail);
 //         const taskRepo = em.getRepository(TaskMrs);
 //         const logRepo  = em.getRepository(MrsLog);
 
 //         // หา OPEN ล่าสุดของช่องนี้
-//         const open = await tmRepo.findOne({ where: { target_aisle_id: String(aisle_id), action: 'OPEN' as any }, order: { started_at: 'DESC' } });
+//         const open = await taskDetailRepo.findOne({ where: { target_aisle_id: String(aisle_id), action: 'OPEN' as any }, order: { started_at: 'DESC' } });
 //         if (!open) return response.setIncomplete(lang.msg('validation.not_found'));
 
 //         if (!(opts?.force)) {
@@ -923,13 +923,13 @@
 //                 result: LogResult.DISCARDED, 
 //                 error_msg: 'Sensor detects object (manual)',
 //             }));
-//             await taskRepo.update({ task_id: open.task_id }, { status: StatusTasks.WAIT_CONFIRM, updated_at: new Date() });
+//             await taskRepo.update({ task_id: open.task_id }, { status: StatusOrders.WAIT_CONFIRM, updated_at: new Date() });
 //             return response.setIncomplete(lang.msg('validation.sensor_detect_object_discard_close'));
 //             }
 //         }
 
 //         // insert CLOSE (MANUAL) + log แล้วส่งคำสั่ง
-//         const closeDetail = await tmRepo.save(tmRepo.create({
+//         const closeDetail = await taskDetailRepo.save(taskDetailRepo.create({
 //             task_id: open.task_id, 
 //             mrs_id: open.mrs_id, 
 //             target_aisle_id: open.target_aisle_id,
@@ -950,7 +950,7 @@
 //         }));
 
 //         await this.gw.closeAisle({ mrs_id: Number(closeDetail.mrs_id), aisle_id: Number(closeDetail.target_aisle_id), task_mrs_id: closeDetail.id });
-//         await taskRepo.update({ task_id: closeDetail.task_id }, { status: StatusTasks.CLOSING, updated_at: new Date() });
+//         await taskRepo.update({ task_id: closeDetail.task_id }, { status: StatusOrders.CLOSING, updated_at: new Date() });
 
 //         if (!manager && queryRunner) await queryRunner.commitTransaction();
 //         return response.setComplete(lang.msgSuccessAction('updated', 'item.t1m_task'), { task_mrs_close_id: closeDetail.id });
@@ -985,11 +985,11 @@
 //             aisle_id?: string | number | null;
 //             reason_code?: string | null;
 //             meta?: any;
-//             prev?: StatusTasks | string | null;
-//             next?: StatusTasks | string | null;
+//             prev?: StatusOrders | string | null;
+//             next?: StatusOrders | string | null;
 //         }
 //     ): Promise<void> {
-//         const repo = manager.getRepository(TaskMrsLog);
+//         const repo = manager.getRepository(TaskLog);
 
 //         await repo.insert({
 //             task_id: String(task.task_id),
@@ -1018,7 +1018,7 @@
 //         try {
 //             const mrsRepo  = useManager.getRepository(MRS);
 //             const taskRepo = useManager.getRepository(TaskMrs);
-//             const tmRepo   = useManager.getRepository(TaskMrsDetail);
+//             const taskDetailRepo   = useManager.getRepository(TaskMrsDetail);
 //             const logRepo  = useManager.getRepository(MrsLog);
 
 //             // 1) หา device ว่างใน bank นี้
@@ -1035,7 +1035,7 @@
 //             // 2) หา task คิวแรกใน bank นี้
 //             const nextTask = await taskRepo.createQueryBuilder('t')
 //                 .where('t.store_type = :st', { st: 'T1M' })
-//                 .andWhere('t.status = :q', { q: StatusTasks.QUEUED })
+//                 .andWhere('t.status = :q', { q: StatusOrders.QUEUED })
 //                 .andWhere('t.target_bank_code = :bank', { bank })
 //                 .orderBy('t.priority', 'DESC')
 //                 .addOrderBy('t.requested_at', 'ASC')
@@ -1059,7 +1059,7 @@
 //             await mrsRepo.save(device);
 
 //             // 4) task_mrs OPEN (PENDING)
-//             const openDetail = tmRepo.create({
+//             const openDetail = taskDetailRepo.create({
 //                 task_id: String(nextTask.task_id),
 //                 mrs_id: String(device.mrs_id),
 //                 target_aisle_id: String(aisleId),
@@ -1068,7 +1068,7 @@
 //                 result: LogResult.PENDING,
 //                 started_at: new Date(),
 //             });
-//             await tmRepo.save(openDetail);
+//             await taskDetailRepo.save(openDetail);
 
 //             // 5) mrs_log start (IN_PROGRESS)
 //             await logRepo.save(logRepo.create({
@@ -1083,11 +1083,11 @@
 //             }));
 
 //             // 6) mark IN_PROGRESS
-//             await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusTasks.IN_PROGRESS, updated_at: new Date() });
+//             await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusOrders.IN_PROGRESS, updated_at: new Date() });
 
 //             // + logTaskEvent: งานคิวถูก dispatch ให้เครื่องใน bank
 //             await this.logTaskEvent(useManager, nextTask as any, 'TASK_EXECUTING', {
-//                 prev: StatusTasks.QUEUED, next: StatusTasks.IN_PROGRESS,
+//                 prev: StatusOrders.QUEUED, next: StatusOrders.IN_PROGRESS,
 //                 mrs_id: String(device.mrs_id), aisle_id: String(aisleId), reason_code: 'AUTO_DISPATCH'
 //             });
 
@@ -1221,7 +1221,7 @@
 //     ): Promise<TaskMrs | null> {
 //         return manager.getRepository(TaskMrs).createQueryBuilder('t')
 //         .where('t.store_type = :st', { st: 'T1M' })
-//         .andWhere('t.status = :q', { q: StatusTasks.QUEUED })
+//         .andWhere('t.status = :q', { q: StatusOrders.QUEUED })
 //         .andWhere('t.target_aisle_id = :aisle', { aisle: String(aisle_id) })
 //         .orderBy('t.priority', 'DESC')
 //         .addOrderBy('t.requested_at', 'ASC')
@@ -1236,7 +1236,7 @@
 //     ): Promise<TaskMrs | null> {
 //         return manager.getRepository(TaskMrs).createQueryBuilder('t')
 //         .where('t.store_type = :st', { st: 'T1M' })
-//         .andWhere('t.status = :q',   { q: StatusTasks.QUEUED })
+//         .andWhere('t.status = :q',   { q: StatusOrders.QUEUED })
 //         .andWhere('t.target_bank_code = :bank', { bank })
 //         .orderBy('t.priority', 'DESC')
 //         .addOrderBy('t.requested_at', 'ASC')
@@ -1264,7 +1264,7 @@ import { MRS } from "../entities/mrs.entity";
 import { Aisle } from "../entities/aisle.entity";
 import { MrsLog } from "../entities/mrs_log.entity";
 import {
-    StatusTasks,
+    StatusOrders,
     LogResult,
     MrsLogAction,
     AisleStatus,
@@ -1280,8 +1280,9 @@ import * as validate from "../utils/ValidationUtils";
 import * as lang from "../utils/LangHelper";
 import { MrsGateway } from "../gateways/mrs.gateway";
 import { CreateT1MTaskDto } from "../dtos/tasks.dto";
-import { TaskMrsLog } from "../entities/task_mrs_log.entity";
-import { WaitingTasks } from "../entities/waiting_tasks.entity";
+import { TaskLog } from "../entities/orders_log.entity";
+import { Orders } from "../entities/orders.entity";
+import { StockItems } from "../entities/m_stock_items.entity";
 
 /**
  * NOTE — Goals of this refactor (modified for FAT Task Status Response)
@@ -1300,45 +1301,17 @@ export class T1MTaskService {
     // ====== Tiny helpers (no behavior changes) ======
     private s = (v: unknown) => (v == null ? null : String(v));
 
-    private buildTodayPrefix(at = new Date()): string {
-        const y = at.getFullYear();
-        const m = String(at.getMonth() + 1).padStart(2, "0");
-        const d = String(at.getDate()).padStart(2, "0");
-        return `TID-${y}${m}${d}-`; // e.g. TID-20250828-
-    }
-
-    private async issueNextTaskCode(manager: EntityManager): Promise<string> {
-        const prefix = this.buildTodayPrefix();
-        const rows = await manager.query(
-            `SELECT task_code
-            FROM task_mrs
-            WHERE task_code LIKE ?
-            ORDER BY task_code DESC
-            LIMIT 1
-            FOR UPDATE`,
-            [`${prefix}%`]
-        );
-
-        let next = 1;
-        if (rows.length) {
-            const last: string = String(rows[0].task_code);
-            const tail = last.slice(prefix.length);
-            const n = parseInt(tail, 10);
-            next = (isNaN(n) ? 0 : n) + 1;
-        }
-        return `${prefix}${String(next).padStart(3, "0")}`;
-    }
-
     /** Centralized repo getter per EntityManager */
     private repos(em: EntityManager) {
         return {
             taskRepo: em.getRepository(TaskMrs),
-            tmRepo: em.getRepository(TaskMrsDetail),
+            taskDetailRepo: em.getRepository(TaskMrsDetail),
             mrsRepo: em.getRepository(MRS),
             aisleRepo: em.getRepository(Aisle),
             logRepo: em.getRepository(MrsLog),
-            taskHistoryRepo: em.getRepository(TaskMrsLog),
-            waitingTasksRepo: em.getRepository(WaitingTasks)
+            taskLogRepo: em.getRepository(TaskLog),
+            ordersRepo: em.getRepository(Orders),
+            stockItemsRepo: em.getRepository(StockItems)
         } as const;
     }
 
@@ -1372,45 +1345,75 @@ export class T1MTaskService {
 
     private async logTaskEvent(
         manager: EntityManager,
-        task: TaskMrs,
-        event: string,
+        order: Orders,
         params?: {
             actor?: string | null;
             source?: TaskSource | string | null;
             subsystem?: TaskSubsystem | string | null;
-            mrs_id?: string | number | null;
-            aisle_id?: string | number | null;
             reason_code?: string | null;
             meta?: any;
-            prev?: StatusTasks | string | null;
-            next?: StatusTasks | string | null;
+            status?: StatusOrders | string | null;
         }
     ): Promise<void> {
-        const repo = manager.getRepository(TaskMrsLog);
+        const repo = manager.getRepository(TaskLog);
 
+        // ─────────────────────────────────────────────
+        //   1) โหลดข้อมูลสินค้า จาก m_stock_items
+        // ─────────────────────────────────────────────
+        const stockRepo = manager.getRepository(StockItems);
+        const stock = await stockRepo.findOne({
+            where: { stock_item: order.stock_item }
+        });
+
+        const itemName = stock?.item_name ?? null;
+        const itemDesc = stock?.item_desc ?? null;
+
+        // ─────────────────────────────────────────────
+        //   2) Logic เดิม (source / actor / subsystem)
+        // ─────────────────────────────────────────────
         const resolvedSource: TaskSource =
             (params?.source as TaskSource) ?? TaskSource.SYSTEM;
+
         const resolvedSubsystem: TaskSubsystem =
             (params?.subsystem as TaskSubsystem) ?? TaskSubsystem.CORE;
 
         const resolvedActor: string | null =
-            params?.actor ?? (resolvedSource === TaskSource.API ? null : (resolvedSource as string));
+            params?.actor ??
+            (resolvedSource === TaskSource.API ? null : (resolvedSource as string));
 
+        // ─────────────────────────────────────────────
+        //   3) Insert Log
+        // ─────────────────────────────────────────────
         await repo.insert({
-            task_id: String(task.task_id),
-            store_type: 'T1M', // 'T1' | 'T1M'
-            event,
-            prev_status: (params?.prev as any) ?? null,
-            new_status: (params?.next as any) ?? null,
+            waiting_id: String(order.waiting_id),
+            store_type: 'T1M',
+
+            type: order.type as any,
+            stock_item: String(order.stock_item),
+
+            // ⭐ ใช้ข้อมูลจาก m_stock_items
+            item_name: itemName || null,
+            item_desc: itemDesc || null,
+
+            from_location: order.from_location || null,
+            source_loc: order.source_loc || null,
+            source_box_loc: order.source_box_loc || null,
+            dest_loc: order.dest_loc || null,
+            dest_box_loc: order.dest_box_loc || null,
+            cond: order.cond || null,
+            plan_qty: order.plan_qty ?? 0,
+            actual_qty: order.actual_qty ?? 0,
+            status: (params?.status as any) ?? null,
+            is_confirm: order.is_confirm ?? false,
+
             actor: resolvedActor,
             source: resolvedSource as any,
             subsystem: resolvedSubsystem as any,
-            mrs_id: params?.mrs_id != null ? String(params.mrs_id) : null,
-            aisle_id: params?.aisle_id != null ? String(params.aisle_id) : null,
             reason_code: (params?.reason_code as any) ?? null,
             meta_json: params?.meta ?? null,
         });
     }
+
 
     private async lockBankAndGetRows(bank: string, em: EntityManager) {
         const mrsRepo = em.getRepository(MRS);
@@ -1436,26 +1439,26 @@ export class T1MTaskService {
         });
     }
 
-    private async getNextQueuedTask(manager: EntityManager): Promise<TaskMrs | null> {
+    private async getNextQueuedTask(manager: EntityManager): Promise<Orders | null> {
         return manager
-            .getRepository(TaskMrs)
+            .getRepository(Orders)
             .createQueryBuilder("t")
-            .where("t.status = :q", { q: StatusTasks.QUEUED })
+            .where("t.status = :q", { q: StatusOrders.QUEUED })
             .orderBy("t.priority", "DESC")
             .addOrderBy("t.requested_at", "ASC")
-            .addOrderBy("t.task_id", "ASC")
+            .addOrderBy("t.order_id", "ASC")
             .getOne();
     }
 
-    private async getTopQueuedInBank(bank: string, manager: EntityManager): Promise<TaskMrs | null> {
+    private async getTopQueuedInBank(bank: string, manager: EntityManager): Promise<Orders | null> {
         return manager
-            .getRepository(TaskMrs)
+            .getRepository(Orders)
             .createQueryBuilder("t")
-            .where("t.status = :q", { q: StatusTasks.QUEUED })
+            .where("t.status = :q", { q: StatusOrders.QUEUED })
             .andWhere("t.target_bank_code = :bank", { bank })
             .orderBy("t.priority", "DESC")
             .addOrderBy("t.requested_at", "ASC")
-            .addOrderBy("t.task_id", "ASC")
+            .addOrderBy("t.order_id", "ASC")
             .getOne();
     }
 
@@ -1486,7 +1489,7 @@ export class T1MTaskService {
 
         const ctx = await this.beginTx(manager);
         try {
-            const { useManager, taskRepo, mrsRepo, tmRepo, logRepo, waitingTasksRepo } = ctx;
+            const { useManager, taskRepo, mrsRepo, taskDetailRepo, logRepo, ordersRepo } = ctx;
 
             // ----- Validate -----
             if (validate.isNullOrEmpty(data.stock_item))
@@ -1507,18 +1510,14 @@ export class T1MTaskService {
             const targetAisleId = "2"; // mock fix
             const bankCode = device.bank_code ?? "B1";
 
-            // 1.2) ออก task code
-            const code = await this.issueNextTaskCode(useManager);
-
             // 2) create task
             const task = Object.assign(new TaskMrs(), {
                 waiting_id: data.waiting_id,
-                task_code: code,
                 stock_item: data.stock_item,
                 plan_qty: data.plan_qty,
                 priority: data.priority ?? 5,
                 type: data.type,
-                status: StatusTasks.NEW,
+                status: StatusOrders.NEW,
                 requested_by: reqUsername,
                 target_aisle_id: targetAisleId,
                 target_bank_code: bankCode,
@@ -1529,7 +1528,7 @@ export class T1MTaskService {
                 actor: reqUsername,
                 source: TaskSource.API,
                 subsystem: TaskSubsystem.MRS,
-                next: StatusTasks.NEW,
+                next: StatusOrders.NEW,
                 mrs_id: device.mrs_id,
                 aisle_id: targetAisleId,
             });
@@ -1537,15 +1536,15 @@ export class T1MTaskService {
             // 2.1) เปลี่ยนสถานะเป็น ROUTING
             await taskRepo.update(
                 { task_id: task.task_id },
-                { status: StatusTasks.ROUTING, updated_at: new Date() }
+                { status: StatusOrders.ROUTING, updated_at: new Date() }
             );
 
             await this.logTaskEvent(useManager, task, TaskEvent.TASK_ROUTING, {
                 actor: reqUsername,
                 source: TaskSource.API,
                 subsystem: TaskSubsystem.MRS,
-                prev: StatusTasks.NEW,
-                next: StatusTasks.ROUTING,
+                prev: StatusOrders.NEW,
+                next: StatusOrders.ROUTING,
                 mrs_id: device.mrs_id,
                 aisle_id: targetAisleId,
             });
@@ -1560,15 +1559,15 @@ export class T1MTaskService {
                 } else {
                     // bank มีการใช้งานอยู่กับ aisle อื่น → queue งานนี้
                     await taskRepo.update({ task_id: task.task_id }, {
-                        status: StatusTasks.QUEUED,
+                        status: StatusOrders.QUEUED,
                         updated_at: new Date(),
                     });
                     await this.logTaskEvent(useManager, task, TaskEvent.QUEUED, {
                         actor: reqUsername,
                         source: TaskSource.API,
                         subsystem: TaskSubsystem.MRS,
-                        prev: StatusTasks.ROUTING,
-                        next: StatusTasks.QUEUED,
+                        prev: StatusOrders.ROUTING,
+                        next: StatusOrders.QUEUED,
                         reason_code: TaskReason.BANK_BUSY,
                         aisle_id: targetAisleId,
                         mrs_id: this.s((bankOpen as any).mrs_id),
@@ -1586,14 +1585,14 @@ export class T1MTaskService {
             const active = await this.findActiveOpenSession(targetAisleId, useManager);
             if (active) {
                 await taskRepo.update({ task_id: task.task_id }, {
-                    status: StatusTasks.QUEUED,
+                    status: StatusOrders.QUEUED,
                     updated_at: new Date(),
                 });
                 await this.logTaskEvent(useManager, task, TaskEvent.QUEUED, {
                     source: TaskSource.API,
                     subsystem: TaskSubsystem.MRS,
-                    prev: StatusTasks.ROUTING,
-                    next: StatusTasks.QUEUED,
+                    prev: StatusOrders.ROUTING,
+                    next: StatusOrders.QUEUED,
                     reason_code: TaskReason.JOIN_OPEN_SESSION,
                     aisle_id: targetAisleId,
                     mrs_id: this.s(active.mrs_id),
@@ -1633,7 +1632,7 @@ export class T1MTaskService {
             await mrsRepo.save(device);
 
             // 4) task_mrs OPEN (PENDING)
-            const openDetail = tmRepo.create({
+            const openDetail = taskDetailRepo.create({
                 task_id: this.s(task.task_id)!,
                 mrs_id: this.s(device.mrs_id)!,
                 target_aisle_id: targetAisleId!,
@@ -1642,7 +1641,7 @@ export class T1MTaskService {
                 result: LogResult.PENDING,
                 started_at: new Date(),
             });
-            await tmRepo.save(openDetail);
+            await taskDetailRepo.save(openDetail);
 
             // 5) mrs_log start (IN_PROGRESS)
             await logRepo.save(
@@ -1668,9 +1667,9 @@ export class T1MTaskService {
             // 7) tasks.IN_PROGRESS
             await taskRepo.update(
                 { task_id: task.task_id },
-                { status: StatusTasks.IN_PROGRESS, updated_at: new Date() }
+                { status: StatusOrders.IN_PROGRESS, updated_at: new Date() }
             );
-            await waitingTasksRepo.update(
+            await ordersRepo.update(
                 { waiting_id: task.waiting_id },
                 { status: StatusWaiting.IN_PROGRESS }
             );
@@ -1679,8 +1678,8 @@ export class T1MTaskService {
                 actor: reqUsername,
                 source: TaskSource.API,
                 subsystem: TaskSubsystem.MRS,
-                prev: StatusTasks.ROUTING,
-                next: StatusTasks.IN_PROGRESS,
+                prev: StatusOrders.ROUTING,
+                next: StatusOrders.IN_PROGRESS,
                 mrs_id: this.s(device.mrs_id),
                 aisle_id: targetAisleId,
             });
@@ -1701,7 +1700,7 @@ export class T1MTaskService {
         }
     }
 
-    /** ถูกเรียกโดย gateway เมื่อเปิดเสร็จ (idempotent) -> AISLE_OPEN -> WAITING_FINISH */
+   
     async onOpenFinished(
         payload: { task_mrs_id: string; duration_ms?: number },
         manager?: EntityManager
@@ -1711,9 +1710,9 @@ export class T1MTaskService {
 
         const ctx = await this.beginTx(manager);
         try {
-            const { useManager, tmRepo, logRepo, aisleRepo, taskRepo, mrsRepo, waitingTasksRepo } = ctx;
+            const { useManager, taskDetailRepo, logRepo, aisleRepo, taskRepo, mrsRepo, ordersRepo } = ctx;
 
-            const detail = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+            const detail = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
             if (!detail) return response.setIncomplete(lang.msg("validation.not_found"));
             if (detail.action !== TaskMrsAction.OPEN)
                 return response.setIncomplete(lang.msg("validation.invalid_action_for_handler"));
@@ -1732,7 +1731,7 @@ export class T1MTaskService {
             detail.finished_at = now;
             detail.result = LogResult.SUCCESS;
             detail.open_duration_ms = payload.duration_ms;
-            await tmRepo.save(detail);
+            await taskDetailRepo.save(detail);
 
             // อัปเดตสถานะช่อง -> AISLE_OPEN
             await aisleRepo.update(
@@ -1758,7 +1757,7 @@ export class T1MTaskService {
             // 1) ตั้งสถานะเป็น AISLE_OPEN (for FAT)
             await taskRepo.update(
                 { task_id: detail.task_id },
-                { status: StatusTasks.AISLE_OPEN, updated_at: now }
+                { status: StatusOrders.AISLE_OPEN, updated_at: now }
             );
 
             // Log AISLE_OPEN
@@ -1767,8 +1766,8 @@ export class T1MTaskService {
                 await this.logTaskEvent(useManager, t, TaskEvent.TASK_AISLE_OPEN, {
                     source: TaskSource.GATEWAY,
                     subsystem: TaskSubsystem.MRS,
-                    prev: StatusTasks.IN_PROGRESS,
-                    next: StatusTasks.AISLE_OPEN,
+                    prev: StatusOrders.IN_PROGRESS,
+                    next: StatusOrders.AISLE_OPEN,
                     mrs_id: this.s(detail.mrs_id),
                     aisle_id: this.s(detail.target_aisle_id),
                 });
@@ -1776,9 +1775,9 @@ export class T1MTaskService {
                 // 2) แล้วเปลี่ยนเป็น WAITING_CONFIRM  (operator must confirm / pick)
                 await taskRepo.update(
                     { task_id: detail.task_id },
-                    { status: StatusTasks.WAITING_CONFIRM , updated_at: new Date() }
+                    { status: StatusOrders.WAITING_CONFIRM , updated_at: new Date() }
                 );
-                await waitingTasksRepo.update(
+                await ordersRepo.update(
                     { waiting_id: t.waiting_id },
                     { status: StatusWaiting.WAITING_CONFIRM}
                 );
@@ -1786,8 +1785,8 @@ export class T1MTaskService {
                 await this.logTaskEvent(useManager, t, TaskEvent.TASK_WAITING_CONFIRM, {
                     source: TaskSource.GATEWAY,
                     subsystem: TaskSubsystem.MRS,
-                    prev: StatusTasks.AISLE_OPEN,
-                    next: StatusTasks.WAITING_CONFIRM,
+                    prev: StatusOrders.AISLE_OPEN,
+                    next: StatusOrders.WAITING_CONFIRM,
                     mrs_id: this.s(detail.mrs_id),
                     aisle_id: this.s(detail.target_aisle_id),
                 });
@@ -1819,12 +1818,12 @@ export class T1MTaskService {
 
         const ctx = await this.beginTx(manager);
         try {
-            const { useManager, taskRepo, tmRepo, logRepo, mrsRepo, waitingTasksRepo } = ctx;
+            const { useManager, taskRepo, taskDetailRepo, logRepo, mrsRepo, ordersRepo } = ctx;
 
             const task = await taskRepo.findOne({ where: { task_id } });
             if (!task) return response.setIncomplete(lang.msg("validation.not_found"));
 
-            const lastOpen = await tmRepo.findOne({
+            const lastOpen = await taskDetailRepo.findOne({
                 where: { task_id: this.s(task_id)!, action: TaskMrsAction.OPEN as any },
                 order: { started_at: "DESC" },
             });
@@ -1837,23 +1836,23 @@ export class T1MTaskService {
                 subsystem: TaskSubsystem.MRS,
                 mrs_id: this.s(lastOpen.mrs_id),
                 aisle_id: this.s(lastOpen.target_aisle_id),
-                prev: StatusTasks.IN_PROGRESS,
-                next: StatusTasks.WAITING_FINISH,
+                prev: StatusOrders.IN_PROGRESS,
+                next: StatusOrders.WAITING_FINISH,
             });
 
             // ตรวจ sensor
             const sensorClear = await this.isAisleSensorClear(lastOpen.target_aisle_id);
             if (!sensorClear) {
-                await taskRepo.update({ task_id }, { status: StatusTasks.FAILED, updated_at: new Date() });
-                await waitingTasksRepo.update(
+                await taskRepo.update({ task_id }, { status: StatusOrders.FAILED, updated_at: new Date() });
+                await ordersRepo.update(
                     { waiting_id: task.waiting_id },
                     { status: StatusWaiting.CANCELLED }
                 );
 
                 await this.logTaskEvent(useManager, task, TaskEvent.USER_CONFIRM_BLOCKED, {
                     actor: reqUsername,
-                    prev: StatusTasks.WAITING_FINISH,
-                    next: StatusTasks.FAILED,
+                    prev: StatusOrders.WAITING_FINISH,
+                    next: StatusOrders.FAILED,
                     source: TaskSource.API,
                     subsystem: TaskSubsystem.MRS,
                     reason_code: TaskReason.SENSOR_BLOCKED,
@@ -1873,9 +1872,9 @@ export class T1MTaskService {
                     error_msg: "Sensor detects object; mark task FAILED",
                 } as any));
 
-                // อัปเดต waiting_tasks เป็น COMPLETED กรณีไม่มี nextTask
+                // อัปเดต orders เป็น COMPLETED กรณีไม่มี nextTask
                 if (task.waiting_id) {
-                    await waitingTasksRepo.update(
+                    await ordersRepo.update(
                         { waiting_id: task.waiting_id },
                         { status: StatusWaiting.COMPLETED }
                     );
@@ -1906,13 +1905,13 @@ export class T1MTaskService {
 
             if (nextTask && device) {
                 // ปิดงานปัจจุบันเป็น COMPLETED
-                task.status = StatusTasks.COMPLETED;
+                task.status = StatusOrders.COMPLETED;
                 task.updated_at = now;
                 await taskRepo.save(task); // save จะอัปเดต entity + DB
 
                 // ตอนนี้ task.waiting_id ต้องมีค่า
                 if (task.waiting_id) {
-                    await waitingTasksRepo.update(
+                    await ordersRepo.update(
                         { waiting_id: task.waiting_id },
                         { status: StatusWaiting.COMPLETED }
                     );
@@ -1921,7 +1920,7 @@ export class T1MTaskService {
 
                 // ✅ ถ้ามี nextTask → อัปเดต waiting_id ของ nextTask เป็น WAITING_CONFIRM
                 if (nextTask?.waiting_id) {
-                    await waitingTasksRepo.update(
+                    await ordersRepo.update(
                         { waiting_id: nextTask.waiting_id },
                         { status: StatusWaiting.WAITING_CONFIRM }
                     );
@@ -1931,8 +1930,8 @@ export class T1MTaskService {
 
                 await this.logTaskEvent(useManager, task, TaskEvent.TASK_DONE, {
                     actor: reqUsername,
-                    prev: StatusTasks.WAITING_FINISH,
-                    next: StatusTasks.COMPLETED,
+                    prev: StatusOrders.WAITING_FINISH,
+                    next: StatusOrders.COMPLETED,
                     source: TaskSource.API,
                     subsystem: TaskSubsystem.MRS,
                     aisle_id: this.s(lastOpen.target_aisle_id),
@@ -1941,12 +1940,12 @@ export class T1MTaskService {
 
                 // ย้ายงานถัดไปเป็น WAITING_FINISH
                 if (nextTask.task_id) {
-                    await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusTasks.WAITING_FINISH, updated_at: now });
+                    await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusOrders.WAITING_FINISH, updated_at: now });
                     const next = await taskRepo.findOne({ where: { task_id: nextTask.task_id } });
                     if (next) {
                         await this.logTaskEvent(useManager, next, TaskEvent.TASK_WAITING_FINISH, {
-                            prev: StatusTasks.QUEUED,
-                            next: StatusTasks.WAITING_FINISH,
+                            prev: StatusOrders.QUEUED,
+                            next: StatusOrders.WAITING_FINISH,
                             source: TaskSource.SYSTEM,
                             subsystem: TaskSubsystem.MRS,
                             reason_code: TaskReason.CONTINUE_IN_OPEN_SESSION,
@@ -1963,12 +1962,12 @@ export class T1MTaskService {
                 await mrsRepo.save(device);
 
                 // สร้าง task_mrs OPEN synthetic
-                let tmOpen = await tmRepo.findOne({
+                let tmOpen = await taskDetailRepo.findOne({
                     where: { task_id: this.s(nextTask.task_id)!, action: TaskMrsAction.OPEN as any },
                     order: { started_at: "DESC" },
                 });
                 if (!tmOpen) {
-                    tmOpen = tmRepo.create({
+                    tmOpen = taskDetailRepo.create({
                         task_id: this.s(nextTask.task_id)!,
                         mrs_id: this.s(device.mrs_id)!,
                         target_aisle_id: this.s(nextTask.target_aisle_id)!,
@@ -1979,7 +1978,7 @@ export class T1MTaskService {
                         finished_at: now,
                         open_duration_ms: 0,
                     });
-                    await tmRepo.save(tmOpen);
+                    await taskDetailRepo.save(tmOpen);
 
                     await logRepo.save(
                         logRepo.create({
@@ -2004,7 +2003,7 @@ export class T1MTaskService {
             }
 
             // ไม่มี task ต่อคิว หรือ preempt → ปิด aisle ปกติ
-            const closeDetail = tmRepo.create({
+            const closeDetail = taskDetailRepo.create({
                 task_id: this.s(task_id)!,
                 mrs_id: lastOpen.mrs_id,
                 target_aisle_id: lastOpen.target_aisle_id,
@@ -2013,7 +2012,7 @@ export class T1MTaskService {
                 result: LogResult.PENDING,
                 started_at: now,
             });
-            await tmRepo.save(closeDetail);
+            await taskDetailRepo.save(closeDetail);
 
             await logRepo.save(
                 logRepo.create({
@@ -2033,10 +2032,10 @@ export class T1MTaskService {
                 task_mrs_id: closeDetail.id,
             });
 
-            await taskRepo.update({ task_id }, { status: StatusTasks.AISLE_CLOSE, updated_at: now });
-            // ✅ ไม่มี nextTask → ปิดงานปัจจุบันให้ waiting_tasks เป็น COMPLETED
+            await taskRepo.update({ task_id }, { status: StatusOrders.AISLE_CLOSE, updated_at: now });
+            // ✅ ไม่มี nextTask → ปิดงานปัจจุบันให้ orders เป็น COMPLETED
 if (task.waiting_id) {
-    await waitingTasksRepo.update(
+    await ordersRepo.update(
         { waiting_id: task.waiting_id },
         { status: StatusWaiting.COMPLETED }
     );
@@ -2045,8 +2044,8 @@ if (task.waiting_id) {
 
             await this.logTaskEvent(useManager, task, TaskEvent.TASK_CLOSING_AISLE, {
                 actor: reqUsername,
-                prev: StatusTasks.WAITING_FINISH,
-                next: StatusTasks.AISLE_CLOSE,
+                prev: StatusOrders.WAITING_FINISH,
+                next: StatusOrders.AISLE_CLOSE,
                 source: TaskSource.API,
                 subsystem: TaskSubsystem.MRS,
                 aisle_id: this.s(lastOpen.target_aisle_id),
@@ -2079,9 +2078,9 @@ if (task.waiting_id) {
 
         const ctx = await this.beginTx(manager);
         try {
-            const { useManager, tmRepo, logRepo, taskRepo, aisleRepo, mrsRepo, waitingTasksRepo } = ctx;
+            const { useManager, taskDetailRepo, logRepo, taskRepo, aisleRepo, mrsRepo, ordersRepo } = ctx;
 
-            const detail = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+            const detail = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
             if (!detail) return response.setIncomplete(lang.msg("validation.not_found"));
             if (detail.action !== TaskMrsAction.CLOSED)
                 return response.setIncomplete(lang.msg("validation.invalid_action_for_handler"));
@@ -2090,13 +2089,13 @@ if (task.waiting_id) {
 
             // Idempotent: ถ้าเคย SUCCESS แล้ว → ensure task COMPLETED แล้วออก
             if (detail.result === LogResult.SUCCESS) {
-                await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+                await taskRepo.update({ task_id: detail.task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
                 // ดึง task หลัก
                 const task = await taskRepo.findOne({ where: { task_id: detail.task_id } });
                 if (!task) return response.setIncomplete(lang.msg("validation.not_found"));
 
                 // ใช้ task.waiting_id
-                await waitingTasksRepo.update(
+                await ordersRepo.update(
                     { waiting_id: task.waiting_id },
                     { status: StatusWaiting.COMPLETED}
                 );
@@ -2116,7 +2115,7 @@ if (task.waiting_id) {
             detail.finished_at = now;
             detail.result = LogResult.SUCCESS;
             detail.close_duration_ms = payload.duration_ms;
-            await tmRepo.save(detail);
+            await taskDetailRepo.save(detail);
 
             await logRepo.update(
                 { task_mrs_id: this.s(detail.id)! },
@@ -2148,18 +2147,18 @@ if (task.waiting_id) {
 
             if (nextTask && device) {
                 // ปิดงานปัจจุบันเป็น COMPLETED
-                await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
-                // อัปเดต waiting_tasks เป็น COMPLETED ด้วย
+                await taskRepo.update({ task_id: detail.task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
+                // อัปเดต orders เป็น COMPLETED ด้วย
 const updatedTask = await taskRepo.findOne({ where: { task_id: detail.task_id } });
 if (updatedTask?.waiting_id) {
-    await waitingTasksRepo.update(
+    await ordersRepo.update(
         { waiting_id: updatedTask.waiting_id },
         { status: StatusWaiting.COMPLETED }
     );
 }
-// ✅ nextTask ต้องถูกอัปเดต waiting_tasks เป็น WAITING_CONFIRM
+// ✅ nextTask ต้องถูกอัปเดต orders เป็น WAITING_CONFIRM
     if (nextTask.waiting_id) {
-        await waitingTasksRepo.update(
+        await ordersRepo.update(
             { waiting_id: nextTask.waiting_id },
             { status: StatusWaiting.WAITING_CONFIRM }
         );
@@ -2170,19 +2169,19 @@ if (updatedTask?.waiting_id) {
                 await this.logTaskEvent(useManager, detail as any, TaskEvent.TASK_DONE, {
                     source: TaskSource.SYSTEM,
                     subsystem: TaskSubsystem.MRS,
-                    prev: StatusTasks.AISLE_CLOSE,
-                    next: StatusTasks.COMPLETED,
+                    prev: StatusOrders.AISLE_CLOSE,
+                    next: StatusOrders.COMPLETED,
                     aisle_id: this.s(detail.target_aisle_id),
                     mrs_id: this.s(device.mrs_id),
                 });
 
                 // ย้ายงานถัดไปเป็น WAITING_FINISH
-                await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusTasks.WAITING_FINISH, updated_at: now });
+                await taskRepo.update({ task_id: nextTask.task_id }, { status: StatusOrders.WAITING_FINISH, updated_at: now });
                 const nextEnt = await taskRepo.findOne({ where: { task_id: nextTask.task_id } });
                 if (nextEnt) {
                     await this.logTaskEvent(useManager, nextEnt, TaskEvent.TASK_WAITING_FINISH, {
-                        prev: StatusTasks.QUEUED,
-                        next: StatusTasks.WAITING_FINISH,
+                        prev: StatusOrders.QUEUED,
+                        next: StatusOrders.WAITING_FINISH,
                         source: TaskSource.SYSTEM,
                         subsystem: TaskSubsystem.MRS,
                         reason_code: TaskReason.CONTINUE_IN_OPEN_SESSION,
@@ -2199,12 +2198,12 @@ if (updatedTask?.waiting_id) {
                 await mrsRepo.save(device);
 
                 // สร้าง task_mrs OPEN synthetic
-                let tmOpen = await tmRepo.findOne({
+                let tmOpen = await taskDetailRepo.findOne({
                     where: { task_id: this.s(nextTask.task_id)!, action: TaskMrsAction.OPEN as any },
                     order: { started_at: "DESC" },
                 });
                 if (!tmOpen) {
-                    tmOpen = tmRepo.create({
+                    tmOpen = taskDetailRepo.create({
                         task_id: this.s(nextTask.task_id)!,
                         mrs_id: this.s(device.mrs_id)!,
                         target_aisle_id: this.s(nextTask.target_aisle_id)!,
@@ -2215,7 +2214,7 @@ if (updatedTask?.waiting_id) {
                         finished_at: now,
                         open_duration_ms: 0,
                     });
-                    await tmRepo.save(tmOpen);
+                    await taskDetailRepo.save(tmOpen);
 
                     await logRepo.save(
                         logRepo.create({
@@ -2252,12 +2251,12 @@ if (updatedTask?.waiting_id) {
             }
 
             // ปิดงานปัจจุบันเป็น COMPLETED
-            await taskRepo.update({ task_id: detail.task_id }, { status: StatusTasks.COMPLETED, updated_at: now });
+            await taskRepo.update({ task_id: detail.task_id }, { status: StatusOrders.COMPLETED, updated_at: now });
 
-            // อัปเดต waiting_tasks เป็น COMPLETED ด้วย
+            // อัปเดต orders เป็น COMPLETED ด้วย
 const updatedTask = await taskRepo.findOne({ where: { task_id: detail.task_id } });
 if (updatedTask?.waiting_id) {
-    await waitingTasksRepo.update(
+    await ordersRepo.update(
         { waiting_id: updatedTask.waiting_id },
         { status: StatusWaiting.COMPLETED }
     );
@@ -2284,7 +2283,7 @@ if (updatedTask?.waiting_id) {
         const ctx = await this.beginTx(manager);
 
         try {
-            const { useManager, mrsRepo, taskRepo, tmRepo, logRepo } = ctx;
+            const { useManager, mrsRepo, taskRepo, taskDetailRepo, logRepo } = ctx;
 
             // 1) หา device ว่างใน bank นี้
             const device = await mrsRepo
@@ -2304,7 +2303,7 @@ if (updatedTask?.waiting_id) {
             // 2) หา task คิวแรกใน bank นี้
             const nextTask = await taskRepo
                 .createQueryBuilder("t")
-                .where("t.status = :q", { q: StatusTasks.QUEUED })
+                .where("t.status = :q", { q: StatusOrders.QUEUED })
                 .andWhere("t.target_bank_code = :bank", { bank })
                 .orderBy("t.priority", "DESC")
                 .addOrderBy("t.requested_at", "ASC")
@@ -2328,7 +2327,7 @@ if (updatedTask?.waiting_id) {
             await mrsRepo.save(device);
 
             // 4) task_mrs OPEN (PENDING)
-            const openDetail = tmRepo.create({
+            const openDetail = taskDetailRepo.create({
                 task_id: this.s(nextTask.task_id)!,
                 mrs_id: this.s(device.mrs_id)!,
                 target_aisle_id: this.s(aisleId)!,
@@ -2337,7 +2336,7 @@ if (updatedTask?.waiting_id) {
                 result: LogResult.PENDING,
                 started_at: new Date(),
             });
-            await tmRepo.save(openDetail);
+            await taskDetailRepo.save(openDetail);
 
             // 5) mrs_log start (IN_PROGRESS)
             await logRepo.save(
@@ -2356,13 +2355,13 @@ if (updatedTask?.waiting_id) {
             // 6) mark OPENING_AISLE
             await taskRepo.update(
                 { task_id: nextTask.task_id },
-                { status: StatusTasks.IN_PROGRESS, updated_at: new Date() }
+                { status: StatusOrders.IN_PROGRESS, updated_at: new Date() }
             );
             await this.logTaskEvent(useManager, nextTask as any, "TASK_OPENING_AISLE", {
                 source: TaskSource.DISPATCHER,
                 subsystem: TaskSubsystem.MRS,
-                prev: StatusTasks.QUEUED,
-                next: StatusTasks.IN_PROGRESS,
+                prev: StatusOrders.QUEUED,
+                next: StatusOrders.IN_PROGRESS,
                 mrs_id: this.s(device.mrs_id),
                 aisle_id: this.s(aisleId),
             });
@@ -2392,17 +2391,17 @@ if (updatedTask?.waiting_id) {
 //     /** MRS แจ้งมีสิ่งกีดขวาง (idempotent) */
 //     async onBlocked(payload: { task_mrs_id: string; reason?: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const logRepo = em.getRepository(MrsLog);
 
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (!d) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
 
 //         // อัปเดตแถว action ปัจจุบัน
 //         d.blocked_flag = true as any;
 //         d.blocked_reason = payload.reason ?? 'BLOCKED';
 //         // ถ้าเป็นตอนจะปิด เราจะถือว่า discard (ไม่ถือว่า fail)
-//         await tmRepo.save(d);
+//         await taskDetailRepo.save(d);
 
 //         // เขียน log ช่วยสืบเหตุ
 //         await logRepo.save(logRepo.create({
@@ -2424,7 +2423,7 @@ if (updatedTask?.waiting_id) {
 //     async onFault(payload: { mrs_id: number; code?: string; msg?: string; task_mrs_id?: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
 //         const mrsRepo = em.getRepository(MRS);
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const taskRepo= em.getRepository(TaskMrs);
 //         const logRepo = em.getRepository(MrsLog);
 
@@ -2432,11 +2431,11 @@ if (updatedTask?.waiting_id) {
 //         if (mrs) { mrs.fault_msg = payload.msg ?? payload.code ?? 'FAULT'; await mrsRepo.save(mrs); }
 
 //         if (payload.task_mrs_id) {
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (d && d.result !== LogResult.SUCCESS) {
 //             d.result = LogResult.FAIL;
 //             d.finished_at = new Date();
-//             await tmRepo.save(d);
+//             await taskDetailRepo.save(d);
 
 //             // ปิด log
 //             await logRepo.createQueryBuilder()
@@ -2445,7 +2444,7 @@ if (updatedTask?.waiting_id) {
 //             .where('task_id = :t AND aisle_id = :a AND action = :act', { t: d.task_id, a: d.target_aisle_id, act: d.action === 'OPEN' ? 'OPEN_AISLE' : 'CLOSE_AISLE' })
 //             .execute();
 
-//             await taskRepo.update({ task_id: d.task_id }, { status: StatusTasks.FAILED, updated_at: new Date(), error_code: payload.code as any, error_msg: payload.msg as any });
+//             await taskRepo.update({ task_id: d.task_id }, { status: StatusOrders.FAILED, updated_at: new Date(), error_code: payload.code as any, error_msg: payload.msg as any });
 //         }
 //         }
 
@@ -2455,11 +2454,11 @@ if (updatedTask?.waiting_id) {
 //     /** Timeout ของ action ใดๆ */
 //     async onTimeout(payload: { task_mrs_id: string }, manager?: EntityManager) {
 //         const em = manager ?? AppDataSource.manager;
-//         const tmRepo  = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo  = em.getRepository(TaskMrsDetail);
 //         const logRepo = em.getRepository(MrsLog);
 //         const taskRepo= em.getRepository(TaskMrs);
 
-//         const d = await tmRepo.findOne({ where: { id: payload.task_mrs_id } });
+//         const d = await taskDetailRepo.findOne({ where: { id: payload.task_mrs_id } });
 //         if (!d) return new ApiResponse().setIncomplete(lang.msg('validation.not_found'));
 
 //         if (d.result === LogResult.SUCCESS) return new ApiResponse().setComplete(lang.msg('common.already_completed'), {});
@@ -2467,7 +2466,7 @@ if (updatedTask?.waiting_id) {
 //         d.retry_count = (d.retry_count ?? 0) + 1;
 //         d.result = LogResult.FAIL; // หรือนโยบายจะตั้ง TIMEOUT แยกคอลัมน์ก็ได้
 //         d.finished_at = new Date();
-//         await tmRepo.save(d);
+//         await taskDetailRepo.save(d);
 
 //         await logRepo.createQueryBuilder()
 //         .update(MrsLog)
@@ -2475,7 +2474,7 @@ if (updatedTask?.waiting_id) {
 //         .where('task_id = :t AND aisle_id = :a AND action = :act', { t: d.task_id, a: d.target_aisle_id, act: d.action === 'OPEN' ? 'OPEN_AISLE' : 'CLOSE_AISLE' })
 //         .execute();
 
-//         await taskRepo.update({ task_id: d.task_id }, { status: StatusTasks.FAILED, updated_at: new Date(), error_code: 'TIMEOUT' as any, error_msg: 'Action timeout' as any });
+//         await taskRepo.update({ task_id: d.task_id }, { status: StatusOrders.FAILED, updated_at: new Date(), error_code: 'TIMEOUT' as any, error_msg: 'Action timeout' as any });
 
 //         return new ApiResponse().setComplete(lang.msg('common.timeout'), {});
 //     }
@@ -2496,7 +2495,7 @@ if (updatedTask?.waiting_id) {
 //     //     try {
 //     //     const taskRepo = em.getRepository(TaskMrs);
 //     //     const mrsRepo  = em.getRepository(MRS);
-//     //     const tmRepo   = em.getRepository(TaskMrsDetail);
+//     //     const taskDetailRepo   = em.getRepository(TaskMrsDetail);
 //     //     const logRepo  = em.getRepository(MrsLog);
 
 //     //     // 1) reserve device
@@ -2509,7 +2508,7 @@ if (updatedTask?.waiting_id) {
 //     //         stock_item: 'MANUAL',
 //     //         priority: 5,
 //     //         store_type: 'T1M',
-//     //         status: StatusTasks.IN_PROGRESS,
+//     //         status: StatusOrders.IN_PROGRESS,
 //     //         requested_by: reqUser,
 //     //     }));
 
@@ -2519,7 +2518,7 @@ if (updatedTask?.waiting_id) {
 //     //     await mrsRepo.save(device);
 
 //     //     // 3) OPEN detail + log
-//     //     const openDetail = await tmRepo.save(tmRepo.create({
+//     //     const openDetail = await taskDetailRepo.save(taskDetailRepo.create({
 //     //         task_id: task.task_id,
 //     //         mrs_id: String(device.mrs_id),
 //     //         target_aisle_id: String(aisle_id),
@@ -2564,12 +2563,12 @@ if (updatedTask?.waiting_id) {
 //         if (!manager && queryRunner) { await queryRunner.connect(); await queryRunner.startTransaction(); }
 
 //         try {
-//         const tmRepo   = em.getRepository(TaskMrsDetail);
+//         const taskDetailRepo   = em.getRepository(TaskMrsDetail);
 //         const taskRepo = em.getRepository(TaskMrs);
 //         const logRepo  = em.getRepository(MrsLog);
 
 //         // หา OPEN ล่าสุดของช่องนี้
-//         const open = await tmRepo.findOne({ where: { target_aisle_id: String(aisle_id), action: 'OPEN' as any }, order: { started_at: 'DESC' } });
+//         const open = await taskDetailRepo.findOne({ where: { target_aisle_id: String(aisle_id), action: 'OPEN' as any }, order: { started_at: 'DESC' } });
 //         if (!open) return response.setIncomplete(lang.msg('validation.not_found'));
 
 //         if (!(opts?.force)) {
@@ -2586,13 +2585,13 @@ if (updatedTask?.waiting_id) {
 //                 result: LogResult.DISCARDED, 
 //                 error_msg: 'Sensor detects object (manual)',
 //             }));
-//             await taskRepo.update({ task_id: open.task_id }, { status: StatusTasks.WAIT_CONFIRM, updated_at: new Date() });
+//             await taskRepo.update({ task_id: open.task_id }, { status: StatusOrders.WAIT_CONFIRM, updated_at: new Date() });
 //             return response.setIncomplete(lang.msg('validation.sensor_detect_object_discard_close'));
 //             }
 //         }
 
 //         // insert CLOSE (MANUAL) + log แล้วส่งคำสั่ง
-//         const closeDetail = await tmRepo.save(tmRepo.create({
+//         const closeDetail = await taskDetailRepo.save(taskDetailRepo.create({
 //             task_id: open.task_id, 
 //             mrs_id: open.mrs_id, 
 //             target_aisle_id: open.target_aisle_id,
@@ -2613,7 +2612,7 @@ if (updatedTask?.waiting_id) {
 //         }));
 
 //         await this.gw.closeAisle({ mrs_id: Number(closeDetail.mrs_id), aisle_id: Number(closeDetail.target_aisle_id), task_mrs_id: closeDetail.id });
-//         await taskRepo.update({ task_id: closeDetail.task_id }, { status: StatusTasks.CLOSING, updated_at: new Date() });
+//         await taskRepo.update({ task_id: closeDetail.task_id }, { status: StatusOrders.CLOSING, updated_at: new Date() });
 
 //         if (!manager && queryRunner) await queryRunner.commitTransaction();
 //         return response.setComplete(lang.msgSuccessAction('updated', 'item.t1m_task'), { task_mrs_close_id: closeDetail.id });

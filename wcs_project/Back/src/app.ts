@@ -23,7 +23,8 @@ import roleRouter from './routes/role.routes';
 import menuRouter from './routes/menu.routes';
 import aisleRouter from './routes/aisle.routes';
 import mrsRouter from './routes/mrs.routes';
-import waitingRouter from './routes/waiting.routes';
+import ordersRouter from './routes/orders.routes';
+import stockItemRouter from './routes/stock_items.routes';
 
 import swaggerApp from './swagger'; // นำเข้า swagger
 
@@ -40,6 +41,7 @@ import { authenticateToken } from './common/auth.token';
 
 import createTasksRouter from './routes/tasks.routes';
 import { T1MTaskService } from './services/task_mrs.service';
+import { T1MOrdersService } from './services/order_mrs.service'
 import { MockMrsGateway } from './gateways/mrs.gateway.mock';
 import { OrchestratedTaskService } from './services/tasks.service';
 
@@ -116,7 +118,8 @@ app.use('/api/menus', menuRouter);
 
 app.use('/api/aisle', aisleRouter);
 app.use('/api/mrs', mrsRouter);
-app.use('/api/waiting', waitingRouter);
+app.use('/api/waiting', ordersRouter);
+app.use('/api/stock-items', stockItemRouter);
 
 // ใช้ Swagger UI
 app.use(swaggerApp);
@@ -158,31 +161,27 @@ AppDataSource.initialize()
   .then(async () => {
     console.log('Connected to the database.');
 
-    // 1) ประกาศตัวแปร service ให้ callback ใช้งานได้
-    let t1m!: T1MTaskService;
-
-    // 2) สร้าง Mock Gateway แล้วโยน callback กลับมาที่ service
+    // 1) สร้าง Mock Gateway แล้วใส่ callback
     const gw = new MockMrsGateway({
-      onOpenFinished : (p) => t1m.onOpenFinished(p),
-      onCloseFinished: (p) => t1m.onCloseFinished(p),
+      onOpenFinished: (p) => t1m?.onOpenFinished?.(p), // ใช้ optional chaining
+      // onCloseFinished: (p) => t1m?.onCloseFinished?.(p), // ไม่ใช้ก็ comment
     });
 
-    // 3) สร้างบริการ T1M โดยฉีด gateway เข้าไป
-    t1m = new T1MTaskService(gw);
+    // 2) สร้างบริการ T1M โดยฉีด gateway เข้าไป
+    const t1m = new T1MOrdersService(gw); // ไม่ต้องประกาศ let แยก
 
-    // 4) สร้าง Orchestrator แล้วส่ง T1M เข้าไป (ถ้าฝั่ง WRS พร้อมค่อยฉีดเพิ่ม)
-    const orchestrator = new OrchestratedTaskService(t1m /*, wrsService */);
+    // 3) สร้าง Orchestrator แล้วส่ง T1M เข้าไป
+    const orchestrator = new OrchestratedTaskService(t1m);
 
-    // 5) ผูก routes ที่ต้องใช้บริการเหล่านี้ (ก่อน 404 handler เสมอ)
-    app.use('/api/tasks', createTasksRouter(orchestrator));  // POST /api/tasks, POST /api/tasks/:id/confirm
-    // app.use('/api', createMrsEventsRouter(t1m));      // POST /api/mrs/events/* (webhook/หรือไม่ใช้กับ mock ก็ได้)
+    // 4) ผูก routes
+    app.use('/api/execution', createTasksRouter(orchestrator));  
 
-    // 6) 404 handler ใส่ "ท้ายสุด" หลัง mount routes ทั้งหมดแล้ว
+    // 5) 404 handler
     app.use((req: Request, res: Response, next: NextFunction) => {
       next(createError(404));
     });
 
-    // 7) error handler ก็อยู่ท้ายสุดเช่นกัน
+    // 6) error handler
     app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
       res.locals.message = err.message;
       res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -190,8 +189,8 @@ AppDataSource.initialize()
       res.render('error');
     });
 
-    // 8) Start server (ครั้งเดียว)
-    const server = app.listen(process.env.PORT || 3502, () => {
+    // 7) Start server
+    const server = app.listen(process.env.PORT || 3000, () => {
       const addr = server.address();
       if (addr && typeof addr === 'object') {
         console.log(`Server is running on http://${addr.address}:${(addr as any).port}`);
@@ -201,6 +200,7 @@ AppDataSource.initialize()
     });
   })
   .catch((error: any) => console.log('Error: ', error));
+
 
 // AppDataSource.initialize()
 //   .then(async () => {

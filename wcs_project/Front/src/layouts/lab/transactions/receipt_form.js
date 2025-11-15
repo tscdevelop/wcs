@@ -27,7 +27,6 @@ export default function WaitingReceiptFormDialog({
   const [form, setForm] = useState({
     type: "RECEIPT",
     stock_item: "",
-    item_desc: "",
     cat_qty: 0,
     recond_qty: 0,
     cond: "",
@@ -49,7 +48,6 @@ export default function WaitingReceiptFormDialog({
         setForm({
           type: initialData.type ?? "RECEIPT",
           stock_item: initialData.stock_item ?? "",
-          item_desc: initialData.item_desc ?? "",
           cat_qty: 0,
           recond_qty: 0,
           cond: initialData.cond ?? "",
@@ -64,7 +62,6 @@ export default function WaitingReceiptFormDialog({
         setForm({
           type: "RECEIPT",
           stock_item: "",
-          item_desc: "",
           cat_qty: 0,
           recond_qty: 0,
           cond: "",
@@ -112,7 +109,6 @@ export default function WaitingReceiptFormDialog({
   const fields = [
     { field: "type", label: "Transaction Type", readOnly: true },
     { field: "stock_item", label: "Stock Item ID" },
-    { field: "item_desc", label: "Stock Item Description" },
     { field: "cat_qty", label: "CAT Quantity",readOnly: true },
     { field: "recond_qty", label: "RECOND Quantity", readOnly: true },
     { field: "cond", label: "Condition", select: true, options: ["NEW", "CAPITAL"] },
