@@ -269,7 +269,7 @@ export class OrchestratedTaskService {
             // ✅ อัปเดตข้อมูล actual
             order.actual_qty = actual_qty;
             order.actual_by = reqUsername;
-            order.finish_at = new Date();
+            order.finished_at = new Date();
             order.status = StatusOrders.FINISHED;
 
             // ✅ อัปเดต actual_status
@@ -297,7 +297,7 @@ export class OrchestratedTaskService {
                 plan_qty: order.plan_qty,
                 actual_qty: order.actual_qty,
                 actual_by: order.actual_by,
-                finish_at: order.finish_at,
+                finished_at: order.finished_at,
             });
 
         } catch (error: any) {
