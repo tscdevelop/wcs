@@ -220,7 +220,13 @@ export class T1MOrdersService {
             const order = await ordersRepo.findOne({ where: { order_id } });
             if (!order) return response.setIncomplete("Order not found");
 
-            await ordersRepo.update({ order_id }, { status: StatusOrders.PROCESSING });
+            await ordersRepo.update(
+                { order_id },
+                { 
+                    status: StatusOrders.PROCESSING,
+                    started_at: new Date()
+                }
+            );
             await this.logTaskEvent(useManager, order, {
                 actor: reqUsername,
                 status: StatusOrders.PROCESSING
@@ -251,8 +257,13 @@ export class T1MOrdersService {
             if (bankBusy) {
                 
                 // queue งานนี้เพราะ aisle ใน bank กำลังใช้งาน
-                
-                await ordersRepo.update({ order_id }, { status: StatusOrders.QUEUED });
+                await ordersRepo.update(
+                    { order_id },
+                    { 
+                        status: StatusOrders.QUEUED,
+                        queued_at: new Date()
+                    }
+                );
                 await this.logTaskEvent(useManager, order, {
                     actor: reqUsername,
                     status: StatusOrders.QUEUED
