@@ -1,5 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from "typeorm";
-import { MrsLogAction, LogResult, ControlSource } from "../common/global.enum";
+import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
+import { StatusMRS, ControlSource } from "../common/global.enum";
 
 /**
  * mrs_log: log ต่อ action ของ MRS (ใช้ทำรายงาน/สืบเหตุ)
@@ -13,22 +13,19 @@ export class MrsLog {
 
     /** อ้างถึง MRS ที่ทำงาน */
     @Column({ type: 'bigint', unsigned: true, comment: 'MRS device id (logical FK)' })
-    mrs_id!: string;
+    mrs_id?: string | null;
 
     /** ประเภทการกระทำ */
-    @Column({ type: 'enum', enum: MrsLogAction, default: MrsLogAction.OPEN_AISLE, comment: 'Action type' })
-    action!: MrsLogAction;
+    @Column({ type: 'enum', enum: StatusMRS, default: StatusMRS.IDLE })
+    status!: StatusMRS
 
     /** ช่องที่เกี่ยวข้อง */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Aisle id involved (logical FK)' })
-    aisle_id?: string;
+    aisle_id?: string | null;
 
     /** งานที่เกี่ยวข้อง (เชื่อมกับ task_mrs ถ้ามี) */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Task id linked to this action (logical FK)' })
-    task_id?: string | null;
-
-    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'FK -> task_mrs.id (logical)' })
-    task_mrs_id?: string | null;
+    order_id?: string | null;
 
     /** ผู้ควบคุม: AUTO/Manual */
     @Column({ type: 'enum', enum:ControlSource, default: ControlSource.AUTO, comment: 'Operator mode: AUTO/MANUAL' })
@@ -85,9 +82,6 @@ export class MrsLog {
     /** การสั่งซ้ำ/ผลลัพธ์/รหัสผิดพลาด */
     @Column({ type: 'int', unsigned: true, default: 0, comment: 'Number of retries' })
     retry_count!: number;
-
-    @Column({type: 'enum',enum:LogResult ,default: LogResult.SUCCESS, comment: 'Final result of the action'})
-    result!: LogResult;
 
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Error code if failed' })
     error_code?: string;

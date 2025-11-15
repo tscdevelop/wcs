@@ -38,7 +38,7 @@
     "PathFile":
     {
       "dirImage": "src/public/images",
-      "dirUploadOutboundToolingImage": "src/public/uploads/outbtl_image"
+      "dirUploadStockItemsImage": "src/public/uploads/stock_items_image"
     },
     "BackupConfig": {
         "mysqldumpPath": "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump",

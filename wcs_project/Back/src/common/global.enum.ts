@@ -16,7 +16,7 @@ export enum LabTestParamDataType {
 export enum Directories {
     register_image = "dirUploadRigisterImage",
     employee_image = "dirUploadEmployeeImage",
-    outbound_tooling_image = "dirUploadOutboundToolingImage",
+    stock_items_image = "dirUploadStockItemsImage",
 }
 
 export enum ScanStatus {
@@ -93,21 +93,25 @@ export enum StatusWaiting {
     CANCELLED = 'CANCELLED'
 }
 
-export enum StatusTasks {
-    NEW = 'NEW',
-    ROUTING = 'ROUTING',
-    IN_PROGRESS = 'IN_PROGRESS',
-    AISLE_OPEN = 'AISLE_OPEN',   
-    WAITING_CONFIRM = 'WAITING_CONFIRM',       
+export enum StatusOrders {
+    WAITING = 'WAITING',
+    QUEUED = 'QUEUED', 
+    PROCESSING = 'PROCESSING',
+    AISLE_OPEN = 'AISLE_OPEN', 
+    FINISHED = 'FINISHED', 
+
+    FAILED = 'FAILED',
+    CANCELLED ='CANCELLED',
+           
+    WAITING_CONFIRM = 'WAITING_CONFIRM', 
     WAITING_FINISH = 'WAITING_FINISH',
     AISLE_CLOSE = 'AISLE_CLOSE',
     COMPLETED = 'COMPLETED',
-    FAILED = 'FAILED',
-    CANCELLED ='CANCELLED',
-    QUEUED = 'QUEUED', 
+
+    
 }
 /*
-| Step | StatusTasks Enum | Function / Trigger                   | Comment          |
+| Step | StatusOrders Enum | Function / Trigger                   | Comment          |
 | ---- | ---------------- | ------------------------------------ | ---------------- |
 | 1    | `QUEUED`         | `createAndOpen()` (รอ bank ว่าง)     | งานรอเปิด        |
 | 2    | `IN_PROGRESS`      | `createAndOpen()` → `gw.openAisle()` | Opening-Aisle    |
@@ -118,6 +122,13 @@ export enum StatusTasks {
 | 7    | `FAILED`         | `closeAfterConfirm()` (obstacle)     | Failed(Obstacle) |
 
 */
+
+export enum StatusMRS {
+    IDLE = 'IDLE',
+    MOVING = 'MOVING',
+    OPENED = 'OPENED',
+    ERROR = 'ERROR'
+}
 
 export enum AisleStatus {
     OPEN = 'OPEN',

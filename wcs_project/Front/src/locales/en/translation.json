@@ -167,7 +167,9 @@
         "list": "Waiting Execution List",
         "transactions": "Transactions",
         "usage_history": "Usage History",
-        "receipt_history": "Receipt History"
+        "receipt_history": "Receipt History",
+        "administrator": "Administrator",
+        "stock_items": "Stock Items Data"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

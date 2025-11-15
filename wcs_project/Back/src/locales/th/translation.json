@@ -54,7 +54,7 @@
         "lab_form_header": "หัวออกรีพอร์ตแลป",
         "menu": "เมนู",
         "role":"สิทธิ์การใช้งานระบบ",
-        "waiting": "Waiting List"
+        "order": "Waiting List"
     },
     "field": {
         "user_id": "ไอดีผู้ใช้",

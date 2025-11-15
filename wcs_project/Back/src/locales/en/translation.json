@@ -53,7 +53,7 @@
     "lab_form_header": "Lab Form Header",
     "menu": "Menu",
     "role":"Role",
-    "waiting": "Waiting List"
+    "order": "Waiting List"
   },
   "field": {
     "user_id": "User ID",

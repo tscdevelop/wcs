@@ -13,7 +13,7 @@ dotenv.config();
 // หรือใช้ mock สำหรับ testing
 const mockGateway = new MockMrsGateway({
     onOpenFinished: (p) => console.log('OPEN finished', p),
-    onCloseFinished: (p) => console.log('CLOSE finished', p),
+    //onCloseFinished: (p) => console.log('CLOSE finished', p),
 });
 const aisleService = new AisleService(mockGateway);
 

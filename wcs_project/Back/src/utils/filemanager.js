@@ -5,7 +5,7 @@ const config = require('../config/GlobalConfig.json');
 
 const UploadDirKey = {
   DIR_IMAGE: 'dirImage',
-  DIR_UPLOAD_OUTBOUND_TOOLING_IMAGE: 'dirUploadOutboundToolingImage'
+  DIR_UPLOAD_ITEMS_IMAGE: 'dirUploadStockItemsImage'
 };
 
 /**

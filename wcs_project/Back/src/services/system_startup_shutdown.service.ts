@@ -5,7 +5,7 @@ import { TaskMrs } from "../entities/task_mrs.entity";
 import { MRS } from "../entities/mrs.entity";
 import { Aisle } from "../entities/aisle.entity";
 import { MrsGateway } from "../gateways/mrs.gateway";
-import { StatusTasks, AisleStatus } from "../common/global.enum";
+import { StatusOrders, AisleStatus } from "../common/global.enum";
 import * as lang from "../utils/LangHelper";
 
 /**
@@ -56,9 +56,9 @@ export class SystemStartupService {
             await taskRepo
                 .createQueryBuilder()
                 .update(TaskMrs)
-                .set({ status: StatusTasks.CANCELLED, updated_at: new Date() })
+                .set({ status: StatusOrders.CANCELLED, updated_at: new Date() })
                 .where("status NOT IN (:...valid)", {
-                    valid: [StatusTasks.COMPLETED, StatusTasks.FAILED, StatusTasks.CANCELLED],
+                    valid: [StatusOrders.COMPLETED, StatusOrders.FAILED, StatusOrders.CANCELLED],
                 })
                 .execute();
 
@@ -109,17 +109,17 @@ export class SystemStartupService {
             const taskRepo = useManager.getRepository(TaskMrs);
             const activeTasks = await taskRepo.find({
                 where: [
-                    { status: StatusTasks.IN_PROGRESS },
-                    { status: StatusTasks.WAITING_FINISH },
-                    { status: StatusTasks.AISLE_OPEN },
-                    { status: StatusTasks.AISLE_CLOSE },
+                    { status: StatusOrders.IN_PROGRESS },
+                    { status: StatusOrders.WAITING_FINISH },
+                    { status: StatusOrders.AISLE_OPEN },
+                    { status: StatusOrders.AISLE_CLOSE },
                 ],
             });
             if (activeTasks.length > 0) {
                 for (const t of activeTasks) {
                     await taskRepo.update(
                         { task_id: t.task_id },
-                        { status: StatusTasks.CANCELLED, updated_at: new Date() }
+                        { status: StatusOrders.CANCELLED, updated_at: new Date() }
                     );
                 }
             }
