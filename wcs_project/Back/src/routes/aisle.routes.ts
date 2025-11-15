@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as aisleController from '../controllers/aisle.controller';
 import { authenticateToken } from '../common/auth.token';
 import { patch } from '.';
-import { manualControl } from '../controllers/aisle.controller';
+// import { manualControl } from '../controllers/aisle.controller';
 
 const router = Router();
 
@@ -13,49 +13,49 @@ const router = Router();
  *   description: Aisle Management
  */
 
-/**
- * @swagger
- * /api/aisle/manual-control:
- *   post:
- *     summary: Manual open/close an aisle (via gateway) — body variant
- *     description: Same as the path variant but accepts aisle_id in the body for convenience.
- *     tags: [Aisle]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - $ref: '#/components/parameters/lng'
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [aisle_id, action]
- *             properties:
- *               aisle_id:
- *                 type: string
- *                 example: "A12"
- *               action:
- *                 type: string
- *                 enum: [OPEN, CLOSE]
- *                 example: CLOSE
- *               mrs_id:
- *                 type: string
- *                 description: Force using a specific MRS (optional)
- *                 example: "1"
- *     responses:
- *       200:
- *         description: Manual control accepted
- *       400:
- *         description: Bad request
- *       404:
- *         description: Not found
- *       409:
- *         description: Conflict
- *       500:
- *         description: Internal server error
- */
-router.post('/manual-control', authenticateToken, manualControl);
+// /**
+//  * @swagger
+//  * /api/aisle/manual-control:
+//  *   post:
+//  *     summary: Manual open/close an aisle (via gateway) — body variant
+//  *     description: Same as the path variant but accepts aisle_id in the body for convenience.
+//  *     tags: [Aisle]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - $ref: '#/components/parameters/lng'
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required: [aisle_id, action]
+//  *             properties:
+//  *               aisle_id:
+//  *                 type: string
+//  *                 example: "A12"
+//  *               action:
+//  *                 type: string
+//  *                 enum: [OPEN, CLOSE]
+//  *                 example: CLOSE
+//  *               mrs_id:
+//  *                 type: string
+//  *                 description: Force using a specific MRS (optional)
+//  *                 example: "1"
+//  *     responses:
+//  *       200:
+//  *         description: Manual control accepted
+//  *       400:
+//  *         description: Bad request
+//  *       404:
+//  *         description: Not found
+//  *       409:
+//  *         description: Conflict
+//  *       500:
+//  *         description: Internal server error
+//  */
+// router.post('/manual-control', authenticateToken, manualControl);
 
 /**
  * @swagger
