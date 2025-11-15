@@ -1,52 +1,417 @@
-import React, { useState, useEffect } from "react"; // นำเข้า useState และ useEffect จาก React
-import { Card, Grid, InputAdornment } from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
+// import React, { useState, useEffect } from "react"; // นำเข้า useState และ useEffect จาก React
+// import { Card, Grid, InputAdornment } from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
+// import SweetAlertComponent from "../components/sweetAlert";
+// import DashboardLayout from "examples/LayoutContainers/DashboardLayout"; // นำเข้า layout component
+// import DashboardNavbar from "examples/Navbars/DashboardNavbar"; // นำเข้า navbar component
+// import MDBox from "components/MDBox";
+// import { useNavigate } from "react-router-dom"; // นำเข้า Link และ useNavigate สำหรับการจัดการ routing
+// // import TableComponent from "../components/table_component";
+// import MDTypography from "components/MDTypography";
+// import WaitingAPI from "api/WaitingAPI";
+// // import { GlobalVar } from "../../../common/GlobalVar";
+// import ReusableDataTable from "../components/table_component_v2";
+// import MDButton from "components/MDButton";
+// import WaitingReceiptFormDialog from "./receipt_form";
+// import MDInput from "components/MDInput";
+// import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+// import AccessTimeIcon from "@mui/icons-material/AccessTime";
+// import ExecutionAPI from "api/TaskAPI";
+
+// const ReceiptHistory = () => {
+//   // eslint-disable-next-line no-unused-vars
+//   const [loading, setLoading] = useState(true);
+//   // const [waitingAll, setWaitingAll] = useState([]);
+//   const [deleteReceipt, setDeleteReceipt] = useState(""); // รหัสที่จะลบ
+//   // eslint-disable-next-line no-unused-vars
+//   const navigate = useNavigate();
+//   const [confirmAlert, setConfirmAlert] = useState(false);
+//   const [alert, setAlert] = useState({
+//     show: false,
+//     type: "success",
+//     title: "",
+//     message: "",
+//   });
+//   const [waitingList, setWaitingList] = useState([]);
+//   const [filteredWaiting, setFilteredWaiting] = useState([]);
+//   const [searchWaiting, setSearchWaiting] = useState({ date: "", time: "" });
+
+//   const [formOpen, setFormOpen] = useState(false);
+//   const [formMode, setFormMode] = useState("create"); // "create" | "edit"
+//   const [editingReceipt, setEditingReceipt] = useState(null);
+
+//   const fetchDataAll = async () => {
+//     try {
+//       const response = await WaitingAPI.WaitingReceiptAll();
+
+//       const list = Array.isArray(response?.data) ? response.data : [];
+//       setWaitingList(list);
+//     } catch (error) {
+//       console.error("Error fetching data: ", error);
+//       setWaitingList([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchDataAll();
+//   }, []);
+
+//   // --- Filter Logic ---
+//   useEffect(() => {
+//     const filtered = waitingList.filter(
+//       (item) =>
+//         (item.requested_at || "").includes(searchWaiting.date) &&
+//         (item.requested_at || "").includes(searchWaiting.time)
+//     );
+//     setFilteredWaiting(filtered);
+//   }, [waitingList, searchWaiting]);
+
+//   const handleAdd = () => {
+//     setFormMode("create");
+//     setEditingReceipt(null);
+//     setFormOpen(true);
+//   };
+
+//   const fetchDataById = async (order_id) => {
+//     try {
+//       const response = await WaitingAPI.getReceiptByID(order_id);
+//       console.log("Receipt By ID: ", response);
+//       if (response.isCompleted) {
+//         const data = response.data;
+//         setEditingReceipt({
+//           order_id: data.order_id,
+//           type: data.type ?? "",
+//           status: data.status ?? "",
+//           cat_qty: data.cat_qty ?? "",
+//           recond_qty: data.recond_qty ?? "",
+//           unit_cost_handled: data.unit_cost_handled ?? "",
+//           total_cost_handled: data.total_cost_handled ?? "",
+//           stock_item: data.stock_item ?? "",
+//           object_id: data.object_id ?? "",
+//           from_location: data.from_location ?? "",
+//           contract_num: data.contract_num ?? "",
+//           cond: data.cond ?? "",
+//           po_num: data.po_num ?? "",
+//           plan_qty: data.plan_qty ?? 0,
+//           actual_qty: data.actual_qty ?? 0,
+//           is_confirm: data.is_confirm ?? false,
+//           user_first_name: data.user_first_name ?? "",
+//           user_last_name: data.user_last_name ?? "",
+//           username: data.username ?? "",
+//           user_email: data.user_email ?? "",
+//           role_code: data.role_code ?? "",
+//         });
+//         setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
+//       } else {
+//         console.error("Failed to fetch receipt:", response.message);
+//       }
+//     } catch (error) {
+//       console.error("Error fetching receipt by id:", error);
+//     }
+//   };
+
+//   const handleEditClick = (row) => {
+//     setFormMode("edit");
+//     fetchDataById(row.order_id); // ใช้ order_id ดึงข้อมูล
+//   };
+
+//   const handleSubmitUser = async (payload) => {
+//     try {
+//       // ✅ เพิ่ม default field ที่ต้องบังคับส่งเสมอ
+//       const finalPayload = {
+//         ...payload,
+//         store_type: "T1M",
+//         priority: 5,
+//         type: "RECEIPT",
+//       };
+
+//       let res;
+//       if (formMode === "edit") {
+//         res = await WaitingAPI.updateWaiting(editingReceipt.order_id, finalPayload);
+//       } else {
+//         res = await WaitingAPI.createWaiting(finalPayload);
+//       }
+
+//       // ❇️ SUCCESS
+//       if (res?.isCompleted) {
+//         setAlert({
+//           show: true,
+//           type: "success",
+//           title: formMode === "edit" ? "Updated" : "Created",
+//           message: res.message,
+//         });
+
+//         await fetchDataAll();
+//         return true;
+//       }
+
+//       // ❌ API rejected
+//       setAlert({
+//         show: true,
+//         type: "error",
+//         title: "Error",
+//         message: res?.message || "Failed",
+//       });
+//       return false;
+
+//     } catch (err) {
+//       console.error("Error in handleSubmitUser:", err);
+
+//       // ❌ Error ระดับ system
+//       setAlert({
+//         show: true,
+//         type: "error",
+//         title: "Error",
+//         message: err?.response?.data?.message || "Unexpected error occurred",
+//       });
+
+//       return false;
+//     }
+//   };
+
+//   const handleDelete = async () => {
+//     try {
+//       const response = await WaitingAPI.deleteWaiting(deleteReceipt);
+//       if (response.isCompleted) {
+//         setAlert({
+//           show: true,
+//           type: "success",
+//           title: "Success",
+//           message: response.message,
+//         });
+//         await fetchDataAll();
+//       } else {
+//         setAlert({
+//           show: true,
+//           type: "error",
+//           title: "Error",
+//           message: response.message,
+//         });
+//       }
+//     } catch (error) {
+//       console.error("Error during submit:", error);
+//     } finally {
+//       setConfirmAlert(false); // ซ่อน SweetAlert ยืนยัน
+//     }
+//   };
+
+//   const columns = [
+//     { field: "requested_at", label: "Date" },
+//     { field: "stock_item", label: "Stock Item ID" },
+//     { field: "cat_qty", label: "CAT Quantity" },
+//     { field: "recond_qty", label: "RECOND Quantity" },
+//     { field: "from_location", label: "From Location" },
+//     { field: "cond", label: "Condition" },
+//     { field: "unit_cost_handled", label: "Unit Cost" },
+//     { field: "total_cost_handled", label: "Total Cost" },
+//     { field: "contract_num", label: "Contract Number" },
+//     { field: "po_num", label: "PO Number" },
+//     { field: "object_id", label: "Object ID" },
+//     { field: "actual_qty", label: "Scanned Quantity" },
+//     { field: "plan_qty", label: "Quantity to be handled" },
+//     { field: "status", label: "Order Status" },
+//     {
+//       field: "is_confirm",
+//       label: "Confirm",
+//       type: "confirmSku", // บอกว่าเป็นปุ่ม confirm
+//     },
+//   ];
+
+//   return (
+//     <DashboardLayout>
+//       <DashboardNavbar />
+//       <MDBox p={2}>
+//         <MDBox mt={2}>
+//           <MDTypography variant="h3" color="inherit">
+//             Receipt History
+//           </MDTypography>
+//         </MDBox>
+//       </MDBox>
+
+//       <MDBox mt={5}>
+//         <Card>
+//           <MDBox mt={3} p={3}>
+//             <Grid container spacing={1} mb={1}>
+//               <Grid item xs={3}>
+//                 <MDTypography variant="h6">Date</MDTypography>
+//                 <MDInput
+//                   placeholder="dd/mm/yyyy"
+//                   value={searchWaiting.date}
+//                   onChange={(e) => setSearchWaiting({ ...searchWaiting, date: e.target.value })}
+//                   InputProps={{
+//                     endAdornment: (
+//                       <InputAdornment position="end">
+//                         <CalendarMonthIcon fontSize="small" />
+//                       </InputAdornment>
+//                     ),
+//                   }}
+//                 />
+//               </Grid>
+//               <Grid item xs={3}>
+//                 <MDTypography variant="h6">Time</MDTypography>
+//                 <MDInput
+//                   placeholder="-- : --"
+//                   value={searchWaiting.time}
+//                   onChange={(e) => setSearchWaiting({ ...searchWaiting, time: e.target.value })}
+//                   InputProps={{
+//                     endAdornment: (
+//                       <InputAdornment position="end">
+//                         <AccessTimeIcon fontSize="small" />
+//                       </InputAdornment>
+//                     ),
+//                   }}
+//                 />
+//               </Grid>
+//             </Grid>
+//             <MDBox mb={5} display="flex" justifyContent="flex-end">
+//               <MDButton color="dark" onClick={handleAdd}>
+//                 Create
+//               </MDButton>
+//             </MDBox>
+//                         {loading ? (
+//   <div>Loading...</div>
+// ) : (
+//             <ReusableDataTable
+//               columns={columns}
+//               rows={filteredWaiting}
+//               idField="order_id"
+//               defaultPageSize={10}
+//               pageSizeOptions={[10, 25, 50]}
+//               showActions={["edit", "delete"]}
+//               onEdit={(row) => {
+//                 // ถ้า status ไม่ตรง ให้ return null → ปุ่มจะซ่อน
+//                 return row.status === "WAITING" ? handleEditClick(row) : null;
+//               }}
+//               onDelete={(row) => {
+//                 return ["WAITING", "QUEUED", "FINISHED", "CANCELLED", "FAILED"].includes(row.status)
+//                   ? (() => {
+//                       setDeleteReceipt(row.order_id);
+//                       setConfirmAlert(true);
+//                     })()
+//                   : null;
+//               }}
+//               // ✅ กำหนดว่า disable ปุ่ม confirm ตาม status
+//               confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
+//               // ✅ callback เวลากด confirm
+//               onConfirmSku={async (row) => {
+//                 try {
+//                   const taskItem = waitingList.find((item) => item.order_id === row.order_id);
+//                   if (!taskItem || !taskItem.order_id) {
+//                     alert("Cannot find corresponding task ID");
+//                     return;
+//                   }
+//                   console.log("order_id", taskItem);
+//                   const response = await ExecutionAPI.handleOrderItem(taskItem.order_id);
+//                   console.log("after order_id", response);
+//                   if (response.isCompleted) {
+//                     setAlert({
+//                       show: true,
+//                       type: "success",
+//                       title: "Confirmed",
+//                       message: response.message,
+//                     });
+//                     await fetchDataAll(); // refresh table
+//                   } else {
+//                     setAlert({
+//                       show: true,
+//                       type: "error",
+//                       title: "Error",
+//                       message: response.message || "Failed to confirm",
+//                     });
+//                   }
+//                 } catch (err) {
+//                   console.error("Confirm error:", err);
+//                 }
+//               }}
+//             />
+// )}
+//           </MDBox>
+//         </Card>
+//       </MDBox>
+
+//       {/* Pop-up */}
+//       <WaitingReceiptFormDialog
+//         open={formOpen}
+//         mode={formMode}
+//         initialData={editingReceipt}
+//         onClose={() => setFormOpen(false)}
+//         onSubmit={handleSubmitUser}
+//       />
+
+//       {confirmAlert && (
+//         <SweetAlertComponent
+//           type="error"
+//           title="Confirm Deletion"
+//           message="Are you sure you want to delete this data?"
+//           show={confirmAlert}
+//           showCancel
+//           confirmText="OK"
+//           cancelText="Cancel"
+//           onConfirm={handleDelete}
+//           onCancel={() => setConfirmAlert(false)}
+//         />
+//       )}
+//       <SweetAlertComponent
+//         show={alert.show}
+//         type={alert.type}
+//         title={alert.title}
+//         message={alert.message}
+//         onConfirm={() => setAlert({ ...alert, show: false })}
+//       />
+//     </DashboardLayout>
+//   );
+// };
+// export default ReceiptHistory;
+
+
+import React, { useState, useEffect } from "react";
+import { Card, Grid, InputAdornment } from "@mui/material";
 import SweetAlertComponent from "../components/sweetAlert";
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout"; // นำเข้า layout component
-import DashboardNavbar from "examples/Navbars/DashboardNavbar"; // นำเข้า navbar component
+import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import MDBox from "components/MDBox";
-import { useNavigate } from "react-router-dom"; // นำเข้า Link และ useNavigate สำหรับการจัดการ routing
-// import TableComponent from "../components/table_component";
 import MDTypography from "components/MDTypography";
-import WaitingAPI from "api/WaitingAPI";
-// import { GlobalVar } from "../../../common/GlobalVar";
-import ReusableDataTable from "../components/table_component_v2";
 import MDButton from "components/MDButton";
-import WaitingReceiptFormDialog from "./receipt_form";
 import MDInput from "components/MDInput";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+
+import ReusableDataTable from "../components/table_component_v2";
+import WaitingReceiptFormDialog from "./receipt_form";
+import ScanQtyDialog from "./scan_qty_form";
+
+import WaitingAPI from "api/WaitingAPI";
 import ExecutionAPI from "api/TaskAPI";
 
 const ReceiptHistory = () => {
-  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
-  // const [waitingAll, setWaitingAll] = useState([]);
-  const [deleteReceipt, setDeleteReceipt] = useState(""); // รหัสที่จะลบ
-  // eslint-disable-next-line no-unused-vars
-  const navigate = useNavigate();
-  const [confirmAlert, setConfirmAlert] = useState(false);
-  const [alert, setAlert] = useState({
-    show: false,
-    type: "success",
-    title: "",
-    message: "",
-  });
+  const [deleteReceipt, setDeleteReceipt] = useState("");
+  const [alert, setAlert] = useState({ show: false, type: "success", title: "", message: "" });
   const [waitingList, setWaitingList] = useState([]);
   const [filteredWaiting, setFilteredWaiting] = useState([]);
   const [searchWaiting, setSearchWaiting] = useState({ date: "", time: "" });
 
+  // Receipt Form Dialog
   const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState("create"); // "create" | "edit"
+  const [formMode, setFormMode] = useState("create");
   const [editingReceipt, setEditingReceipt] = useState(null);
 
+  // Scan Qty Dialog
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Confirm Delete
+  const [confirmAlert, setConfirmAlert] = useState(false);
+
+  // --- Fetch Data ---
   const fetchDataAll = async () => {
     try {
       const response = await WaitingAPI.WaitingReceiptAll();
-
       const list = Array.isArray(response?.data) ? response.data : [];
       setWaitingList(list);
     } catch (error) {
-      console.error("Error fetching data: ", error);
+      console.error(error);
       setWaitingList([]);
     } finally {
       setLoading(false);
@@ -67,6 +432,7 @@ const ReceiptHistory = () => {
     setFilteredWaiting(filtered);
   }, [waitingList, searchWaiting]);
 
+  // --- Form Handlers ---
   const handleAdd = () => {
     setFormMode("create");
     setEditingReceipt(null);
@@ -76,7 +442,6 @@ const ReceiptHistory = () => {
   const fetchDataById = async (order_id) => {
     try {
       const response = await WaitingAPI.getReceiptByID(order_id);
-      console.log("Receipt By ID: ", response);
       if (response.isCompleted) {
         const data = response.data;
         setEditingReceipt({
@@ -102,70 +467,44 @@ const ReceiptHistory = () => {
           user_email: data.user_email ?? "",
           role_code: data.role_code ?? "",
         });
-        setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
+        setFormOpen(true);
       } else {
         console.error("Failed to fetch receipt:", response.message);
       }
     } catch (error) {
-      console.error("Error fetching receipt by id:", error);
+      console.error(error);
     }
   };
 
   const handleEditClick = (row) => {
     setFormMode("edit");
-    fetchDataById(row.order_id); // ใช้ order_id ดึงข้อมูล
+    fetchDataById(row.order_id);
   };
 
   const handleSubmitUser = async (payload) => {
     try {
-      // ✅ เพิ่ม default field ที่ต้องบังคับส่งเสมอ
       const finalPayload = {
         ...payload,
         store_type: "T1M",
         priority: 5,
         type: "RECEIPT",
       };
-
       let res;
       if (formMode === "edit") {
         res = await WaitingAPI.updateWaiting(editingReceipt.order_id, finalPayload);
       } else {
         res = await WaitingAPI.createWaiting(finalPayload);
       }
-
-      // ❇️ SUCCESS
       if (res?.isCompleted) {
-        setAlert({
-          show: true,
-          type: "success",
-          title: formMode === "edit" ? "Updated" : "Created",
-          message: res.message,
-        });
-
+        setAlert({ show: true, type: "success", title: formMode === "edit" ? "Updated" : "Created", message: res.message });
         await fetchDataAll();
         return true;
       }
-
-      // ❌ API rejected
-      setAlert({
-        show: true,
-        type: "error",
-        title: "Error",
-        message: res?.message || "Failed",
-      });
+      setAlert({ show: true, type: "error", title: "Error", message: res?.message || "Failed" });
       return false;
-
     } catch (err) {
-      console.error("Error in handleSubmitUser:", err);
-
-      // ❌ Error ระดับ system
-      setAlert({
-        show: true,
-        type: "error",
-        title: "Error",
-        message: err?.response?.data?.message || "Unexpected error occurred",
-      });
-
+      console.error(err);
+      setAlert({ show: true, type: "error", title: "Error", message: err?.response?.data?.message || "Unexpected error" });
       return false;
     }
   };
@@ -174,25 +513,15 @@ const ReceiptHistory = () => {
     try {
       const response = await WaitingAPI.deleteWaiting(deleteReceipt);
       if (response.isCompleted) {
-        setAlert({
-          show: true,
-          type: "success",
-          title: "Success",
-          message: response.message,
-        });
+        setAlert({ show: true, type: "success", title: "Success", message: response.message });
         await fetchDataAll();
       } else {
-        setAlert({
-          show: true,
-          type: "error",
-          title: "Error",
-          message: response.message,
-        });
+        setAlert({ show: true, type: "error", title: "Error", message: response.message });
       }
     } catch (error) {
-      console.error("Error during submit:", error);
+      console.error(error);
     } finally {
-      setConfirmAlert(false); // ซ่อน SweetAlert ยืนยัน
+      setConfirmAlert(false);
     }
   };
 
@@ -211,11 +540,7 @@ const ReceiptHistory = () => {
     { field: "actual_qty", label: "Scanned Quantity" },
     { field: "plan_qty", label: "Quantity to be handled" },
     { field: "status", label: "Order Status" },
-    {
-      field: "is_confirm",
-      label: "Confirm",
-      type: "confirmSku", // บอกว่าเป็นปุ่ม confirm
-    },
+    { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];
 
   return (
@@ -223,9 +548,7 @@ const ReceiptHistory = () => {
       <DashboardNavbar />
       <MDBox p={2}>
         <MDBox mt={2}>
-          <MDTypography variant="h3" color="inherit">
-            Receipt History
-          </MDTypography>
+          <MDTypography variant="h3">Receipt History</MDTypography>
         </MDBox>
       </MDBox>
 
@@ -239,13 +562,7 @@ const ReceiptHistory = () => {
                   placeholder="dd/mm/yyyy"
                   value={searchWaiting.date}
                   onChange={(e) => setSearchWaiting({ ...searchWaiting, date: e.target.value })}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <CalendarMonthIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
+                  InputProps={{ endAdornment: (<InputAdornment position="end"><CalendarMonthIcon fontSize="small" /></InputAdornment>) }}
                 />
               </Grid>
               <Grid item xs={3}>
@@ -254,105 +571,56 @@ const ReceiptHistory = () => {
                   placeholder="-- : --"
                   value={searchWaiting.time}
                   onChange={(e) => setSearchWaiting({ ...searchWaiting, time: e.target.value })}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <AccessTimeIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
+                  InputProps={{ endAdornment: (<InputAdornment position="end"><AccessTimeIcon fontSize="small" /></InputAdornment>) }}
                 />
               </Grid>
             </Grid>
+
             <MDBox mb={5} display="flex" justifyContent="flex-end">
-              <MDButton color="dark" onClick={handleAdd}>
-                Create
-              </MDButton>
+              <MDButton color="dark" onClick={handleAdd}>Create</MDButton>
             </MDBox>
-            {/* <ReusableDataTable
-              columns={columns}
-              rows={filteredWaiting}
-              idField="order_id"
-              defaultPageSize={10}
-              pageSizeOptions={[10, 25, 50]}
-              showActions={["edit", "delete"]}
-              onEdit={(row) => {
-                if (row.status === "WAITING") {
-                  handleEditClick(row);
-                } else {
-                  alert("You can only edit rows with status WAITING.");
-                }
-              }}
-              onDelete={(row) => {
-                if (["WAITING", "COMPLETED", "CANCELLED"].includes(row.status)) {
-                  setDeleteReceipt(row.order_id);
-                  setConfirmAlert(true);
-                } else {
-                  alert("You cannot delete this row.");
-                }
-              }} */}
-                        {loading ? (
-  <div>Loading...</div>
-) : (
-            <ReusableDataTable
-              columns={columns}
-              rows={filteredWaiting}
-              idField="order_id"
-              defaultPageSize={10}
-              pageSizeOptions={[10, 25, 50]}
-              showActions={["edit", "delete"]}
-              onEdit={(row) => {
-                // ถ้า status ไม่ตรง ให้ return null → ปุ่มจะซ่อน
-                return row.status === "WAITING" ? handleEditClick(row) : null;
-              }}
-              onDelete={(row) => {
-                return ["WAITING", "QUEUED", "FINISHED", "CANCELLED", "FAILED"].includes(row.status)
-                  ? (() => {
-                      setDeleteReceipt(row.order_id);
-                      setConfirmAlert(true);
-                    })()
-                  : null;
-              }}
-              // ✅ กำหนดว่า disable ปุ่ม confirm ตาม status
-              confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
-              // ✅ callback เวลากด confirm
-              onConfirmSku={async (row) => {
-                try {
-                  const taskItem = waitingList.find((item) => item.order_id === row.order_id);
-                  if (!taskItem || !taskItem.task_id) {
-                    alert("Cannot find corresponding task ID");
-                    return;
-                  }
-                  console.log("task_id", taskItem);
-                  const response = await ExecutionAPI.handleOrderItem(taskItem.task_id);
-                  console.log("after task_id", response);
-                  if (response.isCompleted) {
-                    setAlert({
-                      show: true,
-                      type: "success",
-                      title: "Confirmed",
-                      message: response.message,
-                    });
-                    await fetchDataAll(); // refresh table
-                  } else {
-                    setAlert({
-                      show: true,
-                      type: "error",
-                      title: "Error",
-                      message: response.message || "Failed to confirm",
-                    });
-                  }
-                } catch (err) {
-                  console.error("Confirm error:", err);
-                }
-              }}
-            />
-)}
+
+            {loading ? (<div>Loading...</div>) : (
+              <ReusableDataTable
+                columns={columns}
+                rows={filteredWaiting}
+                idField="order_id"
+                defaultPageSize={10}
+                pageSizeOptions={[10, 25, 50]}
+                showActions={["edit", "delete"]}
+                onEdit={(row) => row.status === "WAITING" ? handleEditClick(row) : null}
+                onDelete={(row) => ["WAITING","QUEUED","FINISHED","CANCELLED","FAILED"].includes(row.status) ? (() => { setDeleteReceipt(row.order_id); setConfirmAlert(true); })() : null }
+                confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
+                onConfirmSku={(row) => { setSelectedOrder(row); setScanDialogOpen(true); }}
+              />
+            )}
           </MDBox>
         </Card>
       </MDBox>
 
-      {/* Pop-up */}
+      {/* Scan Qty Dialog */}
+      <ScanQtyDialog
+        open={scanDialogOpen}
+        order={selectedOrder}
+        onClose={() => setScanDialogOpen(false)}
+        onSubmit={async (order_id, actual_qty) => {
+          try {
+            const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
+            if (response.isCompleted) {
+              setAlert({ show: true, type: "success", title: "Confirmed", message: response.message });
+              await fetchDataAll();
+            } else {
+              setAlert({ show: true, type: "error", title: "Error", message: response.message || "Failed" });
+            }
+          } catch (err) {
+            console.error(err);
+          } finally {
+            setScanDialogOpen(false);
+          }
+        }}
+      />
+
+      {/* Receipt Form Dialog */}
       <WaitingReceiptFormDialog
         open={formOpen}
         mode={formMode}
@@ -361,6 +629,7 @@ const ReceiptHistory = () => {
         onSubmit={handleSubmitUser}
       />
 
+      {/* Delete Confirm */}
       {confirmAlert && (
         <SweetAlertComponent
           type="error"
@@ -374,6 +643,8 @@ const ReceiptHistory = () => {
           onCancel={() => setConfirmAlert(false)}
         />
       )}
+
+      {/* Alert */}
       <SweetAlertComponent
         show={alert.show}
         type={alert.type}
@@ -384,4 +655,5 @@ const ReceiptHistory = () => {
     </DashboardLayout>
   );
 };
+
 export default ReceiptHistory;

@@ -100,7 +100,12 @@ export default function ScanQtyDialog({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => onClose?.()}>Cancel</Button>
-          <Button onClick={handleConfirm} variant="contained" color="primary">
+          <Button
+  onClick={handleConfirm}
+  variant="contained"
+  color="primary"
+  sx={{ color: "#ffffff" }} // กำหนดสีตัวอักษรเป็นขาว
+>
             Confirm
           </Button>
         </DialogActions>
