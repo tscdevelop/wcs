@@ -5,7 +5,7 @@ const config = require(configPath);
 
 var express = require('express');
 var router = express.Router();
-var mysql = require('mysql');
+var mysql = require('mysql2');
 var multer = require('multer');
 var path = require('path');
 var fs = require('fs');
