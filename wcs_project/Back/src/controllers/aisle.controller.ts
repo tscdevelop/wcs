@@ -20,41 +20,41 @@ const aisleService = new AisleService(mockGateway);
 // ถ้า AisleService ของคุณไม่ต้องการ MrsGateway ให้ใช้แบบเดิม:
 // const aisleService = new AisleService();
 
-export const manualControl = async (req: Request, res: Response) => {
-    const operation = 'AisleController.manualControl';
+// export const manualControl = async (req: Request, res: Response) => {
+//     const operation = 'AisleController.manualControl';
 
-    const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return; // handle ในตัว util แล้ว
+//     const reqUsername = RequestUtils.getUsernameToken(req, res);
+//     if (!reqUsername) return; // handle ในตัว util แล้ว
 
-    try {
-        // รับค่าจาก path หรือ body (รองรับทั้งสองช่องทาง)
-        const aisleIdParam = req.params.aisle_id;
-        const { aisle_id: aisleIdBody, action: actionRaw, mrs_id: mrsIdRaw } = req.body || {};
+//     try {
+//         // รับค่าจาก path หรือ body (รองรับทั้งสองช่องทาง)
+//         const aisleIdParam = req.params.aisle_id;
+//         const { aisle_id: aisleIdBody, action: actionRaw, mrs_id: mrsIdRaw } = req.body || {};
 
-        const aisle_id = String(aisleIdParam ?? aisleIdBody ?? '').trim();
-        const action = String(actionRaw ?? '').trim().toUpperCase(); // "OPEN" | "CLOSE"
-        const mrs_id = mrsIdRaw != null && mrsIdRaw !== '' ? String(mrsIdRaw) : undefined;
+//         const aisle_id = String(aisleIdParam ?? aisleIdBody ?? '').trim();
+//         const action = String(actionRaw ?? '').trim().toUpperCase(); // "OPEN" | "CLOSE"
+//         const mrs_id = mrsIdRaw != null && mrsIdRaw !== '' ? String(mrsIdRaw) : undefined;
 
-        // ----- Validate ขั้นต้น -----
-        if (!aisle_id) {
-            return ResponseUtils.handleBadRequest(res, lang.msgRequired('aisle.aisle_id'));
-        }
-        if (!action || !['OPEN', 'CLOSE'].includes(action)) {
-            return ResponseUtils.handleBadRequest(
-                res,
-                lang.msg('validation.enum_invalid', { field: 'action', allow: 'OPEN, CLOSE' })
-            );
-        }
+//         // ----- Validate ขั้นต้น -----
+//         if (!aisle_id) {
+//             return ResponseUtils.handleBadRequest(res, lang.msgRequired('aisle.aisle_id'));
+//         }
+//         if (!action || !['OPEN', 'CLOSE'].includes(action)) {
+//             return ResponseUtils.handleBadRequest(
+//                 res,
+//                 lang.msg('validation.enum_invalid', { field: 'action', allow: 'OPEN, CLOSE' })
+//             );
+//         }
 
-        // เรียก service ด้วย DTO ที่ถูกต้อง
-        const response = await aisleService.manualControl({ aisle_id, action: action as 'OPEN' | 'CLOSE', mrs_id }, reqUsername);
+//         // เรียก service ด้วย DTO ที่ถูกต้อง
+//         const response = await aisleService.manualControl({ aisle_id, action: action as 'OPEN' | 'CLOSE', mrs_id }, reqUsername);
 
-        // manual control = update state → 200 OK
-        return ResponseUtils.handleCustomResponse(res, response, HttpStatus.OK);
-    } catch (error: any) {
-        return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.aisle', true, reqUsername);
-    }
-};
+//         // manual control = update state → 200 OK
+//         return ResponseUtils.handleCustomResponse(res, response, HttpStatus.OK);
+//     } catch (error: any) {
+//         return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.aisle', true, reqUsername);
+//     }
+// };
 
 export const getAll = async (req: Request, res: Response) => {
     const operation = 'AisleController.getAll';
