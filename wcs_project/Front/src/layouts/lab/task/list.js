@@ -15,7 +15,7 @@ import ReusableDataTable from "../components/table_component_v2";
 // import MDButton from "components/MDButton";
 import TaskDetailDialog from "../components/task_detail_component";
 import Link from "@mui/material/Link"; // ใช้ลิงก์ของ MUI
-import TaskAPI from "api/TaskAPI";
+import ExecutionAPI from "api/TaskAPI";
 import CreateTaskDialog from "../components/card_create_task";
 
 
@@ -39,7 +39,7 @@ const ListTask = () => {
 
     const handleCreateTask = async (payload) => {
         // payload: { sku, qty, priority }
-        await TaskAPI.createTask(payload);
+        await ExecutionAPI.createTask(payload);
         // TODO: ถ้าต้องการรีเฟรชตาราง ให้ดึงข้อมูลใหม่ที่นี่
     };
 

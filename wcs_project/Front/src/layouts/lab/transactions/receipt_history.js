@@ -15,7 +15,7 @@ import WaitingReceiptFormDialog from "./receipt_form";
 import MDInput from "components/MDInput";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import TaskAPI from "api/TaskAPI";
+import ExecutionAPI from "api/TaskAPI";
 
 const ReceiptHistory = () => {
   // eslint-disable-next-line no-unused-vars
@@ -43,7 +43,7 @@ const ReceiptHistory = () => {
     try {
       const response = await WaitingAPI.WaitingReceiptAll();
 
-      const list = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const list = Array.isArray(response?.data) ? response.data : [];
       setWaitingList(list);
     } catch (error) {
       console.error("Error fetching data: ", error);
@@ -73,14 +73,14 @@ const ReceiptHistory = () => {
     setFormOpen(true);
   };
 
-  const fetchDataById = async (waiting_id) => {
+  const fetchDataById = async (order_id) => {
     try {
-      const response = await WaitingAPI.getReceiptByID(waiting_id);
+      const response = await WaitingAPI.getReceiptByID(order_id);
       console.log("Receipt By ID: ", response);
       if (response.isCompleted) {
         const data = response.data;
         setEditingReceipt({
-          waiting_id: data.waiting_id,
+          order_id: data.order_id,
           type: data.type ?? "",
           status: data.status ?? "",
           cat_qty: data.cat_qty ?? "",
@@ -88,7 +88,6 @@ const ReceiptHistory = () => {
           unit_cost_handled: data.unit_cost_handled ?? "",
           total_cost_handled: data.total_cost_handled ?? "",
           stock_item: data.stock_item ?? "",
-          item_desc: data.item_desc ?? "",
           object_id: data.object_id ?? "",
           from_location: data.from_location ?? "",
           contract_num: data.contract_num ?? "",
@@ -114,7 +113,7 @@ const ReceiptHistory = () => {
 
   const handleEditClick = (row) => {
     setFormMode("edit");
-    fetchDataById(row.waiting_id); // ใช้ waiting_id ดึงข้อมูล
+    fetchDataById(row.order_id); // ใช้ order_id ดึงข้อมูล
   };
 
   const handleSubmitUser = async (payload) => {
@@ -129,11 +128,12 @@ const ReceiptHistory = () => {
 
       let res;
       if (formMode === "edit") {
-        res = await WaitingAPI.updateWaiting(editingReceipt.waiting_id, finalPayload);
+        res = await WaitingAPI.updateWaiting(editingReceipt.order_id, finalPayload);
       } else {
         res = await WaitingAPI.createWaiting(finalPayload);
       }
 
+      // ❇️ SUCCESS
       if (res?.isCompleted) {
         setAlert({
           show: true,
@@ -141,19 +141,31 @@ const ReceiptHistory = () => {
           title: formMode === "edit" ? "Updated" : "Created",
           message: res.message,
         });
+
         await fetchDataAll();
         return true;
-      } else {
-        setAlert({
-          show: true,
-          type: "error",
-          title: "Error",
-          message: res?.message || "Failed",
-        });
-        return false;
       }
+
+      // ❌ API rejected
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: res?.message || "Failed",
+      });
+      return false;
+
     } catch (err) {
       console.error("Error in handleSubmitUser:", err);
+
+      // ❌ Error ระดับ system
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: err?.response?.data?.message || "Unexpected error occurred",
+      });
+
       return false;
     }
   };
@@ -187,7 +199,6 @@ const ReceiptHistory = () => {
   const columns = [
     { field: "requested_at", label: "Date" },
     { field: "stock_item", label: "Stock Item ID" },
-    { field: "item_desc", label: "Stock Item Description" },
     { field: "cat_qty", label: "CAT Quantity" },
     { field: "recond_qty", label: "RECOND Quantity" },
     { field: "from_location", label: "From Location" },
@@ -261,7 +272,7 @@ const ReceiptHistory = () => {
             {/* <ReusableDataTable
               columns={columns}
               rows={filteredWaiting}
-              idField="waiting_id"
+              idField="order_id"
               defaultPageSize={10}
               pageSizeOptions={[10, 25, 50]}
               showActions={["edit", "delete"]}
@@ -274,16 +285,19 @@ const ReceiptHistory = () => {
               }}
               onDelete={(row) => {
                 if (["WAITING", "COMPLETED", "CANCELLED"].includes(row.status)) {
-                  setDeleteReceipt(row.waiting_id);
+                  setDeleteReceipt(row.order_id);
                   setConfirmAlert(true);
                 } else {
                   alert("You cannot delete this row.");
                 }
               }} */}
+                        {loading ? (
+  <div>Loading...</div>
+) : (
             <ReusableDataTable
               columns={columns}
               rows={filteredWaiting}
-              idField="waiting_id"
+              idField="order_id"
               defaultPageSize={10}
               pageSizeOptions={[10, 25, 50]}
               showActions={["edit", "delete"]}
@@ -292,25 +306,25 @@ const ReceiptHistory = () => {
                 return row.status === "WAITING" ? handleEditClick(row) : null;
               }}
               onDelete={(row) => {
-                return ["WAITING", "COMPLETED", "CANCELLED"].includes(row.status)
+                return ["WAITING", "QUEUED", "FINISHED", "CANCELLED", "FAILED"].includes(row.status)
                   ? (() => {
-                      setDeleteReceipt(row.waiting_id);
+                      setDeleteReceipt(row.order_id);
                       setConfirmAlert(true);
                     })()
                   : null;
               }}
               // ✅ กำหนดว่า disable ปุ่ม confirm ตาม status
-              confirmSkuDisabled={(row) => row.status !== "WAITING_CONFIRM"}
+              confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
               // ✅ callback เวลากด confirm
               onConfirmSku={async (row) => {
                 try {
-                  const taskItem = waitingList.find((item) => item.waiting_id === row.waiting_id);
+                  const taskItem = waitingList.find((item) => item.order_id === row.order_id);
                   if (!taskItem || !taskItem.task_id) {
                     alert("Cannot find corresponding task ID");
                     return;
                   }
                   console.log("task_id", taskItem);
-                  const response = await TaskAPI.confirm(taskItem.task_id);
+                  const response = await ExecutionAPI.handleOrderItem(taskItem.task_id);
                   console.log("after task_id", response);
                   if (response.isCompleted) {
                     setAlert({
@@ -333,6 +347,7 @@ const ReceiptHistory = () => {
                 }
               }}
             />
+)}
           </MDBox>
         </Card>
       </MDBox>

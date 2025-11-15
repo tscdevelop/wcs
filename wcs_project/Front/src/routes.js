@@ -99,6 +99,7 @@ import ReportPage from "layouts/lab/report/view_report";
 import WaitingExecutionPage from "layouts/lab/order/list";
 import UsageHistory from "layouts/lab/transactions/usage_history";
 import ReceiptHistory from "layouts/lab/transactions/receipt_history";
+import StockItemsData from "layouts/lab/administrator/stock_items";
 
 const getComponent = (componentName) => {
   switch (componentName) {
@@ -135,6 +136,8 @@ const getComponent = (componentName) => {
         return <UsageHistory />;
     case "transactions-receipt":
         return <ReceiptHistory />;
+    case "stock-items":
+        return <StockItemsData />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:

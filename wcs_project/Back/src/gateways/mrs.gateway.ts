@@ -5,7 +5,7 @@ export type OpenCloseAck =
     | {
         ok: true;
         status: 'accepted' | 'queued';
-        task_mrs_id: string;
+        order_id: string;
         controller_job_id: string;
         received_at: string;
         }
@@ -18,9 +18,9 @@ export type OpenCloseAck =
 
 // สัญญา Gateway (interface)
 export interface MrsGateway {
-    openAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck>;
-    closeAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck>;
-    isAisleSensorClear?(aisle_id?: number): Promise<boolean>;
+    openAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck>;
+    closeAisle?(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck>;
+    isAisleSensorClear?(aisle_id?: string): Promise<boolean>;
 
     /** ✅ เพิ่มใหม่ (ใช้ใน SystemStartupService) */
     healthCheck?(): Promise<boolean>;
@@ -30,7 +30,7 @@ export interface MrsGateway {
 /**
  * Implement MrsGateway บน MQTT
  * - publish คำสั่งที่ mrs/{mrs_id}/cmd (QoS 1)
- * - subscribe ACK ที่ mrs/{mrs_id}/ack แล้ว match ด้วย task_mrs_id (correlation key)
+ * - subscribe ACK ที่ mrs/{mrs_id}/ack แล้ว match ด้วย order_id (correlation key)
  * - รองรับ timeout -> คืน { ok:false, code:'ACK_TIMEOUT', ... }
  */
 export class MqttMrsGateway implements MrsGateway {
@@ -45,8 +45,8 @@ export class MqttMrsGateway implements MrsGateway {
         clientOpts?: IClientOptions,
         private opts: { ackTimeoutMs?: number; topicPrefix?: string } = {},
         private cb?: {
-        onOpenFinished?(p: { task_mrs_id: string; duration_ms?: number }): void;
-        onCloseFinished?(p: { task_mrs_id: string; duration_ms?: number }): void;
+        onOpenFinished?(p: { order_id: string; duration_ms?: number }): void;
+        onCloseFinished?(p: { order_id: string; duration_ms?: number }): void;
         }
     ) {
         this.client = mqtt.connect(brokerUrl, clientOpts);
@@ -85,12 +85,12 @@ export class MqttMrsGateway implements MrsGateway {
     private handleEvent(msg: any) {
         if (msg?.type === 'OPEN_FINISHED')
         this.cb?.onOpenFinished?.({
-            task_mrs_id: String(msg.task_mrs_id),
+            order_id: String(msg.order_id),
             duration_ms: msg.duration_ms,
         });
         if (msg?.type === 'CLOSE_FINISHED')
         this.cb?.onCloseFinished?.({
-            task_mrs_id: String(msg.task_mrs_id),
+            order_id: String(msg.order_id),
             duration_ms: msg.duration_ms,
         });
     }
@@ -108,25 +108,25 @@ export class MqttMrsGateway implements MrsGateway {
         }
     }
 
-    async openAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck> {
+    async openAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck> {
         return this.sendCommand('OPEN_AISLE', cmd);
     }
 
-    async closeAisle(cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }): Promise<OpenCloseAck> {
+    async closeAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck> {
         return this.sendCommand('CLOSE_AISLE', cmd);
     }
 
     private sendCommand(
         type: 'OPEN_AISLE' | 'CLOSE_AISLE',
-        cmd: { mrs_id: number; aisle_id: number; task_mrs_id: string }
+        cmd: { mrs_id: string; aisle_id: string; order_id: string }
     ): Promise<OpenCloseAck> {
-        const key = String(cmd.task_mrs_id);
+        const key = String(cmd.order_id);
         const prefix = this.opts.topicPrefix ?? 'mrs';
         const topic = `${prefix}/${cmd.mrs_id}/cmd`;
         const payload = {
         type,
         aisle_id: cmd.aisle_id,
-        task_mrs_id: key,
+        order_id: key,
         ts: new Date().toISOString(),
         };
 
@@ -150,7 +150,7 @@ export class MqttMrsGateway implements MrsGateway {
     }
 
     private handleAck(msg: any) {
-        const key = String(msg?.task_mrs_id ?? '');
+        const key = String(msg?.order_id ?? '');
         if (!key || !this.pending.has(key)) return;
 
         const entry = this.pending.get(key)!;
@@ -162,7 +162,7 @@ export class MqttMrsGateway implements MrsGateway {
         ack = {
             ok: true,
             status: (msg.status as 'accepted' | 'queued') ?? 'accepted',
-            task_mrs_id: key,
+            order_id: key,
             controller_job_id: String(msg.controller_job_id ?? ''),
             received_at: String(msg.ts ?? new Date().toISOString()),
         };

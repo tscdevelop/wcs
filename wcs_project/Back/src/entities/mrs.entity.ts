@@ -3,8 +3,8 @@ import { Connectivity, Health, Mode } from "../common/global.enum";
 
 @Entity({ name: "mrs" })
 export class MRS {
-    @PrimaryGeneratedColumn()
-    mrs_id: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of MRS' })
+    mrs_id: string;
 
     @Column({ length: 100, nullable: false })
     mrs_code: string;
@@ -46,7 +46,7 @@ export class MRS {
 
     /** งานที่กำลังทำอยู่ (เชื่อมเชิงตรรกะกับ task_mrs) */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Current running task id (logical FK)' })
-    current_task_id?: string;
+    current_order_id?: string;
 
     /** ช่องทางเดินปัจจุบัน */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Current aisle id (logical FK)' })

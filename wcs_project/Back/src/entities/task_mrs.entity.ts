@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-import { ScanStatus, StatusTasks , TypeInfm} from '../common/global.enum';
+import { ScanStatus, StatusOrders , TypeInfm} from '../common/global.enum';
 
 /**
  * tasks: งานกลางที่ผู้ใช้ร้องขอ (SKU/จำนวน/priority)
@@ -11,12 +11,8 @@ export class TaskMrs {
     /** รหัสงาน (PK) */
     @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of task' })
     task_id!: string;
-    
-    /*รหัสงาน TID-YYYYMMDD-NNN*/
-    @Column({ type: 'varchar', length: 32, unique: true })
-    task_code: string;
 
-    /** หมายเลข waiting ID (FK → waiting_id) */
+    /** หมายเลข order ID (FK → waiting_id) */
     @Column({ type: 'varchar', length: 50, comment: 'Waiting id', nullable: true, default: null})
     waiting_id?: string;
 
@@ -41,8 +37,8 @@ export class TaskMrs {
     type!: TypeInfm;
 
     /** สถานะงานรวม */
-    @Column({ type: 'enum',enum:StatusTasks ,comment: 'Overall task state'})
-    status!: StatusTasks;
+    @Column({ type: 'enum',enum:StatusOrders ,comment: 'Overall task state'})
+    status!: StatusOrders;
 
     @Column({ type: 'bigint', nullable: true})
     target_aisle_id: string | null;
