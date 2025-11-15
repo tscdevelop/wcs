@@ -269,7 +269,7 @@ export class OrchestratedTaskService {
             // ✅ อัปเดตข้อมูล actual
             order.actual_qty = actual_qty;
             order.actual_by = reqUsername;
-            order.actual_at = new Date();
+            order.finish_at = new Date();
             order.status = StatusOrders.FINISHED;
 
             // ✅ อัปเดต actual_status
@@ -297,7 +297,7 @@ export class OrchestratedTaskService {
                 plan_qty: order.plan_qty,
                 actual_qty: order.actual_qty,
                 actual_by: order.actual_by,
-                actual_at: order.actual_at,
+                finish_at: order.finish_at,
             });
 
         } catch (error: any) {
@@ -317,7 +317,7 @@ export class OrchestratedTaskService {
 async callNextQueue(from_location: string, reqUser: string, manager: EntityManager) {
     const ordersRepo = manager.getRepository(Orders);
 
-    // ดึงคิวถัดไป
+    // ดึงคิวถัดไป ดูที่ request_at ที่เก่าสุด
     const nextOrder = await ordersRepo.findOne({
         where: {
             from_location,
@@ -330,7 +330,6 @@ async callNextQueue(from_location: string, reqUser: string, manager: EntityManag
 
     // อัปเดตสถานะเป็น PROCESSING
     nextOrder.status = StatusOrders.PROCESSING;
-    // nextOrder.start_at = new Date();
     await ordersRepo.save(nextOrder);
 
     // 🔥 เรียก executionMrs ของ service อื่นอย่างถูกต้อง
