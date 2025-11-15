@@ -201,110 +201,224 @@ export class T1MOrdersService {
 
     // ======= executionMrs =======
     // ======= executionMrs (แก้ไข) =======
-    async executionMrs(
-        order_id: string,
-        reqUsername: string,
-        manager?: EntityManager
-    ): Promise<ApiResponse<any>> {
-        const operation = "T1MOrdersService.executionMrs";
-        let response = new ApiResponse<any>();
-        const ctx = await this.beginTx(manager);
+    // async executionMrs(
+    //     order_id: string,
+    //     reqUsername: string,
+    //     manager?: EntityManager
+    // ): Promise<ApiResponse<any>> {
+    //     const operation = "T1MOrdersService.executionMrs";
+    //     let response = new ApiResponse<any>();
+    //     const ctx = await this.beginTx(manager);
 
-        try {
-            const { useManager, mrsRepo, mrslogRepo, ordersRepo } = ctx;
+    //     try {
+    //         const { useManager, mrsRepo, mrslogRepo, ordersRepo } = ctx;
 
-            const mock_aisle = "2";
-            const mock_bank = "B1";
+    //         const mock_aisle = "2";
+    //         const mock_bank = "B1";
 
-            // 1) โหลด order
-            const order = await ordersRepo.findOne({ where: { order_id } });
-            if (!order) return response.setIncomplete("Order not found");
+    //         // 1) โหลด order
+    //         const order = await ordersRepo.findOne({ where: { order_id } });
+    //         if (!order) return response.setIncomplete("Order not found");
 
+    //         await ordersRepo.update(
+    //             { order_id },
+    //             { 
+    //                 status: StatusOrders.PROCESSING,
+    //                 started_at: new Date()
+    //             }
+    //         );
+    //         await this.logTaskEvent(useManager, order, {
+    //             actor: reqUsername,
+    //             status: StatusOrders.PROCESSING
+    //         });
+
+    //         // 2) หา device (MRS) จาก from_location
+    //         const device = await mrsRepo.findOne({ where: { mrs_code: order.from_location } });
+    //         if (!device) return response.setIncomplete("MRS not found");
+
+    //         const bankCode = device.bank_code ?? mock_bank;
+
+    //         // 3) Lock bank rows
+    //         const bankRows = await mrsRepo
+    //             .createQueryBuilder("m")
+    //             .setLock("pessimistic_write")
+    //             .where("m.bank_code = :bank", { bank: bankCode })
+    //             .getMany();
+
+    //         // กำหนด targetAisleId ก่อนใช้งาน
+    //         const targetAisleId = device.current_aisle_id ?? mock_aisle;
+
+    //         // 4) เช็คว่า bank มี MRS ไหนเปิด aisle อยู่หรือไม่
+    
+    //         const bankBusy = bankRows.some(r =>
+    //             r.is_aisle_open && !r.e_stop && r.current_aisle_id === targetAisleId
+    //         );
+
+    //         if (bankBusy) {
+                
+    //             // queue งานนี้เพราะ aisle ใน bank กำลังใช้งาน
+    //             await ordersRepo.update(
+    //                 { order_id },
+    //                 { 
+    //                     status: StatusOrders.QUEUED,
+    //                     queued_at: new Date()
+    //                 }
+    //             );
+    //             await this.logTaskEvent(useManager, order, {
+    //                 actor: reqUsername,
+    //                 status: StatusOrders.QUEUED
+    //             });
+    //             await ctx.commit();
+    //             return response.setComplete("Order queued due to bank busy", {
+    //                 queued: true,
+    //                 order_id
+    //             });
+    //         }
+
+    //         // 5) Prepare MRS for MOVING
+    //         await this.prepareMRSForMoving(
+    //             mrsRepo,
+    //             mrslogRepo,
+    //             device,
+    //             order,
+    //             targetAisleId
+    //         );
+
+    //         // 7) เปิด aisle ผ่าน gateway แบบ mock delay 5 วินาที
+    //         await new Promise(resolve => setTimeout(resolve, 5000));
+
+    //         await this.gw.openAisle({
+    //             mrs_id: device.mrs_id,
+    //             aisle_id: targetAisleId,
+    //             order_id: order.order_id
+    //         });
+
+    //         await ctx.commit();
+    //         return response.setComplete("Order is PROCESSING", { order_id });
+
+    //     } catch (error: any) {
+    //         await ctx.rollback();
+    //         console.error(operation, error);
+    //         throw new Error(`Error in ${operation}: ${error.message}`);
+    //     } finally {
+    //         await ctx.release();
+    //     }
+    // }
+
+async executionMrs(
+    order_id: string,
+    reqUsername: string,
+    manager?: EntityManager
+): Promise<ApiResponse<any>> {
+    const operation = "T1MOrdersService.executionMrs";
+    const response = new ApiResponse<any>();
+    const ctx = await this.beginTx(manager);
+
+    try {
+        const { useManager, mrsRepo, mrslogRepo, ordersRepo } = ctx;
+
+        // 1) โหลด order
+        const order = await ordersRepo.findOne({ where: { order_id } });
+        if (!order) return response.setIncomplete("Order not found");
+
+        await ordersRepo.update(
+            { order_id },
+            { 
+                status: StatusOrders.PROCESSING,
+                started_at: new Date()
+            }
+        );
+        await this.logTaskEvent(useManager, order, {
+            actor: reqUsername,
+            status: StatusOrders.PROCESSING
+        });
+
+        // 2) หา device จริงจาก from_location
+        const device = await mrsRepo.findOne({ where: { mrs_code: order.from_location } });
+if (!device) return response.setIncomplete("MRS not found");
+
+        // 3) กำหนด mock fallback ตาม from_location
+        let targetAisleId: string;
+        let bankCode: string;
+
+        // if (device) {
+        //     targetAisleId = device.current_aisle_id ?? "1";  // default aisle ถ้าไม่มี
+        //     bankCode = device.bank_code ?? "B1";            // default bank ถ้าไม่มี
+        // } else {
+            // กำหนด mock ตาม from_location เพื่อทดสอบ/force parallel
+            if (order.from_location === "AA - TSS STORE") {
+                targetAisleId = "2";
+                bankCode = "B2";
+            } else if (order.from_location === "LMC-M240-STORE (BHS)") {
+                targetAisleId = "3";
+                bankCode = "B3";
+            } else {
+                // fallback default
+                targetAisleId = "9";
+                bankCode = "B9";
+            }
+        //}
+
+        // 4) Lock bank rows ของ bankCode
+        const bankRows = await mrsRepo
+            .createQueryBuilder("m")
+            .setLock("pessimistic_write")
+            .where("m.bank_code = :bank", { bank: bankCode })
+            .getMany();
+
+        // 5) เช็คว่า bank ว่างหรือไม่ (aisle ไม่ชนกัน)
+        const bankBusy = bankRows.some(r => r.is_aisle_open && !r.e_stop && r.current_aisle_id === targetAisleId);
+
+        if (bankBusy) {
+            // queue งานเพราะ aisle ใน bank กำลังใช้งาน
             await ordersRepo.update(
                 { order_id },
                 { 
-                    status: StatusOrders.PROCESSING,
-                    started_at: new Date()
+                    status: StatusOrders.QUEUED,
+                    queued_at: new Date()
                 }
             );
             await this.logTaskEvent(useManager, order, {
                 actor: reqUsername,
-                status: StatusOrders.PROCESSING
+                status: StatusOrders.QUEUED
             });
-
-            // 2) หา device (MRS) จาก from_location
-            const device = await mrsRepo.findOne({ where: { mrs_code: order.from_location } });
-            if (!device) return response.setIncomplete("MRS not found");
-
-            const bankCode = device.bank_code ?? mock_bank;
-
-            // 3) Lock bank rows
-            const bankRows = await mrsRepo
-                .createQueryBuilder("m")
-                .setLock("pessimistic_write")
-                .where("m.bank_code = :bank", { bank: bankCode })
-                .getMany();
-
-            // กำหนด targetAisleId ก่อนใช้งาน
-            const targetAisleId = device.current_aisle_id ?? mock_aisle;
-
-            // 4) เช็คว่า bank มี MRS ไหนเปิด aisle อยู่หรือไม่
-    
-            const bankBusy = bankRows.some(r =>
-                r.is_aisle_open && !r.e_stop && r.current_aisle_id === targetAisleId
-            );
-
-            if (bankBusy) {
-                
-                // queue งานนี้เพราะ aisle ใน bank กำลังใช้งาน
-                await ordersRepo.update(
-                    { order_id },
-                    { 
-                        status: StatusOrders.QUEUED,
-                        queued_at: new Date()
-                    }
-                );
-                await this.logTaskEvent(useManager, order, {
-                    actor: reqUsername,
-                    status: StatusOrders.QUEUED
-                });
-                await ctx.commit();
-                return response.setComplete("Order queued due to bank busy", {
-                    queued: true,
-                    order_id
-                });
-            }
-
-            // 5) Prepare MRS for MOVING
-            await this.prepareMRSForMoving(
-                mrsRepo,
-                mrslogRepo,
-                device,
-                order,
-                targetAisleId
-            );
-
-            // 7) เปิด aisle ผ่าน gateway แบบ mock delay 5 วินาที
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            await this.gw.openAisle({
-                mrs_id: device.mrs_id,
-                aisle_id: targetAisleId,
-                order_id: order.order_id
-            });
-
             await ctx.commit();
-            return response.setComplete("Order is PROCESSING", { order_id });
-
-        } catch (error: any) {
-            await ctx.rollback();
-            console.error(operation, error);
-            throw new Error(`Error in ${operation}: ${error.message}`);
-        } finally {
-            await ctx.release();
+            return response.setComplete("Order queued due to bank busy", {
+                queued: true,
+                order_id
+            });
         }
-    }
 
+        // 6) Prepare MRS และเปิด aisle
+        await this.prepareMRSForMoving(
+            mrsRepo,
+            mrslogRepo,
+            device,          // device ของ order (หรือ undefined, ใช้ mock fallback)
+            order,
+            targetAisleId
+        );
+
+        // 7) mock delay ถ้าต้องการ
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // 8) เปิด aisle ผ่าน gateway
+        await this.gw.openAisle({
+            mrs_id: device.mrs_id,
+            aisle_id: targetAisleId,
+            order_id: order.order_id
+        });
+
+        await ctx.commit();
+        return response.setComplete("Order is PROCESSING", { order_id });
+
+    } catch (error: any) {
+        await ctx.rollback();
+        console.error(operation, error);
+        throw new Error(`Error in ${operation}: ${error.message}`);
+    } finally {
+        await ctx.release();
+    }
+}
 
 
     // ======= onOpenFinished (แก้ไข) =======
