@@ -68,7 +68,7 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
                 res,
                 operation,
                 error.message,
-                'item.task',
+                'change To Waiting',
                 true,
                 reqUsername
             );
@@ -103,7 +103,7 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
                 res,
                 operation,
                 error.message,
-                'item.task',
+                'change To Waiting',
                 true,
                 reqUsername
             );

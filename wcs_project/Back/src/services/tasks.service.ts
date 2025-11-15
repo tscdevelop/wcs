@@ -3,13 +3,15 @@ import { AppDataSource } from "../config/app-data-source";
 import { EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { ApiResponse } from '../models/api-response.model';
 import { Orders} from '../entities/orders.entity';
-import { ScanStatus, StatusOrders } from '../common/global.enum';
+import { AisleStatus, MrsLogAction, ScanStatus, StatusMRS, StatusOrders } from '../common/global.enum';
 import * as validate from '../utils/ValidationUtils';
 import * as lang from '../utils/LangHelper';
 
 import { OrdersLog } from "../entities/orders_log.entity";
 import { T1MOrdersService } from "./order_mrs.service";
 import { OrdersLogService } from "../utils/logTaskEvent";
+import { MRS } from "../entities/mrs.entity";
+import { Aisle } from "../entities/aisle.entity";
 // (ถ้ามี) import { WRSTaskService } from './wrs-task.service';
 
 // services/tasks.service.ts
@@ -245,14 +247,16 @@ export class OrchestratedTaskService {
 
         try {
             const ordersRepo = useManager.getRepository(Orders);
+            const mrsRepo = useManager.getRepository(MRS);
+            const aisleRepo = useManager.getRepository(Aisle);
 
-            // ✅ ตรวจสอบว่า order มีอยู่จริง
+            // 1️⃣ โหลด order
             const order = await ordersRepo.findOne({ where: { order_id } });
             if (!order) {
                 return response.setIncomplete(`Order not found: ${order_id}`);
             }
 
-              // 2️⃣ ตรวจสอบว่า status ต้องเป็น AISLE_OPEN เท่านั้น
+             // ตรวจสอบ status ต้องเป็น AISLE_OPEN เท่านั้น
             if (order.status !== StatusOrders.AISLE_OPEN) {
                 return response.setIncomplete('Only AISLE_OPEN status can be changed');
             }
@@ -266,11 +270,12 @@ export class OrchestratedTaskService {
                 return response.setIncomplete(`Actual quantity (${actual_qty}) exceeds planned quantity (${order.plan_qty})`);
             }
 
-            // ✅ อัปเดตข้อมูล actual
+            // 2️⃣ UPDATE ORDER
             order.actual_qty = actual_qty;
             order.actual_by = reqUsername;
             order.finished_at = new Date();
             order.status = StatusOrders.FINISHED;
+            order.is_confirm = true;
 
             // ✅ อัปเดต actual_status
             if (actual_qty === order.plan_qty) {
@@ -288,11 +293,52 @@ export class OrchestratedTaskService {
                 status: StatusOrders.FINISHED
             });
 
+             // 3️⃣ UPDATE MRS → reset เป็นว่าง
+            const mrs = await mrsRepo.findOne({ where: { mrs_code: order.from_location } });
+            if (mrs) {
+                await mrsRepo.update(
+                    { mrs_id: mrs.mrs_id },
+                    {
+                        current_order_id: () => 'NULL',
+                        target_aisle_id: () => 'NULL',
+                        current_aisle_id: () => 'NULL',
+                        is_available: true,
+                        is_aisle_open: false,
+                        open_session_aisle_id: null,
+                        open_session_expires_at: null,
+                        mrs_status: StatusMRS.IDLE,
+                    }
+                );
+            }
+
+            // -------------------------------
+            // 4️⃣ UPDATE AISLE → CLOSE
+            // -------------------------------
+            if (mrs && mrs.target_aisle_id) {
+                const aisle = await aisleRepo.findOne({ where: { aisle_id: mrs.target_aisle_id } });
+                if (aisle) {
+                    await aisleRepo.update(
+                        { aisle_id: aisle.aisle_id },
+                        {
+                                    status: AisleStatus.CLOSED,
+                                    last_opened_at: undefined
+                                }
+                    );
+                }
+            }
+
+            // -------------------------------
+            // 5️⃣ CALL NEXT QUEUE
+            // -------------------------------
+            if (order.from_location) {
+                await this.callNextQueue(order.from_location, reqUsername, useManager);
+            }
+
             if (!manager && queryRunner) {
                 await queryRunner.commitTransaction();
             }
 
-            return response.setComplete('Order updated successfully', {
+            return response.setComplete('Order handled successfully', {
                 order_id: order.order_id,
                 plan_qty: order.plan_qty,
                 actual_qty: order.actual_qty,
@@ -314,31 +360,31 @@ export class OrchestratedTaskService {
     }
 
 
-async callNextQueue(from_location: string, reqUser: string, manager: EntityManager) {
-    const ordersRepo = manager.getRepository(Orders);
+    async callNextQueue(from_location: string, reqUser: string, manager: EntityManager) {
+        const ordersRepo = manager.getRepository(Orders);
 
-    // ดึงคิวถัดไป ดูที่ request_at ที่เก่าสุด
-    const nextOrder = await ordersRepo.findOne({
-        where: {
-            from_location,
-            status: StatusOrders.QUEUED
-        },
-        order: { requested_at: "ASC" }
-    });
+        // ดึงคิวถัดไป ดูที่ request_at ที่เก่าสุด
+        const nextOrder = await ordersRepo.findOne({
+            where: {
+                from_location,
+                status: StatusOrders.QUEUED
+            },
+            order: { requested_at: "ASC" }
+        });
 
-    if (!nextOrder) return;
+        if (!nextOrder) return;
 
-    // อัปเดตสถานะเป็น PROCESSING
-    nextOrder.status = StatusOrders.PROCESSING;
-    await ordersRepo.save(nextOrder);
+        // อัปเดตสถานะเป็น PROCESSING
+        nextOrder.status = StatusOrders.PROCESSING;
+        await ordersRepo.save(nextOrder);
 
-    // 🔥 เรียก executionMrs ของ service อื่นอย่างถูกต้อง
-    return await this.t1mOrders.executionMrs(
-        nextOrder.order_id,
-        reqUser,     // system-auto หรือ user ที่สั่ง
-        manager      // ใช้ transaction เดียวกัน
-    );
-}
+        // 🔥 เรียก executionMrs ของ service อื่นอย่างถูกต้อง
+        return await this.t1mOrders.executionMrs(
+            nextOrder.order_id,
+            reqUser,     // system-auto หรือ user ที่สั่ง
+            manager      // ใช้ transaction เดียวกัน
+        );
+    }
 
 
 }
