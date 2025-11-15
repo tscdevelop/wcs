@@ -148,17 +148,21 @@ export class Orders {
     @Column({ type: 'varchar', length: 50, nullable: true })
     actual_by?: string;
 
-    /** เวลาที่ยิงของ */
-    @Column({ type: 'timestamp',  nullable: true, default: () => null})
-    actual_at?: Date;
+    /** เวลาเสร็จออเดอร์ = ตอนยิงของ */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null, comment: 'Finished date' })
+    finished_at?: Date;
 
     /** สถานะการคอนเฟิร์ม */
     @Column({ default: false, nullable: false })
     is_confirm: boolean;
 
-    /** เวลาที่กดคอนเฟิร์ม */
+    /** เวลาที่เริ่มทำออเดอร์ */
     @Column({ type: 'timestamp',  nullable: true, default: () => null})
-    confirm_at?: Date;
+    started_at?: Date;
+
+    /** เวลาที่เข้าคิว */
+    @Column({ type: 'timestamp',  nullable: true, default: () => null})
+    queued_at?: Date;
 
     /** ลำดับความสำคัญ 1–9 (น้อย→มาก) */
     @Column({ type: 'tinyint', unsigned: true, default: 5, comment: 'Priority 1-9 (low→high)' })
