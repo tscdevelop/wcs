@@ -1,45 +1,59 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  Grid,
-  InputAdornment,
-} from "@mui/material";
+import { Grid, Card, InputAdornment, FormControl } from "@mui/material";
+import { useNavigate, useLocation } from "react-router-dom";
 import MDBox from "components/MDBox";
 import MDButton from "components/MDButton";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+
+import { StyledMenuItem, StyledSelect } from "common/Global.style";
 import SweetAlertComponent from "../components/sweetAlert";
 import ReusableDataTable from "../components/table_component_v2";
 import WaitingFormDialog from "./usage_form";
 import ScanQtyDialog from "./scan_qty_form";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
+
+import { StoreType } from "common/dataMain";
 import WaitingAPI from "api/WaitingAPI";
 import ExecutionAPI from "api/TaskAPI";
 
 const UsageHistory = () => {
   const [loading, setLoading] = useState(true);
-  const [deleteUsage, setDeleteUsage] = useState(""); 
-  const [alert, setAlert] = useState({ show: false, type: "success", title: "", message: "" });
+  const [deleteUsage, setDeleteUsage] = useState("");
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
+
   const [waitingList, setWaitingList] = useState([]);
   const [filteredWaiting, setFilteredWaiting] = useState([]);
   const [searchWaiting, setSearchWaiting] = useState({ date: "", time: "" });
 
-  // Waiting Form Dialog
+  // Dialog States
+  const location = useLocation();
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [editingUsage, setEditingUsage] = useState(null);
 
-  // Scan Qty Dialog
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Confirm Delete
+  // Delete confirm
   const [confirmAlert, setConfirmAlert] = useState(false);
 
-  // --- Fetch Data ---
+  // Store Type Filter
+  const [storeType, setStoreType] = useState("");
+
+  const navigate = useNavigate();
+
+  /* ---------------------- Fetch All Usage Waiting ---------------------- */
   const fetchDataAll = async () => {
     try {
       const response = await WaitingAPI.WaitingUsageAll();
@@ -57,28 +71,40 @@ const UsageHistory = () => {
     fetchDataAll();
   }, []);
 
-  // --- Filter Logic ---
+  /* ---------------------- Filter Logic ---------------------- */
   useEffect(() => {
-    const filtered = waitingList.filter(
-      (item) =>
-        (item.requested_at || "").includes(searchWaiting.date) &&
-        (item.requested_at || "").includes(searchWaiting.time)
-    );
-    setFilteredWaiting(filtered);
-  }, [waitingList, searchWaiting]);
+    const filtered = waitingList.filter((item) => {
+      const matchesDate = (item.requested_at || "").includes(searchWaiting.date);
+      const matchesTime = (item.requested_at || "").includes(searchWaiting.time);
+      const matchesStore = storeType === "" || item.store_type === storeType;
 
-  // --- Waiting Form Handlers ---
+      return matchesDate && matchesTime && matchesStore;
+    });
+
+    setFilteredWaiting(filtered);
+  }, [waitingList, searchWaiting, storeType]);
+
+  /* ---------------------- Form Handlers ---------------------- */
   const handleAdd = () => {
     setFormMode("create");
     setEditingUsage(null);
     setFormOpen(true);
   };
 
+  // 🔹 เปิดอัตโนมัติถ้ามี state autoCreate
+  useEffect(() => {
+    if (location.state?.autoCreate) {
+      handleAdd();
+    }
+  }, [location.state]);
+
   const fetchDataById = async (order_id) => {
     try {
       const response = await WaitingAPI.getUsageByID(order_id);
+
       if (response.isCompleted) {
         const data = response.data;
+
         setEditingUsage({
           order_id: data.order_id,
           type: data.type ?? "",
@@ -95,6 +121,7 @@ const UsageHistory = () => {
           actual_qty: data.actual_qty ?? 0,
           is_confirm: data.is_confirm ?? false,
         });
+
         setFormOpen(true);
       } else {
         console.error("Failed to fetch usage:", response.message);
@@ -111,23 +138,58 @@ const UsageHistory = () => {
 
   const handleSubmitUser = async (payload) => {
     try {
-      const finalPayload = { ...payload, store_type: "T1M", priority: 5, type: "USAGE", usage_type: "ISSUE" };
+      const finalPayload = {
+        ...payload,
+        store_type: "T1M",
+        priority: 5,
+        type: "USAGE",
+        usage_type: "ISSUE",
+      };
+
       let res;
+
       if (formMode === "edit") {
         res = await WaitingAPI.updateWaiting(editingUsage.order_id, finalPayload);
       } else {
         res = await WaitingAPI.createWaiting(finalPayload);
       }
+
       if (res?.isCompleted) {
-        setAlert({ show: true, type: "success", title: formMode === "edit" ? "Updated" : "Created", message: res.message });
+        setAlert({
+          show: true,
+          type: "success",
+          title: formMode === "edit" ? "Updated" : "Created",
+          message: res.message,
+          onConfirm: () => {
+            // ไปหน้า WaitingExecutionPage หลังจากกด OK
+            if (formMode === "create") {
+              navigate("/order/list");
+            }
+          },
+        });
+
         await fetchDataAll();
         return true;
       }
-      setAlert({ show: true, type: "error", title: "Error", message: res?.message || "Failed" });
+
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: res?.message || "Failed",
+      });
+
       return false;
     } catch (err) {
       console.error(err);
-      setAlert({ show: true, type: "error", title: "Error", message: err?.response?.data?.message || "Unexpected error" });
+
+      setAlert({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: err?.response?.data?.message || "Unexpected error",
+      });
+
       return false;
     }
   };
@@ -135,11 +197,22 @@ const UsageHistory = () => {
   const handleDelete = async () => {
     try {
       const response = await WaitingAPI.deleteWaiting(deleteUsage);
+
       if (response.isCompleted) {
-        setAlert({ show: true, type: "success", title: "Success", message: response.message });
+        setAlert({
+          show: true,
+          type: "success",
+          title: "Success",
+          message: response.message,
+        });
         await fetchDataAll();
       } else {
-        setAlert({ show: true, type: "error", title: "Error", message: response.message });
+        setAlert({
+          show: true,
+          type: "error",
+          title: "Error",
+          message: response.message,
+        });
       }
     } catch (error) {
       console.error(error);
@@ -148,6 +221,7 @@ const UsageHistory = () => {
     }
   };
 
+  /* ---------------------- Table Columns ---------------------- */
   const columns = [
     { field: "requested_at", label: "Date" },
     { field: "requested_by", label: "User" },
@@ -169,61 +243,123 @@ const UsageHistory = () => {
     },
   ];
 
-
-
+  /* ---------------------- UI ---------------------- */
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox p={2}>
-        <MDBox mt={2}>
-          <MDTypography variant="h3">Usage History</MDTypography>
-        </MDBox>
-      </MDBox>
 
       <MDBox mt={5}>
-        <Card>
-          <MDBox mt={3} p={3}>
-            <Grid container spacing={1} mb={1}>
-              <Grid item xs={3}>
-                <MDTypography variant="h6">Date</MDTypography>
-                <MDInput
-                  placeholder="dd/mm/yyyy"
-                  value={searchWaiting.date}
-                  onChange={(e) => setSearchWaiting({ ...searchWaiting, date: e.target.value })}
-                  InputProps={{ endAdornment: (<InputAdornment position="end"><CalendarMonthIcon fontSize="small" /></InputAdornment>) }}
-                />
-              </Grid>
-              <Grid item xs={3}>
-                <MDTypography variant="h6">Time</MDTypography>
-                <MDInput
-                  placeholder="-- : --"
-                  value={searchWaiting.time}
-                  onChange={(e) => setSearchWaiting({ ...searchWaiting, time: e.target.value })}
-                  InputProps={{ endAdornment: (<InputAdornment position="end"><AccessTimeIcon fontSize="small" /></InputAdornment>) }}
-                />
-              </Grid>
-            </Grid>
+        <MDTypography variant="h3" mb={2}>
+          Usage History
+        </MDTypography>
 
-            <MDBox mb={5} display="flex" justifyContent="flex-end">
-              <MDButton color="dark" onClick={handleAdd}>Create</MDButton>
+        {/* Navigate Button */}
+        <MDBox display="flex" justifyContent="flex-end" px={3}>
+          <MDButton variant="contained" color="success" onClick={() => navigate("/order/list")}>
+            Orders
+          </MDButton>
+        </MDBox>
+
+        <MDBox mt={3}>
+          <Card>
+            <MDBox mt={3} p={3}>
+              {/* Filters */}
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} md={3}>
+                  <MDTypography variant="h6">Date</MDTypography>
+                  <MDInput
+                    fullWidth
+                    placeholder="dd/mm/yyyy"
+                    value={searchWaiting.date}
+                    onChange={(e) => setSearchWaiting({ ...searchWaiting, date: e.target.value })}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <CalendarMonthIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ height: "45px" }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={3}>
+                  <MDTypography variant="h6">Time</MDTypography>
+                  <MDInput
+                    fullWidth
+                    placeholder="-- : --"
+                    value={searchWaiting.time}
+                    onChange={(e) => setSearchWaiting({ ...searchWaiting, time: e.target.value })}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <AccessTimeIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ height: "45px" }}
+                  />
+                </Grid>
+
+                {/* Store Type Drop-down */}
+                <Grid item xs={12} md={3}>
+                  <MDTypography variant="h6">Store Type</MDTypography>
+                  <FormControl fullWidth>
+                    <StyledSelect
+                      sx={{ width: "100%", height: "45px" }}
+                      name="storeType"
+                      value={storeType}
+                      onChange={(e) => setStoreType(e.target.value)}
+                      displayEmpty
+                    >
+                      <StyledMenuItem value="">All Store Types</StyledMenuItem>
+
+                      {StoreType.map((s) => (
+                        <StyledMenuItem key={s.value} value={s.value}>
+                          {s.text}
+                        </StyledMenuItem>
+                      ))}
+                    </StyledSelect>
+                  </FormControl>
+                </Grid>
+                {/* Create button */}
+                <Grid item xs={12} md={3} display="flex" alignItems="flex-end" justifyContent="flex-end">
+                  <MDButton color="dark" onClick={handleAdd}>
+                    + New Order
+                  </MDButton>
+                </Grid>
+              </Grid>
+
+              {/* Table */}
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <ReusableDataTable
+                  columns={columns}
+                  rows={filteredWaiting}
+                  idField="order_id"
+                  defaultPageSize={10}
+                  pageSizeOptions={[10, 25, 50]}
+                  showActions={["edit", "delete"]}
+                  onEdit={(row) => (row.status === "WAITING" ? handleEditClick(row) : null)}
+                  onDelete={(row) =>
+                    ["WAITING"].includes(row.status)
+                      ? (() => {
+                          setDeleteUsage(row.order_id);
+                          setConfirmAlert(true);
+                        })()
+                      : null
+                  }
+                  confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
+                  onConfirmSku={(row) => {
+                    setSelectedOrder(row);
+                    setScanDialogOpen(true);
+                  }}
+                />
+              )}
             </MDBox>
-
-            {loading ? (<div>Loading...</div>) : (
-              <ReusableDataTable
-                columns={columns}
-                rows={filteredWaiting}
-                idField="order_id"
-                defaultPageSize={10}
-                pageSizeOptions={[10, 25, 50]}
-                showActions={["edit", "delete"]}
-                onEdit={(row) => row.status === "WAITING" ? handleEditClick(row) : null}
-                onDelete={(row) => ["WAITING","QUEUED","FINISHED","CANCELLED","FAILED"].includes(row.status) ? (() => { setDeleteUsage(row.order_id); setConfirmAlert(true); })() : null }
-                confirmSkuDisabled={(row) => row.status !== "AISLE_OPEN"}
-                onConfirmSku={(row) => { setSelectedOrder(row); setScanDialogOpen(true); }}
-              />
-            )}
-          </MDBox>
-        </Card>
+          </Card>
+        </MDBox>
       </MDBox>
 
       {/* Scan Qty Dialog */}
@@ -234,11 +370,23 @@ const UsageHistory = () => {
         onSubmit={async (order_id, actual_qty) => {
           try {
             const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
+
             if (response.isCompleted) {
-              setAlert({ show: true, type: "success", title: "Confirmed", message: response.message });
+              setAlert({
+                show: true,
+                type: "success",
+                title: "Confirmed",
+                message: response.message,
+              });
+
               await fetchDataAll();
             } else {
-              setAlert({ show: true, type: "error", title: "Error", message: response.message || "Failed" });
+              setAlert({
+                show: true,
+                type: "error",
+                title: "Error",
+                message: response.message || "Failed",
+              });
             }
           } catch (err) {
             console.error(err);
@@ -253,11 +401,11 @@ const UsageHistory = () => {
         open={formOpen}
         mode={formMode}
         initialData={editingUsage}
-         onClose={() => setFormOpen(false)}
+        onClose={() => setFormOpen(false)}
         onSubmit={handleSubmitUser}
       />
 
-      {/* Delete Confirm */}
+      {/* Delete Confirm Popup */}
       {confirmAlert && (
         <SweetAlertComponent
           type="error"
@@ -272,13 +420,16 @@ const UsageHistory = () => {
         />
       )}
 
-      {/* Alert */}
+      {/* General Alert */}
       <SweetAlertComponent
         show={alert.show}
         type={alert.type}
         title={alert.title}
         message={alert.message}
-        onConfirm={() => setAlert({ ...alert, show: false })}
+        onConfirm={() => {
+          alert.onConfirm?.(); // เรียก callback
+          setAlert({ ...alert, show: false });
+        }}
       />
     </DashboardLayout>
   );
