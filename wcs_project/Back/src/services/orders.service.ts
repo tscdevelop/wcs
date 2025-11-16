@@ -201,7 +201,7 @@ export class OrdersService {
 
 
             if (!existing) {
-                return response.setIncomplete(lang.msgNotFound('You cannot set it to waiting because the task has already started.'));
+                return response.setIncomplete('You cannot set it to waiting because the order has already started.');
             }
 
             // ลบ entity โดยตรง

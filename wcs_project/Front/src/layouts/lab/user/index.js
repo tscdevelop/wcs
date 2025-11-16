@@ -31,7 +31,7 @@ const User = () => {
     const [roleOptions, setRoleOptions] = useState([
         // mock ไว้ก่อน ถ้ามี API จริงค่อยไปโหลดมาแทน
         { value: "ADMIN", label: "ADMIN" },
-        { value: "USER", label: "User" },
+        // { value: "USER", label: "User" },
     ]);
 
     const [formOpen, setFormOpen] = useState(false);
@@ -218,7 +218,7 @@ const User = () => {
                 <SweetAlertComponent
                     type="error"
                     title="Confirm Deletion"
-                    message="Are you sure you want to delete this data?"
+                    message="Are you sure you want to delete this user?"
                     show={confirmAlert}
                     showCancel
                     confirmText="OK"

@@ -12,94 +12,42 @@ const HomePage = () => {
   const navigate = useNavigate();
 
   // รายการ Role ที่ไม่ต้องการให้แสดงเมนู
-  const hiddenRoles = ["MANAGEMENT", "MANAGER", "OFFICER_PC", "OFFICER_TL"];
+  const hiddenRoles = ["REQUESTER"];
   const userRole = GlobalVar.getRole(); // ดึง Role ของผู้ใช้
 
-  // รายการเมนู
+  // menu_route
   const menuItems = [
-    // { title: lang.msg("home.factory"), path: "/data/factory" },
-    // { title: lang.msg("home.warehouse"), path: "/data/warehouse" },
-    // { title: lang.msg("home.zone"), path: "/data/zone" },
-    // { title: lang.msg("home.location"), path: "/data/location" },
-    // { title: lang.msg("home.supplier"), path: "/data/supplier" },
-    // { title: lang.msg("home.transportyard"), path: "/data/dockyard" },
-    // { title: lang.msg("home.raw_material_setting"), path: "/data/raw" },
-    // { title: lang.msg("home.fg_setting"), path: "/data/finishedgood" },
-    // { title: lang.msg("home.semi_fg_setting"), path: "/data/semi" },
-    // { title: lang.msg("home.tooling_setting"), path: "/data/tooling" },
-    // { title: lang.msg("home.unit"), path: "/data/unit" },
-    // { title: lang.msg("home.criterion"), path: "/data/criterion" },
-    // { title: lang.msg("home.raw_info"), path: "/data/rawinfo" },
-    // { title: lang.msg("home.fg_info"), path: "/data/fginfo" },
-    // { title: lang.msg("home.semi_fg_info"), path: "/data/semifg" },
-    // { title: lang.msg("home.tooling_info"), path: "/data/toolinginfo" },
-    // { title: lang.msg("home.role"), path: "/data/role" },
+    { title: "MRS", path: "/store/tm-store" },
+    { title: "WRS", path: "/store/t-store" },
+    { title: "Orders", path: "/order/list" },
+    { title: "Pick", path: "/transactions/usage" },
+    { title: "Put", path: "/transactions/receipt" },
+    { title: "transfer", path: "/transactions/transfer" },
+    { title: "Order History", path: "/transactions/order" },
+    { title: "Emergency Alert(s)", path: "/emergency"},
   ];
 
-  const Officer_Table = [
-    { title: "ติดตามการขนส่ง", path: "/track" },
-    { title: "รายการรับ Raw Material", path: "/pickupwithdraw" },
-    { title: "ยืนยันการเบิก ส่งสินค้า FG", path: "/confirm" },
-    { title: "ยืนยันการเบิก ส่งสินค้า Semi FG", path: "/confirmsemi" },
-  ];
-  const Officer_PC = [
-    { title: "แจ้งเตือนอายุการเก็บรักษา (Shelf Life)", path: "/noti/notishelf" },
-    { title: "แจ้งเตือนสินค้าต่ำกว่าเกณฑ์ (Minimum Stock)", path: "/noti/notimini" },
-    { title: "แจ้งเตือนเครื่องมือ-อุปกรณ์", path: "/noti/notitooling" },
-    { title: "ติดตามการขนส่ง", path: "/track" },
-    { title: "BOM", path: "/bom" },
-    { title: "รายการรับ Raw Material", path: "/pickupwithdraw" },
-    { title: "Inbound Raw Material", path: "/inbound/inrawmaterial" },
-    { title: "Inbound FG", path: "/inbound/inboundfg" },
-    { title: "Inbound Tooling", path: "/inbound/inboundtooling" },
-    { title: "Inbound Semi FG", path: "/inbound/inbsemifg" },
-    { title: "outbound Raw Material", path: "/outbound/outboundraw" },
-    { title: "outbound FG", path: "/outbound/outboundfg" },
-    { title: "outbound Tooling", path: "/outbound/outboundtooling" },
-    { title: "outbound Semi FG", path: "/outbound/outboundsemifg" },
-
-  ];
-
-  const Management = [
-    { title: "Inventory Raw Material", path: "/inventory/invraw" },
-  ];
-  const Manager = [
-    { title: "แจ้งเตือนอายุการเก็บรักษา (Shelf Life)", path: "/noti/notishelf"},
-    { title: "แจ้งเตือนสินค้าต่ำกว่าเกณฑ์ (Minimum Stock)", path: "/noti/notimini"},
-    { title: "แจ้งเตือนเครื่องมือ-อุปกรณ์", path: "/noti/notitooling"},
-    { title: "แจ้งเตือนอนุมัติคำร้อง", path: "/noti/notiapprove"},
-    { title: "ติดตามการขนส่ง", path: "/track"},
-    { title: "BOM", path: "/bom" },
-    { title: "Inbound Transaction Raw Material", path: "/inbtransaction/inbraw"},
-    { title: "Inbound Transaction Semi FG", path: "/inbtransaction/inbsemi"},
-    { title: "Inbound Transaction FG", path: "/inbtransaction/inbfg"},
-    { title: "Inbound Transaction Tooling", path: "/inbtransaction/inbtooling"},
-    { title: "Outbound Transaction เบิก Raw Material", path: "/outbtransaction/outbraw"},
-    { title: "Outbound Transaction เบิก Semi FG", path: "/outbtransaction/outbsemi"},
-    { title: "Outbound Transaction เบิก FG", path: "/outbtransaction/outbfg"},
-    { title: "Outbound Transaction เบิก-คืน Tooling", path: "/outbtransaction/outooling"},
-    { title: "Inventory Raw Material", path: "/inventory/invraw"},
-    { title: "Inventory Semi FG", path: "/inventory/invsemifg"},
-    { title: "Inventory FG", path: "/inventory/invfg"},
-    { title: "Inventory Tooling", path: "/inventory/invtooling"},
+  //menu_route
+  const Requester = [
+    { title: "MRS", path: "/store/tm-store" },
+    { title: "WRS", path: "/store/t-store" },
+    { title: "Orders", path: "/order/list" },
+    { title: "Pick", path: "/transactions/usage" },
+    { title: "Put", path: "/transactions/receipt" },
+    { title: "transfer", path: "/transactions/transfer" },
+    { title: "Order History", path: "/transactions/order" },
+    { title: "Emergency Alert(s)", path: "/emergency"}
   ];
 
 
 // 🧠 Logic เพื่อเลือกเมนูตาม Role
 let roleMenu = [];
 
-if (userRole === "OFFICER_TL") {
-  roleMenu = Officer_Table;
-} else if (userRole === "OFFICER_PC") {
-  roleMenu = Officer_PC;
-} else if (userRole === "MANAGEMENT") {
-  roleMenu = Management;
-} else if (userRole === "MANAGER") {
-  roleMenu = Manager;
+if (userRole === "REQUESTER") {
+  roleMenu = Requester;
 } else if (!hiddenRoles.includes(userRole)) {
   roleMenu = menuItems;
 }
-
 
 
   // 🔁 แทนที่ส่วน return เก่า ด้วยโค้ดนี้

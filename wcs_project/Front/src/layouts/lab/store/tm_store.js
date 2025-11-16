@@ -14,10 +14,10 @@ import SearchIcon from "@mui/icons-material/Search";
 // import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AisleAPI from "api/AisleAPI";
 import MrsAPI from "api/MrsAPI";
-
-
+import { useNavigate } from "react-router-dom";
 
 const T1MStore = () => {
+    const navigate = useNavigate();
     // eslint-disable-next-line no-unused-vars
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
@@ -45,9 +45,6 @@ const T1MStore = () => {
         stock_item: "",
         mrs_status: "",
     });
-
-
-
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -225,6 +222,17 @@ const T1MStore = () => {
         <DashboardLayout>
             <DashboardNavbar />
             <MDBox mt={5}>
+                <MDTypography variant="h3" mb={2}>
+                    T1M Store
+                </MDTypography>
+                {/* Navigate Button */}
+                <MDBox display="flex" justifyContent="flex-end" px={3}>
+                    <MDButton variant="contained" color="success" onClick={() => navigate("/order/list")}>
+                    Orders
+                    </MDButton>
+                </MDBox>
+
+            <MDBox mt={3}>
                 <Grid container spacing={2} >
                     {/* Card Mannul control */}
                     <Grid item xs={12} >
@@ -546,7 +554,7 @@ const T1MStore = () => {
                     </Grid>
                 </Grid>
             </MDBox>
-
+        </MDBox>
 
         </DashboardLayout>
     );

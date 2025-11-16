@@ -153,10 +153,21 @@ export const Priority = [
 
 
 export const Aisle =[ 
-  {value: "Gate_01" , text: "Gate 01"},
-  {value: "Gate_02" , text: "Gate 02"}
+  {value: "Gate_01" , text: "A"},
+  {value: "Gate_02" , text: "B"}
 ];
 export const Destination =[ 
   {value: "open" , text: "Open"},
   {value: "close" , text: "Close"}
+];
+
+export const TransactionType =[ 
+  {value: "USAGE" , text: "Usage"},
+  {value: "RECEIPT" , text: "Reciept"},
+  {value: "TRANSFER" , text: "Transfer"}
+];
+
+export const StoreType =[ 
+  {value: "T1M" , text: "MRS"},
+  {value: "T1" , text: "WRS"},
 ];
