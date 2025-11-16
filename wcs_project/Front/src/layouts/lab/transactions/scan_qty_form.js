@@ -11,6 +11,7 @@ import {
   Alert,
 } from "@mui/material";
 import PropTypes from "prop-types";
+import SweetAlertComponent from "../components/sweetAlert"; // import SweetAlertComponent
 
 export default function ScanQtyDialog({
   open,
@@ -23,23 +24,46 @@ export default function ScanQtyDialog({
   const [scanItem, setScanItem] = useState("");
   const [actualQty, setActualQty] = useState(order?.actual_qty || 0);
   const [snackbar, setSnackbar] = useState({ show: false, message: "", type: "success" });
+  const [confirmAlert, setConfirmAlert] = useState(false);
 
   useEffect(() => {
     if (open) {
       setScanItem("");
       setActualQty(order?.actual_qty || 0);
+      setSnackbar({ show: false, message: "", type: "success" });
+      setConfirmAlert(false);
     }
   }, [open, order]);
 
   const handleScanEnter = (e) => {
     if (e.key === "Enter") {
       if (scanItem !== order?.stock_item) {
-        setSnackbar({ show: true, message: `Stock Item ${scanItem} not found!`, type: "error" });
-      } else {
-        setActualQty((prev) => prev + 1);
         setSnackbar({
           show: true,
-          message: `Scanned ${scanItem}, actual_qty: ${actualQty + 1}`,
+          message: `Stock Item ${scanItem} not found!`,
+          type: "error",
+        });
+      } else if (actualQty + 1 > (order?.plan_qty || Infinity)) {
+        setSnackbar({
+          show: true,
+          message: `Cannot scan more than quantity to be handled (${order.plan_qty})`,
+          type: "error",
+        });
+      } else {
+        const newQty = actualQty + 1;
+        setActualQty(newQty);
+        setSnackbar({
+          show: true,
+          message: (
+            <div>
+              <strong>Stock Item ID:</strong> {order.stock_item} <br />
+              <strong>Stock Item Name:</strong> {order.item_name} <br />
+              <strong>Stock Item Description:</strong> {order.item_desc} <br />
+              <strong>Order ID:</strong> {order.order_id} <br />
+              <strong>Transaction Type:</strong> {order.type} <br />
+              <strong>Scanned Quantity:</strong> {newQty} / {order.plan_qty}
+            </div>
+          ),
           type: "success",
         });
       }
@@ -47,33 +71,41 @@ export default function ScanQtyDialog({
     }
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (actualQty === 0) {
       setSnackbar({ show: true, message: "Please scan at least 1 item", type: "error" });
       return;
     }
-    if (window.confirm(`Are you sure to submit ${actualQty} items for Order ${order.order_id}?`)) {
-      await onSubmit(order.order_id, actualQty);
-      onClose?.();
-    }
+    setConfirmAlert(true);
   };
 
   const handleDialogClose = (event, reason) => {
     if ((disableBackdropClick && reason === "backdropClick") ||
-        (disableEscapeKeyDown && reason === "escapeKeyDown")) {
+        (disableEscapeKeyDown && reason === "escapeKeyDown")) return;
+
+    if (snackbar.show) {
+      setSnackbar({ ...snackbar, show: false });
       return;
     }
-    onClose?.(event, reason);
+
+    if (confirmAlert) {
+      setConfirmAlert(false);
+      return;
+    }
+
+    onClose?.();
+  };
+
+  const handleConfirmSubmit = async () => {
+    await onSubmit(order.order_id, actualQty);
+    setConfirmAlert(false);
+    onClose?.();
   };
 
   return (
     <>
-      <Dialog
-        open={open}
-        onClose={handleDialogClose}
-        fullWidth
-        maxWidth="sm"
-      >
+      {/* Main Dialog */}
+      <Dialog open={open} onClose={handleDialogClose} fullWidth maxWidth="sm">
         <DialogTitle>Scan Item for Order {order?.order_id}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
@@ -89,7 +121,7 @@ export default function ScanQtyDialog({
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Actual Quantity"
+                label="Scanned Quantity"
                 value={actualQty}
                 type="number"
                 fullWidth
@@ -99,37 +131,46 @@ export default function ScanQtyDialog({
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => onClose?.()}>Cancel</Button>
+          <Button onClick={onClose}>Cancel</Button>
           <Button
-  onClick={handleConfirm}
-  variant="contained"
-  color="primary"
-  sx={{ color: "#ffffff" }} // กำหนดสีตัวอักษรเป็นขาว
->
+            onClick={handleConfirm}
+            variant="contained"
+            color="primary"
+            sx={{ color: "#ffffff" }}
+          >
             Confirm
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar Pop-up */}
+      {/* SweetAlert Confirm Dialog */}
+      {confirmAlert && (
+        <SweetAlertComponent
+          show={confirmAlert}
+          type="warning"
+          title="Confirm Submission"
+          message={`Are you sure to submit ${actualQty} items for Order ${order?.order_id}?`}
+          showCancel
+          confirmText="OK"
+          cancelText="Cancel"
+          onConfirm={handleConfirmSubmit}
+          onCancel={() => setConfirmAlert(false)}
+        />
+      )}
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.show}
-        autoHideDuration={2000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, show: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.type} variant="filled">
+        <Alert
+          severity={snackbar.type}
+          onClose={() => setSnackbar({ ...snackbar, show: false })}
+          variant="filled"
+        >
           {snackbar.message}
-          {snackbar.type === "success" && order && (
-            <div>
-              <strong>Stock Item ID:</strong> {order.stock_item} <br />
-              <strong>Name:</strong> {order.item_name} <br />
-              <strong>Description:</strong> {order.item_desc} <br />
-              <strong>Order ID:</strong> {order.order_id} <br />
-              <strong>Transaction Type:</strong> {order.type} <br />
-              <strong>Scanned Qty:</strong> 1
-            </div>
-          )}
         </Alert>
       </Snackbar>
     </>
