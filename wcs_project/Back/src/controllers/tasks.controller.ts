@@ -158,7 +158,7 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
         }
     };
 
-        const handleOrderItemWRS = async (req: Request, res: Response) => {
+    const handleOrderItemWRS = async (req: Request, res: Response) => {
         const operation = 'TasksController.handleOrderItemWRS';
 
         const reqUsername = RequestUtils.getUsernameToken(req, res);
