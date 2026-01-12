@@ -765,7 +765,10 @@ if (counter) {
         {
             status: "EMPTY",
              execution_group_id: () => 'NULL',   // ⭐ FIX
-        current_order_id: () => 'NULL',     // ⭐ FIX
+            current_order_id: () => 'NULL',     // ⭐ FIX
+            light_color_hex: () => 'NULL',
+            current_wrs_id: () => 'NULL',
+            light_mode: "OFF",
             last_event_at: new Date()
         }
     );
@@ -785,7 +788,7 @@ if (wrs) {
             wrs_status: "IDLE",
             is_available: true,
             current_order_id: () => 'NULL',
-        target_counter_id: () => 'NULL',
+            target_counter_id: () => 'NULL',
             last_heartbeat: new Date()
         }
     );
@@ -844,7 +847,7 @@ async callNextQueueT1(
         where: {
             execution_group_id,
             store_type: "T1",
-            status: StatusOrders.WAITING
+            status: StatusOrders.PENDING
         },
         order: {
             priority: 'DESC',
