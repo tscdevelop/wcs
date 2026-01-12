@@ -27,12 +27,6 @@ const User = () => {
         title: "",
         message: "",
     });
-    // eslint-disable-next-line no-unused-vars
-    const [roleOptions, setRoleOptions] = useState([
-        // mock ไว้ก่อน ถ้ามี API จริงค่อยไปโหลดมาแทน
-        { value: "ADMIN", label: "ADMIN" },
-        // { value: "USER", label: "User" },
-    ]);
 
     const [formOpen, setFormOpen] = useState(false);
     const [formMode, setFormMode] = useState("create"); // "create" | "edit"
@@ -77,6 +71,7 @@ const User = () => {
                     username: data.username ?? "",
                     user_email: data.user_email ?? "",
                     role_code: data.role_code ?? "",
+                    mc_code: data.mc_code ?? ""
                 });
                 setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
             } else {
@@ -95,12 +90,24 @@ const User = () => {
 
     const handleSubmitUser = async (payload) => {
         try {
+            // ✅ normalize mc_code ให้เป็น array เสมอ
+            const normalizedPayload = {
+                ...payload,
+                mc_code: Array.isArray(payload.mc_code)
+                    ? payload.mc_code
+                    : payload.mc_code
+                        ? [payload.mc_code]
+                        : [], // กรณีไม่เลือกอะไร
+            };
+
             let res;
             if (formMode === "edit") {
-                // สมมุติว่ามี user_id ใน row ถ้าไม่มี ใช้ username เป็น key
-                res = await UserApi.updateUser(editingUser.user_id, payload);
+                res = await UserApi.updateUser(
+                    editingUser.user_id,
+                    normalizedPayload
+                );
             } else {
-                res = await UserApi.createUser(payload);
+                res = await UserApi.createUser(normalizedPayload);
             }
             if (res?.isCompleted) {
                 setAlert({
@@ -121,10 +128,16 @@ const User = () => {
                 return false;
             }
         } catch (err) {
-
+            setAlert({
+                show: true,
+                type: "error",
+                title: "Error",
+                message: "Unexpected error",
+            });
             return false;
         }
     };
+
 
     const handleDelete = async () => {
         try {
@@ -157,10 +170,8 @@ const User = () => {
         { field: "fullname", label: "Full Name" },
         { field: "user_email", label: "Email" },
         { field: "role_code", label: "Role" },
+        { field: "mc_code", label: "Maintenance Contract"}
     ];
-
-
-
 
 
     return (
@@ -209,7 +220,6 @@ const User = () => {
                 open={formOpen}
                 mode={formMode}
                 initialData={editingUser}
-                roleOptions={roleOptions}
                 onClose={() => setFormOpen(false)}
                 onSubmit={handleSubmitUser}
             />

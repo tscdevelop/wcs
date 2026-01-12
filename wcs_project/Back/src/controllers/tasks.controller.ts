@@ -3,47 +3,48 @@ import { Request, response, Response } from 'express';
 import ResponseUtils, { HttpStatus } from '../utils/ResponseUtils';
 import RequestUtils from '../utils/RequestUtils';
 import * as lang from '../utils/LangHelper';
-import { OrchestratedTaskService } from '../services/tasks.service';
+import { CreateTaskBatchDto, OrchestratedTaskService } from '../services/tasks.service';
 import { ApiResponse } from '../models/api-response.model';
-import { CreateTaskDto } from '../dtos/tasks.dto';
 
 export function buildTasksController(orchestrator: OrchestratedTaskService) {
     const create = async (req: Request, res: Response) => {
         const operation = 'TasksController.create';
         const reqUsername = RequestUtils.getUsernameToken(req, res);
-        if (!reqUsername) return ResponseUtils.handleBadRequest(res, 'Username required');
+        if (!reqUsername)
+            return ResponseUtils.handleBadRequest(res, 'Username required');
 
         try {
-            const { order_id } = req.body as CreateTaskDto;
-            if (!order_id) return ResponseUtils.handleBadRequest(res, 'order_id is required');
+            const body = req.body as CreateTaskBatchDto;
 
-            const response = await orchestrator.createAndOpen(order_id, reqUsername);
-            const status = response.isCompleted ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+            // ตรวจสอบ body
+            if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+                return ResponseUtils.handleBadRequest(res, 'items array is required');
+            }
+
+            // เรียก batch service
+            const response = await orchestrator.createAndOpenBatch(body, reqUsername);
+
+            const status = response.isCompleted
+                ? HttpStatus.CREATED
+                : HttpStatus.BAD_REQUEST;
+
             return ResponseUtils.handleCustomResponse(res, response, status);
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error);
-            return ResponseUtils.handleErrorCreate(res, operation, error.message, 'item.t1m_task', true, reqUsername);
+
+            return ResponseUtils.handleErrorCreate(
+                res,
+                operation,
+                error.message,
+                'item.execution',
+                true,
+                reqUsername
+            );
         }
     };
 
-
-    const getAll = async (req: Request, res: Response) => {
-        const operation = 'TasksController.getAll';
-
-        const reqUsername = RequestUtils.getUsernameToken(req, res);
-        if (!reqUsername) return;
-
-        try {
-            const response = await orchestrator.getAll();
-            return ResponseUtils.handleResponse(res, response);
-        } catch (error: any) {
-            console.error(`Error during ${operation}:`, error);
-            return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.order', true, reqUsername);
-        }
-    };
-
-    const changeToWaiting = async (req: Request, res: Response) => {
-        const operation = 'TasksController.changeToWaiting';
+    const changeToWaitingBatch = async (req: Request, res: Response) => {
+        const operation = 'TasksController.changeToWaitingBatch';
 
         // ดึง username ของผู้เปลี่ยน status
         const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -51,19 +52,26 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
             return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
         }
 
-        const order_id = req.params.order_id;
-        if (!order_id) {
-            return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
+        // ตรวจสอบ body
+        const dto = req.body;
+
+        if (!dto || !Array.isArray(dto.items) || dto.items.length === 0) {
+            return ResponseUtils.handleBadRequest(
+                res,
+                "Invalid request: items[] is required"
+            );
         }
 
         try {
-            // เรียก service changeToWaiting
-            const response = await orchestrator.changeToWaiting(order_id, reqUsername);
+            // เรียก service changeToWaitingBatch
+            const response = await orchestrator.changeToWaitingBatch(dto, reqUsername);
 
             // ส่งผลลัพธ์กลับ client
             return ResponseUtils.handleResponse(res, response);
+
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error);
+
             return ResponseUtils.handleErrorDelete(
                 res,
                 operation,
@@ -75,8 +83,48 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
         }
     };
 
-    const handleOrderItem = async (req: Request, res: Response) => {
-        const operation = 'TasksController.handleOrderItem';
+    const changeToPendingBatch = async (req: Request, res: Response) => {
+        const operation = 'TasksController.changeToPendingBatch';
+
+        // ดึง username ของผู้เปลี่ยน status
+        const reqUsername = RequestUtils.getUsernameToken(req, res);
+        if (!reqUsername) {
+            return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+        }
+
+        // ตรวจสอบ body
+        const dto = req.body;
+
+        if (!dto || !Array.isArray(dto.items) || dto.items.length === 0) {
+            return ResponseUtils.handleBadRequest(
+                res,
+                "Invalid request: items[] is required"
+            );
+        }
+
+        try {
+            // เรียก service changeToPendingBatch
+            const response = await orchestrator.changeToPendingBatch(dto, reqUsername);
+
+            // ส่งผลลัพธ์กลับ client
+            return ResponseUtils.handleResponse(res, response);
+
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error);
+
+            return ResponseUtils.handleErrorDelete(
+                res,
+                operation,
+                error.message,
+                'change To Waiting',
+                true,
+                reqUsername
+            );
+        }
+    };
+
+    const handleOrderItemMrs = async (req: Request, res: Response) => {
+        const operation = 'TasksController.handleOrderItemMrs';
 
         const reqUsername = RequestUtils.getUsernameToken(req, res);
         if (!reqUsername) {
@@ -95,7 +143,7 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
         }
 
         try {
-            const response = await orchestrator.handleOrderItem(order_id, actual_qty, reqUsername);
+            const response = await orchestrator.handleOrderItemMrs(order_id, actual_qty, reqUsername);
             return ResponseUtils.handleResponse(res, response);
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error);
@@ -103,14 +151,92 @@ export function buildTasksController(orchestrator: OrchestratedTaskService) {
                 res,
                 operation,
                 error.message,
-                'change To Waiting',
+                'handle order items',
                 true,
                 reqUsername
             );
         }
     };
 
+        const handleOrderItemWRS = async (req: Request, res: Response) => {
+        const operation = 'TasksController.handleOrderItemWRS';
+
+        const reqUsername = RequestUtils.getUsernameToken(req, res);
+        if (!reqUsername) {
+            return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+        }
+
+        const order_id = req.params.order_id;
+        if (!order_id) {
+            return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
+        }
+
+        // แปลง actual_qty เป็น number
+        const actual_qty = Number(req.params.actual_qty);
+        if (isNaN(actual_qty) || actual_qty < 0) {
+            return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
+        }
+
+        try {
+            const response = await orchestrator.handleOrderItemWRS(order_id, actual_qty, reqUsername);
+            return ResponseUtils.handleResponse(res, response);
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error);
+            return ResponseUtils.handleErrorDelete(
+                res,
+                operation,
+                error.message,
+                'handle order items',
+                true,
+                reqUsername
+            );
+        }
+    };
+
+    const getAll = async (req: Request, res: Response) => {
+        const operation = 'TasksController.getAll';
+
+        const reqUsername = RequestUtils.getUsernameToken(req, res);
+        if (!reqUsername) return;
+
+        try {
+            const response = await orchestrator.getAll();
+            return ResponseUtils.handleResponse(res, response);
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error);
+            return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.execution', true, reqUsername);
+        }
+    };
+
+    // const getUsageAllByMcCode = async (req: Request, res: Response) => {
+    //     const operation = 'TasksController.getUsageAllByMcCode';
+
+    //     const reqUsername = RequestUtils.getUsernameToken(req, res);
+    //     if (!reqUsername) return;
+
+    //     try {
+    //         // ✅ รับ mc_code จาก query (?mc_code=MC001)
+    //         const { store_type, mc_code } = req.query;
+
+    //         const response = await orchestrator.getUsageAllByMcCode(
+    //             store_type ? String(store_type) : undefined,
+    //             mc_code ? String(mc_code) : undefined
+    //         );
+
+    //         return ResponseUtils.handleResponse(res, response);
+    //     } catch (error: any) {
+    //         console.error(`Error during ${operation}:`, error);
+    //         return ResponseUtils.handleErrorGet(
+    //         res,
+    //         operation,
+    //         error.message,
+    //         'item.execution',
+    //         true,
+    //         reqUsername
+    //         );
+    //     }
+    // };
 
 
-    return { create, changeToWaiting, handleOrderItem , getAll};
+    return { create, changeToWaitingBatch , changeToPendingBatch , handleOrderItemMrs , handleOrderItemWRS, getAll};
 }

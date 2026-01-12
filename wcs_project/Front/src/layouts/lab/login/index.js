@@ -12,6 +12,8 @@ import { GlobalVar } from "../../../common/GlobalVar";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
+import { StyledMenuItem, StyledSelect } from "common/Global.style";
+import { StoreType } from "common/dataMain";
 
 function LabLogin() {
   const [username, setUsername] = useState("admin");
@@ -19,6 +21,9 @@ function LabLogin() {
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [storeType, setStoreType] = useState("WCS"); // ✅ default WCS
+
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -32,18 +37,21 @@ function LabLogin() {
         const userID = data.user_id;
         const userName = data.username;
         const role = data.role_code;
+        const McCodes = data.mc_codes;
 
         if (token && userID && userName) {
           GlobalVar.setToken(token);
           GlobalVar.setUserId(userID);
           GlobalVar.setRole(role);
           GlobalVar.setUsername(userName);
-          // เก็บ remember me ตามต้องการ (เช่น localStorage) ถ้าจะใช้
-          // if (remember) localStorage.setItem("remember", "1");
+          GlobalVar.setMcCodes(McCodes);
+          GlobalVar.setStoreType(storeType || "WCS");
+
           navigate("/home");
         } else {
           setErrorMessage("ล็อกอินไม่สำเร็จ: ข้อมูลไม่ครบถ้วน");
         }
+        //console.log("UserID:", data.user_id);
       } else {
         setErrorMessage("ล็อกอินไม่สำเร็จ");
       }
@@ -98,6 +106,32 @@ function LabLogin() {
                 ),
               }}
             />
+          </Grid>
+
+          {/* Store Type */}
+          <Grid item>
+            <StyledSelect
+              fullWidth
+              value={storeType}
+              onChange={(e) => setStoreType(e.target.value)}
+              displayEmpty
+              sx={{
+                borderRadius: "12px",
+                backgroundColor: "#fff",
+                height: 46,
+              }}
+            >
+              {/* ถ้าไม่เลือกอะไร = WCS */}
+              <StyledMenuItem value="WCS">
+                WCS (All Store)
+              </StyledMenuItem>
+
+              {StoreType.filter(t => t.value !== "WCS").map((t) => (
+                <StyledMenuItem key={t.value} value={t.value}>
+                  {t.text}
+                </StyledMenuItem>
+              ))}
+            </StyledSelect>
           </Grid>
 
           {/* Remember me */}

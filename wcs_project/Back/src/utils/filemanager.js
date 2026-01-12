@@ -204,68 +204,69 @@ const downloadFile = (uploadDirKey, filename, req, res, subfolder = '') => {
  * @returns {Promise<object>} - Updated data with file names and URLs
  */
 
-const handleFileUploads = async (files, subfolder, uploadDirKey, by, fileMapping) => {
-  if (!Array.isArray(files) || files.length === 0) {
-    console.warn('No files provided or invalid files structure.');
-    return {};
-  }
-
-  console.log('Files received:', files);
-  console.log('File mapping:', fileMapping);
-
-  const uploadDir = config.PathFile[uploadDirKey];
-  const fullUploadDir = path.join(__dirname, uploadDir, subfolder);
-  ensureDirExists(fullUploadDir);
-
-  const updateData = {}; // เก็บผลลัพธ์การอัปโหลด
-
-  for (const file of files) {
-    try {
-      const filename = await uploadFile(file, uploadDirKey, subfolder);
-      const relativePath = path
-        .join('/uploads', path.basename(uploadDir), subfolder, filename)
-        .replace(/\\/g, '/');
-
-      updateData[fileMapping.files.filename] = filename;
-      updateData[fileMapping.files.url] = relativePath;
-      updateData[fileMapping.files.by] = by;
-
-      console.log(`Uploaded file: ${filename}, Path: ${relativePath}`);
-    } catch (error) {
-      console.error(`Error uploading file: ${file.name}`, error);
-    }
-  }
-
-  return updateData;
-};
-
-//ของเดิม
+//ใส่ได้หลายไฟล์หรือไฟล์เดียว แต่จะเป็นรูปแบบ array 
 // const handleFileUploads = async (files, subfolder, uploadDirKey, by, fileMapping) => {
-//   if (!files) return {};
+//   if (!Array.isArray(files) || files.length === 0) {
+//     console.warn('No files provided or invalid files structure.');
+//     return {};
+//   }
+
+//   console.log('Files received:', files);
+//   console.log('File mapping:', fileMapping);
 
 //   const uploadDir = config.PathFile[uploadDirKey];
-//   console.log("uploadDir : ",uploadDir);
 //   const fullUploadDir = path.join(__dirname, uploadDir, subfolder);
-//   console.log("fullUploadDir : ",fullUploadDir);
 //   ensureDirExists(fullUploadDir);
 
-//   const updateData = {};
-//   console.log("fileMapping : ",fileMapping);
-//   for (const [key, value] of Object.entries(fileMapping)) {
-//     console.log("files[key] : ",files[key]);
-//     if (files[key]) {
-//       const file = files[key];
+//   const updateData = {}; // เก็บผลลัพธ์การอัปโหลด
+
+//   for (const file of files) {
+//     try {
 //       const filename = await uploadFile(file, uploadDirKey, subfolder);
-//       //const relativePath = path.join(uploadDirKey.toLowerCase(), subfolder, filename);
-//       const relativePath = path.join('/uploads', path.basename(uploadDir), subfolder, filename).replace(/\\/g, '/');
-//       updateData[value.filename] = filename;
-//       updateData[value.url] = relativePath;
-//       updateData[value.by] = by;
+//       const relativePath = path
+//         .join('/uploads', path.basename(uploadDir), subfolder, filename)
+//         .replace(/\\/g, '/');
+
+//       updateData[fileMapping.files.filename] = filename;
+//       updateData[fileMapping.files.url] = relativePath;
+//       updateData[fileMapping.files.by] = by;
+
+//       console.log(`Uploaded file: ${filename}, Path: ${relativePath}`);
+//     } catch (error) {
+//       console.error(`Error uploading file: ${file.name}`, error);
 //     }
 //   }
 
 //   return updateData;
 // };
+
+//ของเดิม ใส่ได้ไฟล์เดียว เท่านั้น
+const handleFileUploads = async (files, subfolder, uploadDirKey, by, fileMapping) => {
+  if (!files) return {};
+
+  const uploadDir = config.PathFile[uploadDirKey];
+  console.log("uploadDir : ",uploadDir);
+  const fullUploadDir = path.join(__dirname, uploadDir, subfolder);
+  console.log("fullUploadDir : ",fullUploadDir);
+  ensureDirExists(fullUploadDir);
+
+  const updateData = {};
+  console.log("fileMapping : ",fileMapping);
+  for (const [key, value] of Object.entries(fileMapping)) {
+    console.log("files[key] : ",files[key]);
+    if (files[key]) {
+      const file = files[key];
+      const filename = await uploadFile(file, uploadDirKey, subfolder);
+      //const relativePath = path.join(uploadDirKey.toLowerCase(), subfolder, filename);
+      const relativePath = path.join('/uploads', path.basename(uploadDir), subfolder, filename).replace(/\\/g, '/');
+      updateData[value.filename] = filename;
+      updateData[value.url] = relativePath;
+      updateData[value.by] = by;
+    }
+  }
+
+  return updateData;
+};
 
 module.exports = {
   UploadDirKey,

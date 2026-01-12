@@ -32,10 +32,6 @@ export class MRS {
     @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Latest fault message' })
     fault_msg?: string;
 
-    /** ปุ่มฉุกเฉินถูกกดอยู่หรือไม่ */
-    @Column({ type: 'tinyint', width: 1, default: 0, comment: 'Emergency stop active (0/1)' })
-    e_stop!: boolean;
-
     // /** สถานะการสื่อสารกับอุปกรณ์ */
     // @Column({ type: 'enum', default: 'ONLINE', comment: 'Connectivity status' })
     // connectivity!: Connectivity;
@@ -44,7 +40,7 @@ export class MRS {
     // @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Firmware version string' })
     // firmware_version?: string;
 
-    /** งานที่กำลังทำอยู่ (เชื่อมเชิงตรรกะกับ task_mrs) */
+    /** งานที่กำลังทำอยู่ (เชื่อมเชิงตรรกะกับ order) */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Current running task id (logical FK)' })
     current_order_id?: string;
 
@@ -68,10 +64,6 @@ export class MRS {
     @Column({ type: 'tinyint', unsigned: true, nullable: true, comment: 'Battery level 0-100%' })
     battery_level?: number;
 
-     /** พร้อมรับงานหรือไม่ (ใช้วางคิว) */
-    @Column({ type: 'tinyint', width: 1, default: 1, comment: 'Available for assignment (0/1)' })
-    is_available!: boolean;
-
     @Column({ type: 'timestamp',  default: () => "CURRENT_TIMESTAMP" })
     last_update: Date;
 
@@ -86,15 +78,48 @@ export class MRS {
     @Column({ type: 'tinyint',  unsigned: true, nullable: false })
     control_id: number;                 //FK m_control
 
-      // ⭐ Session fields
-    @Column({ type: 'tinyint', width: 1, default: 0, comment: 'Aisle is currently open in a session (0/1)' })
-    is_aisle_open!: boolean;
-
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Aisle id for the open session' })
     open_session_aisle_id?: string | null;
 
     @Column({ type: 'timestamp', nullable: true, comment: 'Session idle timeout' })
     open_session_expires_at?: Date | null;
+
+    //Aisle is currently open in a session
+    @Column({
+      type: 'tinyint',
+      width: 1,
+      default: 0,
+      transformer: {
+        to: (value: boolean) => value ? 1 : 0,
+        from: (value: any) => value === 1 || value === '1'
+      }
+    })
+    is_aisle_open!: boolean;
+
+    /** ปุ่มฉุกเฉินถูกกดอยู่หรือไม่ */
+    @Column({
+      type: 'tinyint',
+      width: 1,
+      default: 0,
+      transformer: {
+        to: (value: boolean) => value ? 1 : 0,
+        from: (value: any) => value === 1 || value === '1'
+      }
+    })
+    e_stop!: boolean;
+
+    /** พร้อมรับงานหรือไม่ (ใช้วางคิว) */
+    @Column({
+      type: 'tinyint',
+      width: 1,
+      default: 1,
+      transformer: {
+        to: (value: boolean) => value ? 1 : 0,
+        from: (value: any) => value === 1 || value === '1'
+      }
+    })
+    is_available!: boolean;
+
 }
 
 

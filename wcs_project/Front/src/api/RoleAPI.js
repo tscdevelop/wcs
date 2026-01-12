@@ -186,7 +186,7 @@ class RoleAPI {
       const role_code = GlobalVar.getRole();  // ดึง role_code จาก GlobalVar
 
       if (!role_code) {
-        console.error("Role code not found");
+        //console.error("Role code not found");
         return new ApiResponse({
           isCompleted: false,
           isError: true,

@@ -1252,7 +1252,7 @@ function Sidenav({ color, routes, ...rest }) {
  
   // ฟังก์ชันสำหรับคลิกเมนูเพื่อส่ง state และรีเซ็ตการแจ้งเตือน
   const handleMenuClick = (route, key, menu_id) => {
-    console.log("handleMenuClick -> menu_id :", menu_id, "rout::", route);
+    //console.log("handleMenuClick -> menu_id :", menu_id, "rout::", route);
 
     
 

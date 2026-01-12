@@ -52,6 +52,142 @@ const router = Router();
  */
 router.post('/login', userController.login);
 
+// /**
+//  * @swagger
+//  * /api/users/create:
+//  *   post:
+//  *     summary: Create a new user
+//  *     tags: [Users]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - $ref: '#/components/parameters/lng'
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         multipart/form-data:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               username:
+//  *                 type: string
+//  *                 description: Username
+//  *                 example: admin
+//  *               password:
+//  *                 type: string
+//  *                 description: Password for user account (must contain letters and numbers)
+//  *                 example: password123
+//  *               role_code:
+//  *                 type: string
+//  *                 description: New user roles
+//  *                 example: ADMIN
+//  *               user_first_name:
+//  *                 type: string
+//  *                 description: First name
+//  *                 example: chaiwat
+//  *               user_last_name:
+//  *                 type: string
+//  *                 description: Last name
+//  *                 example: chaiwut
+//  *               user_email:
+//  *                 type: string
+//  *                 description: Email
+//  *                 example: email.com
+//  *               is_active:
+//  *                 type: boolean
+//  *                 description: Displays the status of whether the user account is active or not (true = active, false = inactive).
+//  *                 example: true
+//  *     responses:
+//  *       201:
+//  *         description: Create successfully
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 user_id:
+//  *                   type: number
+//  *                 username:
+//  *                   type: string
+//  *                 role_code:
+//  *                   type: string
+//  *                 is_active:
+//  *                   type: boolean
+//  *                 create_date:
+//  *                   type: string
+//  *                 create_by:
+//  *                   type: string
+//  *                 update_date:
+//  *                   type: string
+//  *                 update_by:
+//  *                   type: string
+//  *       400:
+//  *         description: Invalid data transmission notification message
+//  */
+// router.post('/create'
+// , authenticateToken
+// , userController.create);
+
+// /**
+//  * @swagger
+//  * /api/users/update/{user_id}:
+//  *   put:
+//  *     summary: Edit user
+//  *     tags: [Users]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - $ref: '#/components/parameters/lng'
+//  *       - in: path
+//  *         name: user_id
+//  *         schema:
+//  *           type: integer
+//  *         required: true
+//  *         description: The ID of the user to be edited.
+//  *         example: 1
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         multipart/form-data:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               username:
+//  *                 type: string
+//  *                 description: New username
+//  *                 example: new_username
+//  *               password:
+//  *                 type: string
+//  *                 description: New password
+//  *                 example: new1234
+//  *               role_code:
+//  *                 type: string
+//  *                 description: New user roles
+//  *                 example: USER
+//  *               user_first_name:
+//  *                 type: string
+//  *                 description: First name
+//  *                 example: chaiwat
+//  *               user_last_name:
+//  *                 type: string
+//  *                 description: Last name
+//  *                 example: chaiwut
+//  *               user_email:
+//  *                 type: string
+//  *                 description: Email
+//  *                 example: email.com
+//  *               is_active:
+//  *                 type: boolean
+//  *                 description: Invalid data transmission notification message
+//  *                 example: true
+//  *     responses:
+//  *       204:
+//  *         description: Edited successfully
+//  *       400:
+//  *         description: Invalid data transmission notification message
+//  */
+// router.put('/update/:user_id', authenticateToken, userController.update);
+
 /**
  * @swagger
  * /api/users/create:
@@ -65,68 +201,52 @@ router.post('/login', userController.login);
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *               - role_code
+ *               - user_first_name
  *             properties:
  *               username:
  *                 type: string
- *                 description: Username
- *                 example: admin
+ *                 example: test
  *               password:
  *                 type: string
- *                 description: Password for user account (must contain letters and numbers)
  *                 example: password123
  *               role_code:
  *                 type: string
- *                 description: New user roles
  *                 example: ADMIN
  *               user_first_name:
  *                 type: string
- *                 description: First name
- *                 example: chaiwat
+ *                 example: Test
  *               user_last_name:
  *                 type: string
- *                 description: Last name
- *                 example: chaiwut
+ *                 example: User
  *               user_email:
  *                 type: string
- *                 description: Email
- *                 example: email.com
+ *                 example: test@email.com
  *               is_active:
  *                 type: boolean
- *                 description: Displays the status of whether the user account is active or not (true = active, false = inactive).
  *                 example: true
+ *               mc_code:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["MC001", "MC002"]
  *     responses:
  *       201:
  *         description: Create successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user_id:
- *                   type: number
- *                 username:
- *                   type: string
- *                 role_code:
- *                   type: string
- *                 is_active:
- *                   type: boolean
- *                 create_date:
- *                   type: string
- *                 create_by:
- *                   type: string
- *                 update_date:
- *                   type: string
- *                 update_by:
- *                   type: string
  *       400:
- *         description: Invalid data transmission notification message
+ *         description: Invalid data
  */
-router.post('/create'
-, authenticateToken
-, userController.create);
+router.post(
+    '/create',
+    authenticateToken,
+    userController.create
+);
 
 /**
  * @swagger
@@ -143,12 +263,12 @@ router.post('/create'
  *         schema:
  *           type: integer
  *         required: true
- *         description: The ID of the user to be edited.
+ *         description: The ID of the user to be edited
  *         example: 1
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
  *             type: object
  *             properties:
@@ -162,8 +282,8 @@ router.post('/create'
  *                 example: new1234
  *               role_code:
  *                 type: string
- *                 description: New user roles
- *                 example: USER
+ *                 description: New user role
+ *                 example: ADMIN
  *               user_first_name:
  *                 type: string
  *                 description: First name
@@ -178,15 +298,26 @@ router.post('/create'
  *                 example: email.com
  *               is_active:
  *                 type: boolean
- *                 description: Invalid data transmission notification message
+ *                 description: User active status
  *                 example: true
+ *               mc_code:
+ *                 type: array
+ *                 description: Maintenance contract codes assigned to user (replace all)
+ *                 items:
+ *                   type: string
+ *                 example: ["MC001", "MC002"]
  *     responses:
- *       204:
+ *       200:
  *         description: Edited successfully
  *       400:
  *         description: Invalid data transmission notification message
  */
-router.put('/update/:user_id', authenticateToken, userController.update);
+router.put(
+    '/update/:user_id',
+    authenticateToken,
+    userController.update
+);
+
 
 /**
  * @swagger

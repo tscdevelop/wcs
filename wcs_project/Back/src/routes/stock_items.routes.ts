@@ -195,4 +195,73 @@ router.get('/get-by-id/:item_id'
     , authenticateToken
     , stockItemController.getById);
 
+    /**
+ * @swagger
+ * /api/stock-items/search-item-inventory:
+ *   get:
+ *     summary: ค้นหาข้อมูล stock items ใน inventory ด้วย stock item id และ item name
+ *     tags: [StockItems]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/lng'
+ *       - in: query
+ *         name: stock_item
+ *         schema:
+ *           type: string
+ *         description: stock item id
+ *       - in: query
+ *         name: item_name
+ *         schema:
+ *           type: string
+ *         description: stock item name
+ *     responses:
+ *       200:
+ *         description: พบข้อมูลรายการ stock items
+ *       400:
+ *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *       404:
+ *         description: ไม่พบข้อมูลรายการที่ร้องขอ
+ *       500:
+ *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ */
+router.get('/search-item-inventory'
+    , authenticateToken
+    , stockItemController.searchItemInventory);
+
+        /**
+ * @swagger
+ * /api/stock-items/search-item:
+ *   get:
+ *     summary: ค้นหาข้อมูล stock items ด้วย stock item id และ item name
+ *     tags: [StockItems]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/lng'
+ *       - in: query
+ *         name: stock_item
+ *         schema:
+ *           type: string
+ *         description: stock item id
+ *       - in: query
+ *         name: item_name
+ *         schema:
+ *           type: string
+ *         description: stock item name
+ *     responses:
+ *       200:
+ *         description: พบข้อมูลรายการ stock items
+ *       400:
+ *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *       404:
+ *         description: ไม่พบข้อมูลรายการที่ร้องขอ
+ *       500:
+ *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ */
+router.get('/search-item'
+    , authenticateToken
+    , stockItemController.searchItem);
+
+
 export default router;

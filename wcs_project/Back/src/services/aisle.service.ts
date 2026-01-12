@@ -359,7 +359,6 @@ export class AisleService {
         try {
             const repository = manager ? manager.getRepository(Aisle) : this.aisleRepository;
     
-            // Query ข้อมูลทั้งหมดที่มี so_id เดียวกัน
             const rawData = await repository.createQueryBuilder('aisle')
                 .select([
                     "aisle.aisle_id",

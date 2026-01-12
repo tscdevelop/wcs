@@ -143,3 +143,42 @@ export const getById = async (req: Request, res: Response) => {
         return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.items', true, reqUsername);
     }
 };
+
+
+export const searchItemInventory = async (req: Request, res: Response) => {
+    const operation = 'StockItemController.searchItemInventory';
+
+    const reqUsername = RequestUtils.getUsernameToken(req, res);
+    if (!reqUsername) return;
+
+    const { stock_item, item_name } = req.query;
+
+    try {
+        const response = await stockItemService.searchItemInventory(
+            stock_item as string,
+            item_name as string,
+        );
+        return ResponseUtils.handleResponse(res, response);
+    } catch (error: any) {
+        return ResponseUtils.handleErrorSearch(res, operation, error.message, 'item.items', true, reqUsername);
+    }
+};
+
+export const searchItem = async (req: Request, res: Response) => {
+    const operation = 'StockItemController.searchItem';
+
+    const reqUsername = RequestUtils.getUsernameToken(req, res);
+    if (!reqUsername) return;
+
+    const { stock_item, item_name } = req.query;
+
+    try {
+        const response = await stockItemService.searchItem(
+            stock_item as string,
+            item_name as string,
+        );
+        return ResponseUtils.handleResponse(res, response);
+    } catch (error: any) {
+        return ResponseUtils.handleErrorSearch(res, operation, error.message, 'item.items', true, reqUsername);
+    }
+};

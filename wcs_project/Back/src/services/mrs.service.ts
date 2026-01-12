@@ -8,6 +8,8 @@ import { MRS } from "../entities/mrs.entity";
 import { StatusOrders } from "../common/global.enum";
 import { Aisle } from "../entities/aisle.entity";
 import { Orders } from "../entities/orders.entity";
+import { StockItems } from "../entities/m_stock_items.entity";
+import { Locations } from "../entities/m_location.entity";
 
 export class MRSService {
     private mrsRepository : Repository<MRS>;
@@ -107,25 +109,33 @@ export class MRSService {
 
             const rawData = await repository
                 .createQueryBuilder('mrs')
-                .leftJoin(Aisle, 'aisle', 'mrs.current_aisle_id = aisle.aisle_id')
+                .leftJoin(Aisle, 'aisle', 'mrs.target_aisle_id = aisle.aisle_id')
                 .leftJoin(Orders, 'order', 'mrs.current_order_id = order.order_id')
-                .leftJoin('m_stock_items', 'stock', 'stock.stock_item = order.stock_item')
+                //ป้องกันเคส order ที่ loc_id ไม่ได้ผูกกับ MRS นี้จริง
+                .leftJoin(
+                    'm_location_mrs',
+                    'loc_mrs',
+                    'loc_mrs.mrs_id = mrs.mrs_id AND loc_mrs.loc_id = order.loc_id'
+                )
+                .leftJoin(Locations, 'loc', 'loc.loc_id = order.loc_id')
+                .leftJoin(StockItems, 'stock', 'stock.item_id = order.item_id')
                 .select([
                     'mrs.mrs_id AS mrs_id',
                     'mrs.mrs_code AS mrs_code',
                     "mrs.mrs_status AS mrs_status", 
                     'mrs.target_aisle_id AS target_aisle_id',
+                    'aisle.aisle_code AS aisle_code',
                     'mrs.bank_code AS bank_code',
-                    'mrs.current_aisle_id AS current_aisle_id',
-                    // 'aisle.aisle_code AS current_aisle_code',
                     'order.order_id AS order_id',
                     'order.type AS type',
-                    'order.stock_item AS stock_item',
+                    'stock.item_id AS item_id',
+                    'stock.stock_item AS stock_item',
                     'stock.item_name AS item_name',
                     'stock.item_desc AS item_desc',
-                    'order.from_location AS from_location',
+                    'loc.loc AS loc',
+                    'loc.box_loc AS box_loc',
                     'order.status AS status',
-                    "DATE_FORMAT(order.requested_at, '%d %b %y %H:%i:%s') AS requested_at",
+                    "DATE_FORMAT(order.requested_at, '%d/%m/%Y') AS requested_at",
                     "order.plan_qty AS plan_qty",
                     "order.actual_qty AS actual_qty",
                 ])

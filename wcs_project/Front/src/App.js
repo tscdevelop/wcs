@@ -102,11 +102,11 @@ export default function App() {
   const fetchMenuPermissions = async () => {
   try {
     const apiResponse = await roles.getPermissionByMenu();
-    console.log("📌 API Response:", apiResponse.data); // ✅ ตรวจสอบว่า API ส่งค่าอะไรมา
+    //console.log("📌 API Response:", apiResponse.data); // ✅ ตรวจสอบว่า API ส่งค่าอะไรมา
 
     if (apiResponse.data) {
       const apiRoutes = await generateRoutesFromApi(apiResponse.data);
-      console.log("📌 Generated Routes:", apiRoutes); // ✅ ตรวจสอบว่ามีเมนูย่อยหรือไม่
+      //console.log("📌 Generated Routes:", apiRoutes); // ✅ ตรวจสอบว่ามีเมนูย่อยหรือไม่
 
       setRoutes(apiRoutes);
     }

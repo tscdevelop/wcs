@@ -8,16 +8,19 @@ import * as validate from '../utils/ValidationUtils'; // Import all validation f
 import { UserModel } from '../models/user.model';
 import { s_role } from '../entities/s_role.entity';
 import { RoleService } from './role.service';
+import { s_user_permis_group } from '../entities/s_user_permis_group.entity';
 
 export class UserService {
     // private userRepository: Repository<s_user>;
     // roleRepository: any;
     // roleService: any;
     private userRepository: Repository<s_user>;
+    private userPermisGroupRepository: Repository<s_user_permis_group>;
     private roleService: RoleService; // กำหนด RoleService
 
     constructor() {
         this.userRepository = AppDataSource.getRepository(s_user);
+        this.userPermisGroupRepository = AppDataSource.getRepository(s_user_permis_group);
         this.roleService = new RoleService();
     }
 
@@ -27,36 +30,96 @@ export class UserService {
      * @param password รหัสผ่าน
      * @returns ApiResponse ที่มีข้อมูลผู้ใช้หรือข้อความแสดงข้อผิดพลาด
      */
-    async validate(username: string, password: string): Promise<ApiResponse<s_user>> {
-        let response = new ApiResponse<s_user>();
-        const operation = 'UserService.validate';
-        try {
-            // แนะนำให้ trim จะได้ไม่พลาดช่องว่างหัวท้าย
-            const uname = (username ?? '').trim();
-            const pwd   = password ?? '';
+    // async validate(username: string, password: string): Promise<ApiResponse<s_user>> {
+    //     let response = new ApiResponse<s_user>();
+    //     const operation = 'UserService.validate';
+    //     try {
+    //         // แนะนำให้ trim จะได้ไม่พลาดช่องว่างหัวท้าย
+    //         const uname = (username ?? '').trim();
+    //         const pwd   = password ?? '';
 
-            // ✅ ขาดฟิลด์ไหนให้ return ทันที
-            if (validate.isNullOrEmpty(uname)) {
+    //         // ✅ ขาดฟิลด์ไหนให้ return ทันที
+    //         if (validate.isNullOrEmpty(uname)) {
+    //         return response.setIncomplete(lang.msgRequired('field.username'));
+    //         }
+    //         if (validate.isNullOrEmpty(pwd)) {
+    //         return response.setIncomplete(lang.msgRequired('field.password'));
+    //         }
+
+    //         // หา user ที่ active
+    //         const user = await this.userRepository.findOne({ where: { username: uname, is_active: true } });
+
+    //         // ตรวจรหัสผ่าน
+    //         if (user && await CryptHelper.comparePassword(pwd, user.password)) {
+    //         response.message = lang.msgSuccessfulFormat('item.login');
+    //         response.data = user;
+    //         response.isCompleted = true;
+    //         return response;
+    //         }
+
+    //         // ข้อมูลเข้าผิด
+    //         response.message = lang.msg('validation.invalid_credentials');
+    //         response.isCompleted = false;
+    //         return response;
+
+    //     } catch (error: any) {
+    //         throw new Error(lang.msgErrorFunction(operation, error.message));
+    //     }
+    // }
+
+    async validate(
+        username: string,
+        password: string
+        ): Promise<ApiResponse<{ user: s_user; mc_codes: string[] }>> {
+
+        const response = new ApiResponse<{ user: s_user; mc_codes: string[] }>();
+        const operation = 'UserService.validate';
+
+        try {
+            const uname = (username ?? '').trim();
+            const pwd = password ?? '';
+
+            // validate input
+            if (!uname) {
             return response.setIncomplete(lang.msgRequired('field.username'));
             }
-            if (validate.isNullOrEmpty(pwd)) {
+            if (!pwd) {
             return response.setIncomplete(lang.msgRequired('field.password'));
             }
 
-            // หา user ที่ active
-            const user = await this.userRepository.findOne({ where: { username: uname, is_active: true } });
+            // 1️⃣ หา user
+            const user = await this.userRepository.findOne({
+            where: { username: uname, is_active: true },
+            });
 
-            // ตรวจรหัสผ่าน
-            if (user && await CryptHelper.comparePassword(pwd, user.password)) {
-            response.message = lang.msgSuccessfulFormat('item.login');
-            response.data = user;
-            response.isCompleted = true;
+            if (!user) {
+            response.message = lang.msg('validation.invalid_credentials');
             return response;
             }
 
-            // ข้อมูลเข้าผิด
+            // 2️⃣ เช็ครหัสผ่าน
+            const isMatch = await CryptHelper.comparePassword(pwd, user.password);
+            if (!isMatch) {
             response.message = lang.msg('validation.invalid_credentials');
-            response.isCompleted = false;
+            return response;
+            }
+
+            // 3️⃣ ดึง mc_code จาก s_user_permis_group (หลายค่า)
+            const permisGroups = await this.userPermisGroupRepository.find({
+            where: { user_id: user.user_id },
+            select: ['mc_code'],
+            });
+
+            const mc_codes = permisGroups.map(p => p.mc_code);
+
+            // 4️⃣ คืนค่า (ไม่ยัดใส่ s_user)
+            response.data = {
+            user,
+            mc_codes,
+            };
+
+            response.isCompleted = true;
+            response.message = lang.msgSuccessfulFormat('item.login');
             return response;
 
         } catch (error: any) {
@@ -64,10 +127,12 @@ export class UserService {
         }
     }
 
+
     async create(
-        data: Partial<s_user>,
+        data: Partial<s_user> & { mc_code?: string[] },
         manager?: EntityManager
         ): Promise<ApiResponse<s_user>> {
+
         let response = new ApiResponse<s_user>();
         let userData = new s_user();
         const operation = 'UserService.create';
@@ -76,21 +141,23 @@ export class UserService {
         const useManager = manager || queryRunner?.manager;
 
         if (!useManager) {
-            return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
+            return response.setIncomplete(
+            lang.msg('validation.no_entityManager_or_queryRunner_available')
+            );
         }
 
         try {
-            const repository = useManager.getRepository(s_user);
+            const userRepo = useManager.getRepository(s_user);
+            const upgRepo = useManager.getRepository(s_user_permis_group);
 
-            // ---------- Validation (ยังไม่เปิด transaction) ----------
+            // ---------- Validation ----------
             if (validate.isNullOrEmpty(data.role_code)) {
             return response.setIncomplete(lang.msgRequired('field.role'));
-            } else {
-            // **แนะนำ** ให้ RoleService ใช้ manager/connection เดียวกัน (ส่ง useManager เข้าไปถ้ารองรับ)
+            }
+
             const roleExists = await this.roleService.checkRoleCodeExists(data.role_code!);
             if (!roleExists) {
-                return response.setIncomplete(lang.msgNotFound('item.role'));
-            }
+            return response.setIncomplete(lang.msgNotFound('item.role'));
             }
 
             if (validate.isNullOrEmpty(data.username)) {
@@ -103,35 +170,41 @@ export class UserService {
             return response.setIncomplete(lang.msgRequired('field.first_name'));
             }
 
-            // ป้องกัน whitespace ทำให้ซ้ำโดยไม่ตั้งใจ
             data.username = data.username!.trim();
 
-            // ตรวจสอบ username ซ้ำ
-            const existingUser = await repository.findOne({ where: { username: data.username } });
+            const existingUser = await userRepo.findOne({
+            where: { username: data.username }
+            });
             if (existingUser) {
             return response.setIncomplete(lang.msgAlreadyExists('field.username'));
             }
 
-            // ---------- เปิด transaction ช่วงที่จะเขียนจริง ----------
+            // ---------- Transaction ----------
             if (!manager && queryRunner) {
             await queryRunner.connect();
             await queryRunner.startTransaction();
             }
 
-            // เข้ารหัสรหัสผ่าน
             data.password = await CryptHelper.hashPassword(data.password!);
-            console.log('Sanitized data:', data);
 
-            // assign ข้อมูลเข้าไปใน user model
             Object.assign(userData, data);
             userData.create_date = new Date();
             userData.role_code = data.role_code!;
 
-            // บันทึก
-            const user = repository.create(userData);
-            const savedUser = await repository.save(user);
+            const savedUser = await userRepo.save(userRepo.create(userData));
 
-            // ดึงข้อมูล user ที่เพิ่งสร้าง (ใช้ manager เดิม)
+            // ---------- SAVE mc_code ----------
+            if (Array.isArray(data.mc_code) && data.mc_code.length > 0) {
+            const rows = data.mc_code.map(mc => {
+                const upg = new s_user_permis_group();
+                upg.user_id = savedUser.user_id!;
+                upg.mc_code = mc;
+                return upg;
+            });
+
+            await upgRepo.save(rows);
+            }
+
             const dataResponse = await this.getByUserId(savedUser.user_id!, useManager);
             if (!dataResponse.isCompleted) {
             throw new Error(dataResponse.message);
@@ -149,8 +222,7 @@ export class UserService {
             return response;
 
         } catch (error: any) {
-            // rollback เฉพาะเมื่อมี transaction active จริง
-            if (!manager && queryRunner && queryRunner.isTransactionActive) {
+            if (!manager && queryRunner?.isTransactionActive) {
             await queryRunner.rollbackTransaction();
             }
             console.error('Error during user creation:', error);
@@ -162,13 +234,13 @@ export class UserService {
         }
     }
 
-
     
     async update(
-        user_id: number,
-        data: Partial<s_user>,
-        manager?: EntityManager
+            user_id: number,
+            data: Partial<s_user> & { mc_code?: string[] },
+            manager?: EntityManager
         ): Promise<ApiResponse<s_user>> {
+
         let response = new ApiResponse<s_user>();
         const operation = 'UserService.update';
 
@@ -176,61 +248,50 @@ export class UserService {
         const useManager = manager || queryRunner?.manager;
 
         if (!useManager) {
-            return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
+            return response.setIncomplete(
+            lang.msg('validation.no_entityManager_or_queryRunner_available')
+            );
         }
 
         try {
-            const repository = useManager.getRepository(s_user);
+            const userRepo = useManager.getRepository(s_user);
+            const upgRepo = useManager.getRepository(s_user_permis_group);
 
-            // ----- Validate (ยังไม่เปิด transaction) -----
-            if (validate.isNullOrEmpty(user_id)) {
+            // ---------- Validation ----------
+            if (!user_id) {
             return response.setIncomplete(lang.msgRequired('field.user_id'));
             }
-            if (validate.isNullOrEmpty(data.username)) {
-            return response.setIncomplete(lang.msgRequired('field.username'));
-            }
-            if (validate.isNullOrEmpty(data.user_first_name)) {
-            return response.setIncomplete(lang.msgRequired('field.first_name'));
-            }
 
-            const user = await repository.findOne({ where: { user_id } });
+            const user = await userRepo.findOne({ where: { user_id } });
             if (!user) {
             return response.setIncomplete(lang.msgNotFound('item.user'));
             }
 
-            if (data.username) {
-            data.username = data.username.trim();
-            }
-            if (data.user_email) {
-            data.user_email = data.user_email.trim();
-            }
+            if (data.username) data.username = data.username.trim();
+            if (data.user_email) data.user_email = data.user_email.trim();
 
-            // ตรวจ username ซ้ำเมื่อมีการเปลี่ยนจริง
             if (data.username && data.username !== user.username) {
-            // ถ้า checkUsernameExists รองรับ manager ให้ส่ง useManager เข้าไป
             if (await this.checkUsernameExists(data.username)) {
                 return response.setIncomplete(lang.msgAlreadyExists('field.username'));
             }
             }
 
-            // ตรวจ role_code เฉพาะเมื่อมีส่งมา
             if (data.role_code !== undefined) {
-            if (validate.isNullOrEmpty(data.role_code)) {
+            if (!data.role_code) {
                 return response.setIncomplete(lang.msgRequired('field.role'));
             }
-            const roleExists = await this.roleService.checkRoleCodeExists(data.role_code!);
+            const roleExists = await this.roleService.checkRoleCodeExists(data.role_code);
             if (!roleExists) {
                 return response.setIncomplete(lang.msgNotFound('item.role'));
             }
             }
 
-            // ----- เปิด transaction ก่อนอัปเดตจริง -----
+            // ---------- Begin Transaction ----------
             if (!manager && queryRunner) {
             await queryRunner.connect();
             await queryRunner.startTransaction();
             }
 
-            // เข้ารหัสรหัสผ่านเมื่อมีส่งมา
             if (data.password) {
             data.password = await CryptHelper.hashPassword(data.password);
             }
@@ -247,42 +308,62 @@ export class UserService {
             update_date: new Date(),
             };
 
-            // ลบ key ที่เป็น undefined เพื่อกัน SET ค่าเป็น NULL โดยไม่ตั้งใจ
+            // ลบ undefined ออก
             Object.keys(updateData).forEach((k) => {
-            if ((updateData as any)[k] === undefined) delete (updateData as any)[k];
+            if ((updateData as any)[k] === undefined) {
+                delete (updateData as any)[k];
+            }
             });
 
-            // ถ้าไม่มีอะไรเปลี่ยนจริงๆ
-            if (Object.keys(updateData).length === 0) {
-            response.isCompleted = true;
-            response.message = lang.msg('validation.no_changes'); // มี/ไม่มีข้อความนี้แล้วแต่ระบบคุณ
-            return response;
+            if (Object.keys(updateData).length > 0) {
+            await userRepo.update(user_id, updateData);
             }
 
-            await repository.update(user_id, updateData);
+            // ---------- UPDATE mc_code ↔ user ----------
+            if (Array.isArray(data.mc_code)) {
 
-            response.isCompleted = true;
-            response.message = lang.msgSuccessAction('updated', 'item.user');
+            // ลบความสัมพันธ์เดิมทั้งหมด
+            await upgRepo.delete({ user_id });
 
-            // ดึงข้อมูลล่าสุดกลับมา
-            const updatedResponse = await this.getByUserId(user_id, useManager);
-            if (updatedResponse.isCompleted && updatedResponse.data) {
-            response.data = updatedResponse.data;
+            const cleanMcCodes = [...new Set(
+                data.mc_code
+                .map(mc => mc?.trim())
+                .filter(mc => mc)
+            )];
+
+            if (cleanMcCodes.length > 0) {
+                const rows = cleanMcCodes.map(mc => {
+                const upg = new s_user_permis_group();
+                upg.user_id = user_id;
+                upg.mc_code = mc;
+                return upg;
+                });
+
+                await upgRepo.save(rows);
+            }
             }
 
-            if (!manager && queryRunner && queryRunner.isTransactionActive) {
+            if (!manager && queryRunner?.isTransactionActive) {
             await queryRunner.commitTransaction();
             }
 
-            return response;
+            // ---------- Response ----------
+            const updatedResponse = await this.getByUserId(user_id, useManager);
+            if (!updatedResponse.isCompleted) {
+            throw new Error(updatedResponse.message);
+            }
+
+            return response.setComplete(
+            lang.msgSuccessAction('updated', 'item.user'),
+            updatedResponse.data!
+            );
 
         } catch (error: any) {
-            if (!manager && queryRunner && queryRunner.isTransactionActive) {
+            if (!manager && queryRunner?.isTransactionActive) {
             await queryRunner.rollbackTransaction();
             }
             console.error('Error during user update:', error);
             throw new Error(lang.msgErrorFunction(operation, error.message));
-
         } finally {
             if (!manager && queryRunner) {
             await queryRunner.release();
@@ -362,74 +443,196 @@ export class UserService {
      * @param role_code บทบาทผู้ใช้
      * @returns ApiResponse ที่มีข้อมูลผู้ใช้หรือข้อความแสดงข้อผิดพลาด
      */
-    async search(username?: string, role_code?: string): Promise<ApiResponse<s_user[]>> {
-        const whereConditions: any = { is_active: true };
-        let response = new ApiResponse<s_user[]>();
+    // async search(username?: string, role_code?: string): Promise<ApiResponse<s_user[]>> {
+    //     const whereConditions: any = { is_active: true };
+    //     let response = new ApiResponse<s_user[]>();
+    //     const operation = 'UserService.search';
+    //     try {
+    //         if (username) {
+    //             whereConditions.username = Like(`%${username}%`);
+    //         }
+    //         if (role_code) {
+    //             whereConditions.role_code = Like(`%${role_code}%`);
+    //         }
+
+    //         const users = await this.userRepository.find({ where: whereConditions });
+
+    //         if (users.length > 0) {
+    //             response.message = lang.msgFound('item.user');
+    //             response.data = users.map(u => ({
+    //                 ...u,
+    //                 fullname: `${u.user_first_name ?? ''} ${u.user_last_name ?? ''}`.trim()
+    //             }));
+    //         } else {
+    //             response.message = lang.msgNotFound('item.user');
+    //         }
+
+    //         response.isCompleted = true;
+    //         return response;
+    //     } catch (error: any) {
+    //         throw new Error(lang.msgErrorFunction(operation, error.message)); 
+    //     }
+    // }
+    
+    async search(
+        username?: string,
+        role_code?: string
+    ): Promise<ApiResponse<any[]>> {
+
+        let response = new ApiResponse<any[]>();
         const operation = 'UserService.search';
+
         try {
+            const qb = this.userRepository
+                .createQueryBuilder('user')
+                .select([
+                    'user.user_id AS user_id',
+                    'user.username AS username',
+                    'user.role_code AS role_code',
+                    'user.user_first_name AS user_first_name',
+                    'user.user_last_name AS user_last_name',
+                    'user.user_email AS user_email',
+                    'user.is_active AS is_active',
+                    'user.create_date AS create_date',
+                    'user.create_by AS create_by',
+                    'user.update_date AS update_date',
+                    'user.update_by AS update_by',
+                ])
+                // 👉 subquery เอา mc_code ตัวแรก
+                .addSelect(subQuery => {
+                    return subQuery
+                        .select('upg.mc_code')
+                        .from('s_user_permis_group', 'upg')
+                        .where('upg.user_id = user.user_id')
+                        .limit(1);
+                }, 'mc_code')
+                .where('user.is_active = :is_active', { is_active: true });
+
             if (username) {
-                whereConditions.username = Like(`%${username}%`);
-            }
-            if (role_code) {
-                whereConditions.role_code = Like(`%${role_code}%`);
+                qb.andWhere('user.username LIKE :username', {
+                    username: `%${username}%`,
+                });
             }
 
-            const users = await this.userRepository.find({ where: whereConditions });
+            if (role_code) {
+                qb.andWhere('user.role_code LIKE :role_code', {
+                    role_code: `%${role_code}%`,
+                });
+            }
+
+            const users = await qb.getRawMany();
 
             if (users.length > 0) {
                 response.message = lang.msgFound('item.user');
                 response.data = users.map(u => ({
                     ...u,
-                    fullname: `${u.user_first_name ?? ''} ${u.user_last_name ?? ''}`.trim()
+                    fullname: `${u.user_first_name ?? ''} ${u.user_last_name ?? ''}`.trim(),
                 }));
             } else {
                 response.message = lang.msgNotFound('item.user');
+                response.data = [];
             }
 
             response.isCompleted = true;
             return response;
+
         } catch (error: any) {
-            throw new Error(lang.msgErrorFunction(operation, error.message)); 
+            throw new Error(
+                lang.msgErrorFunction(operation, error.message)
+            );
         }
     }
 
-    async getByUserId(user_id: number, manager?: EntityManager): Promise<ApiResponse<s_user | null>> {
+
+    // async getByUserId(user_id: number, manager?: EntityManager): Promise<ApiResponse<s_user | null>> {
+    //     let response = new ApiResponse<s_user | null>();
+    //     const operation = 'UserService.getByUserId';
+        
+    //     // ตรวจสอบว่า user_id นั้นถูกต้องหรือไม่
+    //     if (user_id <= 0 || isNaN(user_id)) {
+    //         return response.setIncomplete(lang.msg('validation.invalid_parameter')); 
+    //     }
+        
+    //     try {
+    //         const repository = manager ? manager.getRepository(s_user) : this.userRepository;
+    
+    //         // ใช้ QueryBuilder ทำการ JOIN โดยอ้างถึง foreign key โดยตรง
+    //         const user = await repository.createQueryBuilder('user')
+    //             .where('user.user_id = :user_id', { user_id })
+    //             .getOne();
+    
+    //         if (!user) {
+    //             return response.setIncomplete(lang.msgNotFound('item.user')); 
+    //         }
+    
+    //         // ส่ง response กลับหากพบข้อมูล user
+    //         response = new ApiResponse<s_user | null>({
+    //             message: lang.msgFound('item.user'),
+    //             data: user,
+    //             isCompleted: true
+    //         });
+    //         return response;
+    
+    //     } catch (error: any) {
+    //         throw new Error(lang.msgErrorFunction(operation, error.message)); 
+    //     }
+    // }
+
+    async getByUserId(
+        user_id: number,
+        manager?: EntityManager
+    ): Promise<ApiResponse<s_user | null>> {
+
         let response = new ApiResponse<s_user | null>();
         const operation = 'UserService.getByUserId';
-        
-        // ตรวจสอบว่า user_id นั้นถูกต้องหรือไม่
-        if (user_id <= 0 || isNaN(user_id)) {
-            return response.setIncomplete(lang.msg('validation.invalid_parameter')); 
+
+        if (!user_id || user_id <= 0) {
+            return response.setIncomplete(lang.msg('validation.invalid_parameter'));
         }
-        
+
         try {
-            const repository = manager ? manager.getRepository(s_user) : this.userRepository;
-    
-            // ใช้ QueryBuilder ทำการ JOIN โดยอ้างถึง foreign key โดยตรง
-            const user = await repository.createQueryBuilder('user')
-                // .leftJoinAndSelect('m_employee', 'employee', 'user.user_id  = employee.user_id ') // JOIN กับตาราง employee โดยตรง
-                // .leftJoinAndSelect('m_hospital', 'hospital', 'employee.hospital_code = hospital.hospital_code') // JOIN กับตาราง hospital โดยตรง
+            const repo = manager
+                ? manager.getRepository(s_user)
+                : this.userRepository;
+
+            const qb = repo.createQueryBuilder('user');
+
+            // subquery: เอา mc_code ตัวแรกที่เจอของ user นี้
+            qb.addSelect(subQuery => {
+                return subQuery
+                    .select('upg.mc_code')
+                    .from(s_user_permis_group, 'upg')
+                    .where('upg.user_id = user.user_id')
+                    .limit(1);
+            }, 'mc_code');
+
+            const rawAndEntity = await qb
                 .where('user.user_id = :user_id', { user_id })
-                .getOne();
-    
+                .getRawAndEntities();
+
+            const user = rawAndEntity.entities[0];
+
             if (!user) {
-                return response.setIncomplete(lang.msgNotFound('item.user')); 
+                return response.setIncomplete(lang.msgNotFound('item.user'));
             }
-    
-            // ส่ง response กลับหากพบข้อมูล user
-            response = new ApiResponse<s_user | null>({
-                message: lang.msgFound('item.user'),
-                data: user,
-                isCompleted: true
-            });
+
+            // inject mc_code จาก raw
+            (user as any).mc_code = rawAndEntity.raw[0]?.mc_code ?? null;
+
+            response = response.setComplete(
+                lang.msgFound('item.user'),
+                user
+            );
+
             return response;
-    
+
         } catch (error: any) {
-            throw new Error(lang.msgErrorFunction(operation, error.message)); 
+            throw new Error(
+                lang.msgErrorFunction(operation, error.message)
+            );
         }
     }
 
-    
 
      /**
      * ตรวจสอบไอดีผู้ใช้ว่ามีอยู่ในระบบหรือไม่

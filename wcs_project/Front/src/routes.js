@@ -100,10 +100,18 @@ import WaitingExecutionPage from "layouts/lab/order/list";
 import UsageHistory from "layouts/lab/transactions/usage_history";
 import ReceiptHistory from "layouts/lab/transactions/receipt_history";
 import StockItemsData from "layouts/lab/administrator/stock_items";
-
+import InventoryProfile from "layouts/lab/inventory/inventory_profile";
+import InventoryBalance from "layouts/lab/inventory/inventory_balance";
+import PickExecutionReqPage from "layouts/lab/pick/execution_req";
+import PickExecutionPage from "layouts/lab/pick/execution";
+//import PickExecutionCreatePage from "layouts/lab/pick/create";
+import OrderStatusReqPage from "layouts/lab/status/order_status_req";
+import OrderStatusPage from "layouts/lab/status/order_status";
+import CheckOutTPage from "layouts/lab/checkout/checkout_t";
+import PickCounterPage from "layouts/lab/checkout/PickCounterPage";
 const getComponent = (componentName) => {
   switch (componentName) {
-    // for menu intital
+    // for menu intital // menu_key
     case "home":
       return <HomePage />;
     case "login":
@@ -138,6 +146,24 @@ const getComponent = (componentName) => {
         return <ReceiptHistory />;
     case "stock-items":
         return <StockItemsData />;
+    case "inventory-profile":
+        return <InventoryProfile />;
+    case "inventory-balance":
+        return <InventoryBalance />;
+    case "pick-execute":
+        return <PickExecutionPage />;
+    case "pick-execute-req":
+        return <PickExecutionReqPage />;
+    // case "pick-create":
+    //     return <PickExecutionCreatePage />;
+    case "order-status":
+        return <OrderStatusPage />;
+    case "order-status-req":
+        return <OrderStatusReqPage />;
+    case "checkout-t1":
+      return <CheckOutTPage />;
+      case "counter-detail":
+      return <PickCounterPage />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
     default:
@@ -193,7 +219,14 @@ const initialRoutes = [
     key: "role-edit",
     route: "/role-edit",
     component: getComponent("role-edit"),
-  }
+  },
+   {
+  name: "menu.counter-detail",
+  key: "counter-detail",
+  route: "/checkout/counter/:counterId", // dynamic route
+  component: getComponent("counter"), // หรือเปลี่ยนเป็น "counter-detail"
+}
+
 ];
 
 const initialRoutesTest = [

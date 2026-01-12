@@ -53,7 +53,9 @@
     "lab_form_header": "Lab Form Header",
     "menu": "Menu",
     "role":"Role",
-    "order": "Waiting List"
+    "order": "Orders",
+    "waiting": "Waiting List",
+    "execution": "Execution List"
   },
   "field": {
     "user_id": "User ID",
@@ -77,7 +79,14 @@
     "annotation": "annotation",
     "transaction_log": "Transaction Log",
     "code": "Code",
-    "name" : "Name"
+    "name" : "Name",
+    "usage": "Usage History",
+    "receipt": "Receipt History"
+  },
+  "stock_item": {
+    "stock_id": "Stock Item ID(PK)",
+    "stock_item": "Stock Item ID",
+    "item_name": "Stock Item Name"
   }
 
 }

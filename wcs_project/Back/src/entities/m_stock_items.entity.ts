@@ -38,4 +38,7 @@ export class StockItems {
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Requested at' })
     requested_at!: Date;
 
+    @Column({ length: 30, nullable: true })
+    update_by: string;
+
 }

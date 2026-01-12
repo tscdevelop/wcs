@@ -109,24 +109,23 @@ const ReceiptHistory = () => {
           order_id: data.order_id,
           type: data.type ?? "",
           status: data.status ?? "",
+          mc_code: data.mc_code ?? "",
           cat_qty: data.cat_qty ?? "",
           recond_qty: data.recond_qty ?? "",
           unit_cost_handled: data.unit_cost_handled ?? "",
           total_cost_handled: data.total_cost_handled ?? "",
-          stock_item: data.stock_item ?? "",
           object_id: data.object_id ?? "",
-          from_location: data.from_location ?? "",
           contract_num: data.contract_num ?? "",
           cond: data.cond ?? "",
           po_num: data.po_num ?? "",
           plan_qty: data.plan_qty ?? 0,
-          actual_qty: data.actual_qty ?? 0,
           is_confirm: data.is_confirm ?? false,
-          user_first_name: data.user_first_name ?? "",
-          user_last_name: data.user_last_name ?? "",
-          username: data.username ?? "",
-          user_email: data.user_email ?? "",
-          role_code: data.role_code ?? "",
+          item_id: data.item_id ?? "",
+          stock_item: data.stock_item ?? "",
+          item_name: data.item_name ?? "",
+          loc_id: data.loc_id ?? "",
+          loc: data.loc ?? "",
+          box_loc: data.box_loc ?? ""
         });
         setFormOpen(true);
       } else {
@@ -144,11 +143,22 @@ const ReceiptHistory = () => {
 
   const handleSubmitUser = async (payload) => {
     try {
+      // สร้าง payload ใหม่ให้เป็นรูปแบบที่ backend ต้องการ
       const finalPayload = {
-        ...payload,
-        store_type: "T1M",
-        priority: 5,
         type: "RECEIPT",
+        item_id: payload.item_id,
+        mc_code: payload.mc_code,
+        loc_id: payload.loc_id,
+        cond: payload.cond,
+        plan_qty: payload.plan_qty,
+        receipt: {
+          cat_qty: payload.cat_qty,
+          recond_qty: payload.recond_qty,
+          unit_cost_handled: payload.unit_cost_handled,
+          contract_num: payload.contract_num,
+          po_num: payload.po_num,
+          object_id: payload.object_id
+        }
       };
 
       let res;
@@ -229,9 +239,11 @@ const ReceiptHistory = () => {
   const columns = [
     { field: "requested_at", label: "Date" },
     { field: "stock_item", label: "Stock Item ID" },
+    { field: "item_name", label: "Stock Item Name" },
+    { field: "loc", label: "Destination Location" },
+    { field: "box_loc", label: "Destination Box Location" },
     { field: "cat_qty", label: "CAT Quantity" },
     { field: "recond_qty", label: "RECOND Quantity" },
-    { field: "from_location", label: "From Location" },
     { field: "cond", label: "Condition" },
     { field: "unit_cost_handled", label: "Unit Cost" },
     { field: "total_cost_handled", label: "Total Cost" },
@@ -367,37 +379,39 @@ const ReceiptHistory = () => {
       </MDBox>
 
       {/* Scan Qty Dialog */}
-      <ScanQtyDialog
-        open={scanDialogOpen}
-        order={selectedOrder}
-        onClose={() => setScanDialogOpen(false)}
-        onSubmit={async (order_id, actual_qty) => {
-          try {
-            const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
-            if (response.isCompleted) {
-              setAlert({
-                show: true,
-                type: "success",
-                title: "Confirmed",
-                message: response.message,
-              });
+      {selectedOrder && (
+        <ScanQtyDialog
+          open={scanDialogOpen}
+          order={selectedOrder}
+          onClose={() => setScanDialogOpen(false)}
+          onSubmit={async (order_id, actual_qty) => {
+            try {
+              const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
+              if (response.isCompleted) {
+                setAlert({
+                  show: true,
+                  type: "success",
+                  title: "Confirmed",
+                  message: response.message,
+                });
 
-              await fetchDataAll();
-            } else {
-              setAlert({
-                show: true,
-                type: "error",
-                title: "Error",
-                message: response.message || "Failed",
-              });
+                await fetchDataAll();
+              } else {
+                setAlert({
+                  show: true,
+                  type: "error",
+                  title: "Error",
+                  message: response.message || "Failed",
+                });
+              }
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setScanDialogOpen(false);
             }
-          } catch (err) {
-            console.error(err);
-          } finally {
-            setScanDialogOpen(false);
-          }
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* Receipt Form Dialog */}
       <WaitingReceiptFormDialog

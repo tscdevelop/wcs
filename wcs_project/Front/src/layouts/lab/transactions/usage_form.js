@@ -7,13 +7,16 @@ import {
   Grid,
   FormControl,
   MenuItem,
-  FormHelperText,
+  TextField,
+  Autocomplete,
 } from "@mui/material";
 import PropTypes from "prop-types";
 import MDInput from "components/MDInput";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
-import { StyledSelect, StyledMenuItem } from "common/Global.style";
+import { StyledSelect } from "common/Global.style";
+
+import StockItemsAPI from "api/StockItemsAPI";
 
 export default function WaitingFormDialog({
   open,
@@ -26,55 +29,110 @@ export default function WaitingFormDialog({
 
   const [form, setForm] = useState({
     type: "USAGE",
+    item_id: "",
+    mc_code: "",
+    loc_id: "",
+    loc: "",
+    box_loc: "",
+    cond: "",
+    plan_qty: "",
+
     work_order: "",
     usage_num: "",
     line: "",
-    stock_item: "",
     usage_type: "ISSUE",
-    cond: "",
-    split: "0",
-    plan_qty: "",
-    from_location: "AA - TSS STORE",
+    split: "0",   
+
+    stock_item: "",
+    item_name: "",
   });
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [stockOptions, setStockOptions] = useState([]);
 
+  // Load form when open/edit
   useEffect(() => {
     if (open) {
       setErrors({});
       if (isEdit && initialData) {
         setForm({
-          type: "USAGE",
-          work_order: initialData.work_order ?? "",
-          usage_num: initialData.usage_num ?? "",
-          line: initialData.line ?? "",
-          stock_item: initialData.stock_item ?? "",
-          usage_type: "ISSUE",
-          cond: initialData.cond ?? "",
-          split: "0",
-          plan_qty: initialData.plan_qty ?? "",
-          //from_location: initialData.from_location ?? "",
-          from_location: "AA - TSS STORE",
+          ...form,
+          ...initialData,
         });
       } else {
-        setForm({
-          type: "USAGE",
-          work_order: "",
-          usage_num: "",
-          line: "",
+        setForm((prev) => ({
+          ...prev,
+          item_id: "",
           stock_item: "",
-          usage_type: "ISSUE",
-          cond: "",
-          split: "0",
-          plan_qty: "",
-          from_location: "AA - TSS STORE",
-        });
+          item_name: "",
+          loc: "",
+          box_loc: "",
+          loc_id: "",
+        }));
       }
     }
   }, [open, isEdit, initialData]);
 
-  const title = useMemo(() => (isEdit ? "Edit Usage Order" : "Create New Usage Order"), [isEdit]);
+  const title = useMemo(
+    () => (isEdit ? "Edit Usage Order" : "Create New Usage Order"),
+    [isEdit]
+  );
+
+  // 🔍 Autocomplete search
+  const handleSearchStock = async (value) => {
+    if (!value || value.length < 1) return;
+
+    try {
+      const res = await StockItemsAPI.searchItemInventory({
+        stock_item: value,
+        item_name: value,
+      });
+
+      if (res?.isCompleted && Array.isArray(res.data)) {
+        setStockOptions(res.data); // <-- ใช้ res.data
+      } else {
+        setStockOptions([]);
+      }
+    } catch (err) {
+      console.error("search error:", err);
+      setStockOptions([]);
+    }
+  };
+
+
+    // Select item from list
+  const handleSelectStock = (item) => {
+
+    // ➤ กดกากบาท (clear)
+    if (!item) {
+      setForm((prev) => ({
+        ...prev,
+        item_id: "",
+        stock_item: "",
+        item_name: "",
+        loc: "",
+        box_loc: "",
+        loc_id: "",
+      }));
+
+      // ล้าง dropdown ให้ไม่ค้างข้อมูลเก่า
+      setStockOptions([]);
+      return;
+    }
+
+    // ➤ กดเลือก item ปกติ
+    setForm((prev) => ({
+      ...prev,
+      item_id: item.item_id,
+      stock_item: item.stock_item,
+      item_name: item.item_name,
+      loc: item.loc,
+      box_loc: item.box_loc,
+      loc_id: item.loc_id,
+    }));
+  };
+
 
   const handleChange = (field) => (e) => {
     const value = e.target.value;
@@ -84,14 +142,14 @@ export default function WaitingFormDialog({
 
   const validateAll = () => {
     const next = {};
+    if (!form.mc_code?.trim()) next.mc_code = "Maintenance Contract is required.";
     if (!form.work_order?.trim()) next.work_order = "Work order is required.";
     if (!form.stock_item?.trim()) next.stock_item = "Stock item is required.";
+    if (!form.item_id) next.item_id = "Please select a valid stock item.";
     if (!form.usage_num?.trim()) next.usage_num = "Usage is required.";
     if (!form.line?.trim()) next.line = "Line is required.";
-    // if (!form.cond?.trim()) next.cond = "Condition is required.";
-    if (form.plan_qty === null || form.plan_qty === undefined || form.plan_qty === "") {
-         next.plan_qty = "Quantity to be handled is required.";}
-    if (!form.from_location?.trim()) next.from_location = "From location is required.";
+    if (!form.plan_qty) next.plan_qty = "Quantity is required.";
+
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -109,76 +167,210 @@ export default function WaitingFormDialog({
     }
   };
 
-  const fields = [
-    { field: "type", label: "Transaction Type", readOnly: true },
-    { field: "work_order", label: "Work Order" },
-    { field: "usage_num", label: "Usage" },
-    { field: "line", label: "Line" },
-    { field: "stock_item", label: "Stock Item ID" },
-    { field: "usage_type", label: "Usage Type", readOnly: true },
-    { field: "cond", label: "Condition", select: true, options: ["NEW", "CAPITAL"] },
-    { field: "split", label: "Split", readOnly: true },
-    { field: "plan_qty", label: "Quantity to be handled" },
-    { field: "from_location", label: "From Location(Mocking)", readOnly: true },
-  ];
-
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2} mt={0}>
-          {fields.map(({ field, label, readOnly, select, options }) => (
-            <Grid item xs={12} sm={6} key={field}>
-              <MDTypography variant="body01" mb={0.5} display="block">
-                {label}
-              </MDTypography>
 
-              {select ? (
-                <FormControl fullWidth error={!!errors[field]}>
-                  <StyledSelect
-                    value={form[field] ?? ""}
-                    onChange={handleChange(field)}
-                    displayEmpty
-                    sx={{
-                      height: "45px",
-                      backgroundColor: readOnly ? "#f0f0f0" : "white", // ช่องทึบถ้าแก้ไม่ได้
-                      color: readOnly ? "#666" : "inherit",
-                      pointerEvents: readOnly ? "none" : "auto", // กันคลิก dropdown
-                    }}
-                  >
-                    <StyledMenuItem value="" disabled>
-                      Select {label.toLowerCase()}
-                    </StyledMenuItem>
-                    {options.map((opt) => (
-                      <MenuItem key={opt} value={opt}>
-                        {opt}
-                      </MenuItem>
-                    ))}
-                  </StyledSelect>
-                  {errors[field] && <FormHelperText>{errors[field]}</FormHelperText>}
-                </FormControl>
-              ) : (
-                <MDInput
-                  fullWidth
-                type={["plan_qty", "split"].includes(field) ? "number" : "text"} // บังคับ type number
-                  value={form[field]}
-                  onChange={handleChange(field)}
-                  error={!!errors[field]}
-                  inputProps={{ readOnly }}
-                  sx={{
-                    backgroundColor: readOnly ? "#f0f0f0" : "white", // พื้นเทาเมื่อ readOnly
-                    color: readOnly ? "#666" : "inherit",
-                  }}
+          {/* Transaction Type */}
+          <Grid item xs={12} sm={12}>
+            <MDTypography variant="body01">Transaction Type</MDTypography>
+            <MDInput
+              fullWidth
+              value={form.type}
+              onChange={handleChange("type")}
+              error={!!errors.type}
+              disabled
+            />
+          </Grid>
+
+          {/* Maintenance Contract */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Maintenance Contract</MDTypography>
+            <MDInput
+              fullWidth
+              value={form.mc_code}
+              onChange={handleChange("mc_code")}
+              error={!!errors.mc_code}
+            />
+          </Grid>
+
+          {/* Work Order */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Work Order</MDTypography>
+            <MDInput
+              fullWidth
+              value={form.work_order}
+              onChange={handleChange("work_order")}
+              error={!!errors.work_order}
+            />
+          </Grid>
+          
+          {/* Stock Item ID */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Stock Item ID</MDTypography>
+            <Autocomplete
+              options={stockOptions}
+              getOptionLabel={(option) => option.stock_item || ""}
+              isOptionEqualToValue={(option, value) =>
+                option?.item_id === value?.item_id
+              }
+              onInputChange={(e, value, reason) => {
+                if (reason === "input") handleSearchStock(value);
+              }}
+              onChange={(e, value) => handleSelectStock(value)}
+              value={
+                form.item_id
+                  ? {
+                      item_id: form.item_id,
+                      stock_item: form.stock_item,
+                      item_name: form.item_name,
+                    }
+                  : null
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  error={!!errors.stock_item}
+                  helperText={errors.stock_item}
                 />
               )}
+            />
+          </Grid>
 
-              {errors[field] && (
-                <MDTypography variant="caption" color="error">
-                  {errors[field]}
-                </MDTypography>
+          {/* Stock Item Name */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Stock Item Name</MDTypography>
+            <Autocomplete
+              options={stockOptions}
+              getOptionLabel={(option) => option.item_name || ""}
+              isOptionEqualToValue={(option, value) =>
+                option?.item_id === value?.item_id
+              }
+              onInputChange={(e, value, reason) => {
+                if (reason === "input") handleSearchStock(value);
+              }}
+              onChange={(e, value) => handleSelectStock(value)}
+              value={
+                form.item_id
+                  ? {
+                      item_id: form.item_id,
+                      stock_item: form.stock_item,
+                      item_name: form.item_name,
+                    }
+                  : null
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  error={!!errors.item_name}
+                  helperText={errors.item_name}
+                />
               )}
-            </Grid>
-          ))}
+            />
+          </Grid>
+
+          {/* Usage */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Usage</MDTypography>
+            <MDInput
+              fullWidth
+              value={form.usage_num}
+              onChange={handleChange("usage_num")}
+              error={!!errors.usage_num}
+            />
+          </Grid>
+
+          {/* Line */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Line</MDTypography>
+            <MDInput
+              fullWidth
+              value={form.line}
+              onChange={handleChange("line")}
+              error={!!errors.line}
+            />
+          </Grid>
+
+          {/* Usage Type */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Usage Type</MDTypography>
+            <MDInput
+              fullWidth
+              type="string"
+              value={form.usage_type}
+              onChange={handleChange("usage_type")}
+              error={!!errors.usage_type}
+              disabled
+            />
+          </Grid>
+
+          {/* Split */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Split</MDTypography>
+            <MDInput
+              fullWidth
+              type="number"
+              value={form.split}
+              onChange={handleChange("split")}
+              error={!!errors.split}
+              disabled
+            />
+          </Grid>
+
+          {/* Condition */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Condition</MDTypography>
+            <FormControl fullWidth>
+              <StyledSelect
+                value={form.cond}
+                onChange={handleChange("cond")}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  Select condition
+                </MenuItem>
+                <MenuItem value="NEW">NEW</MenuItem>
+                <MenuItem value="CAPITAL">CAPITAL</MenuItem>
+              </StyledSelect>
+            </FormControl>
+          </Grid>
+          
+          {/* Quantity */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Quantity</MDTypography>
+            <MDInput
+              fullWidth
+              type="number"
+              step="1" //รับได้แค่จำนวนเต็ม
+              min="1"       // จำกัดให้เป็นจำนวนบวก
+              value={form.plan_qty}
+              onChange={(e) => {
+                // กรองไม่ให้กรอกทศนิยมหรือลบ
+                let val = e.target.value;
+                if (val === "") {
+                  setForm((prev) => ({ ...prev, plan_qty: "" }));
+                  return;
+                }
+                val = Math.max(1, Math.floor(Number(val)));
+                setForm((prev) => ({ ...prev, plan_qty: val }));
+              }}
+              error={!!errors.plan_qty}
+            />
+          </Grid>
+
+          {/* Location */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Source Location</MDTypography>
+            <MDInput fullWidth value={form.loc} readOnly disabled/>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01">Box Location</MDTypography>
+            <MDInput fullWidth value={form.box_loc} readOnly disabled/>
+          </Grid>
+
         </Grid>
       </DialogContent>
 
@@ -202,270 +394,4 @@ WaitingFormDialog.propTypes = {
   onSubmit: PropTypes.func,
 };
 
-// import React, { useEffect, useMemo, useState } from "react";
-// import {
-//   Dialog,
-//   DialogTitle,
-//   DialogContent,
-//   DialogActions,
-//   Grid,
-//   FormControl,
-//   MenuItem,
-//   FormHelperText,
-// } from "@mui/material";
-// import PropTypes from "prop-types";
-// import MDInput from "components/MDInput";
-// import MDTypography from "components/MDTypography";
-// import MDButton from "components/MDButton";
-// import { StyledSelect } from "common/Global.style";
 
-// export default function WaitingFormDialog({
-//   open,
-//   mode = "create",
-//   initialData = null,
-//   onClose,
-//   onSubmit,
-// }) {
-//   const isEdit = mode === "edit";
-
-//   const [form, setForm] = useState({
-//     type: "USAGE",
-//     work_order: "",
-//     usage_num: "",
-//     line: "",
-//     stock_item: "",
-//     item_desc: "",
-//     usage_type: "ISSUE",
-//     cond: "",
-//     split: "",
-//     plan_qty: "",
-//     from_location: "",
-//   });
-
-//   const [errors, setErrors] = useState({});
-//   const [submitting, setSubmitting] = useState(false);
-
-//   useEffect(() => {
-//     if (open) {
-//       setErrors({});
-//       if (isEdit && initialData) {
-//         setForm({
-//           type: "USAGE",
-//           work_order: initialData.work_order ?? "",
-//           usage_num: initialData.usage_num ?? "",
-//           line: initialData.line ?? "",
-//           stock_item: initialData.stock_item ?? "",
-//           item_desc: initialData.item_desc ?? "",
-//           usage_type: "ISSUE",
-//           cond: initialData.cond ?? "",
-//           split: initialData.split ?? "",
-//           plan_qty: initialData.plan_qty ?? "",
-//           from_location: initialData.from_location ?? "",
-//         });
-//       } else {
-//         setForm({
-//           type: "USAGE",
-//           work_order: "",
-//           usage_num: "",
-//           line: "",
-//           stock_item: "",
-//           item_desc: "",
-//           usage_type: "ISSUE",
-//           cond: "",
-//           split: "",
-//           plan_qty: "",
-//           from_location: "",
-//         });
-//       }
-//     }
-//   }, [open, isEdit, initialData]);
-
-//   const handleChange = (field) => (e) => {
-//     const value = e.target.value;
-//     setForm((prev) => ({ ...prev, [field]: value }));
-//     setErrors((prev) => ({ ...prev, [field]: "" }));
-//   };
-
-//   const validateAll = () => {
-//     const next = {};
-//     if (!form.work_order?.trim()) next.work_order = "Work order is required.";
-//     if (!form.stock_item?.trim()) next.stock_item = "Stock item is required.";
-//     if (!form.cond?.trim()) next.cond = "Condition is required.";
-//     setErrors(next);
-//     return Object.keys(next).length === 0;
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!validateAll()) return;
-//     try {
-//       setSubmitting(true);
-//       const payload = { ...form };
-//       const ok = await onSubmit?.(payload);
-//       if (ok) onClose?.();
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   };
-
-//   const condOptions = [
-//     { value: "NEW", label: "NEW" },
-//     { value: "CAPITAL", label: "CAPITAL" },
-//   ];
-
-//   const title = useMemo(() => (isEdit ? "Edit Usage Order" : "Create New Usage Order"), [isEdit]);
-
-//   return (
-//     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-//       <DialogTitle>{title}</DialogTitle>
-//       <DialogContent dividers>
-//         <Grid container spacing={2} mt={0}>
-//           {/* Transaction Type */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Transaction Type
-//             </MDTypography>
-//             <MDInput fullWidth value="USAGE" inputProps={{ readOnly: true }} />
-//           </Grid>
-
-//           {/* Work Order */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Work Order
-//             </MDTypography>
-//             <MDInput
-//               fullWidth
-//               value={form.work_order}
-//               onChange={handleChange("work_order")}
-//               error={!!errors.work_order}
-//             />
-//             {errors.work_order && (
-//               <MDTypography variant="caption" color="error">
-//                 {errors.work_order}
-//               </MDTypography>
-//             )}
-//           </Grid>
-
-//           {/* Usage Number */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Usage
-//             </MDTypography>
-//             <MDInput
-//               fullWidth
-//               value={form.usage_num}
-//               onChange={handleChange("usage_num")}
-//             />
-//           </Grid>
-
-//           {/* Line */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Line
-//             </MDTypography>
-//             <MDInput fullWidth value={form.line} onChange={handleChange("line")} />
-//           </Grid>
-
-//           {/* Stock Item */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Stock Item ID
-//             </MDTypography>
-//             <MDInput
-//               fullWidth
-//               value={form.stock_item}
-//               onChange={handleChange("stock_item")}
-//               error={!!errors.stock_item}
-//             />
-//             {errors.stock_item && (
-//               <MDTypography variant="caption" color="error">
-//                 {errors.stock_item}
-//               </MDTypography>
-//             )}
-//           </Grid>
-
-//           {/* Description */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Stock Item Description
-//             </MDTypography>
-//             <MDInput fullWidth value={form.item_desc} onChange={handleChange("item_desc")} />
-//           </Grid>
-
-//           {/* Usage Type */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Usage Type
-//             </MDTypography>
-//             <MDInput fullWidth value="ISSUE" inputProps={{ readOnly: true }} />
-//           </Grid>
-
-//           {/* Condition Dropdown */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Condition
-//             </MDTypography>
-//             <FormControl fullWidth error={!!errors.cond}>
-//               <StyledSelect
-//                 sx={{ width: "400px", maxWidth: "100%", height: "45px" }}
-//                 value={form.cond ?? ""}
-//                 onChange={handleChange("cond")}
-//                 displayEmpty
-//               >
-//                 <MenuItem value="" disabled>
-//                   Select Condition
-//                 </MenuItem>
-//                 {condOptions.map((opt) => (
-//                   <MenuItem key={opt.value} value={opt.value}>
-//                     {opt.label}
-//                   </MenuItem>
-//                 ))}
-//               </StyledSelect>
-//               {errors.cond && <FormHelperText>{errors.cond}</FormHelperText>}
-//             </FormControl>
-//           </Grid>
-
-//           {/* Split */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Split
-//             </MDTypography>
-//             <MDInput fullWidth value={form.split} onChange={handleChange("split")} />
-//           </Grid>
-
-//           {/* Quantity */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               Quantity to be handled
-//             </MDTypography>
-//             <MDInput fullWidth value={form.plan_qty} onChange={handleChange("plan_qty")} />
-//           </Grid>
-
-//           {/* From Location */}
-//           <Grid item xs={12} sm={6}>
-//             <MDTypography variant="body01" mb={0.5}>
-//               From Location
-//             </MDTypography>
-//             <MDInput fullWidth value={form.from_location} onChange={handleChange("from_location")} />
-//           </Grid>
-//         </Grid>
-//       </DialogContent>
-
-//       <DialogActions>
-//         <MDButton variant="outlined" onClick={onClose} disabled={submitting}>
-//           Cancel
-//         </MDButton>
-//         <MDButton onClick={handleSubmit} color="dark" disabled={submitting}>
-//           {submitting ? "Saving..." : isEdit ? "Update" : "Save"}
-//         </MDButton>
-//       </DialogActions>
-//     </Dialog>
-//   );
-// }
-
-// WaitingFormDialog.propTypes = {
-//   open: PropTypes.bool.isRequired,
-//   mode: PropTypes.oneOf(["create", "edit"]),
-//   initialData: PropTypes.object,
-//   onClose: PropTypes.func,
-//   onSubmit: PropTypes.func,
-// };
