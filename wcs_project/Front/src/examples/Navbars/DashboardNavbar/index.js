@@ -84,6 +84,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const [controller, dispatch] = useMaterialUIController();
   const { transparentNavbar, fixedNavbar, darkMode, miniSidenav } = controller;
   const userRole = GlobalVar.getRole(); // ✅ ดึง Role ของผู้ใช้
+  
   // const [openMenu, setOpenMenu] = useState(false);
   // const location = useLocation();
   // const route = location?.pathname ? location.pathname.split("/").slice(1) : [];
@@ -286,16 +287,16 @@ function DashboardNavbar({ absolute, light, isMini }) {
         const token = GlobalVar.getToken();
         const language = GlobalVar.getLanguage();
 
-        console.log("UserID:", storedUserID);
-        console.log("Token:", token);
-        console.log("language:", language);
+        //console.log("UserID:", storedUserID);
+        //console.log("Token:", token);
+        //console.log("language:", language);
 
         if (storedUserID && token) {
           setUserID(storedUserID);
           // Fetch profile data with authorization
           const response = await UserAPI.getUserDataById(storedUserID);
           if (response.isCompleted && !response.isError) {
-            console.log("Profile Data:", response.data);
+            //console.log("Profile Data:", response.data);
 
             setLanguageCurrent(language);
 
@@ -400,7 +401,6 @@ function DashboardNavbar({ absolute, light, isMini }) {
             {miniSidenav ? "menu_open" : "menu"}
           </Icon>
         </IconButton>
-        
 
         {/* <MDBox color="inherit" mb={{ xs: 1, md: 0 }} sx={(theme) => navbarRow(theme, { isMini })}>
     <IconButton 
@@ -437,6 +437,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
         {isMini ? null : (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })} display="flex" justifyContent="flex-end">
             <MDBox display="flex" alignItems="center" justifyContent="flex-end" color={light ? "white" : "inherit"}>
+              
               {/* ปุ่มแสดงการแจ้งเตือน */}
               {/* <IconButton
           size="small"

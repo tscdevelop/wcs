@@ -21,10 +21,15 @@ import registerRouter from './routes/register';
 import userRouter from './routes/user.routes';
 import roleRouter from './routes/role.routes';
 import menuRouter from './routes/menu.routes';
+import dropdown from './routes/drodown.routes';
 import aisleRouter from './routes/aisle.routes';
 import mrsRouter from './routes/mrs.routes';
 import ordersRouter from './routes/orders.routes';
 import stockItemRouter from './routes/stock_items.routes';
+import locationRouter from './routes/locations.routes';
+import inventoryRouter from './routes/inventory.routes';
+import allOrdersRouter from './routes/all_orders.routes';
+import counterRouter from './routes/counter.routes';
 
 import swaggerApp from './swagger'; // นำเข้า swagger
 
@@ -43,6 +48,7 @@ import createTasksRouter from './routes/tasks.routes';
 import { T1MOrdersService } from './services/order_mrs.service'
 import { MockMrsGateway } from './gateways/mrs.gateway.mock';
 import { OrchestratedTaskService } from './services/tasks.service';
+import { T1OrdersService } from './services/order_wrs.service';
 
 const app = express();
 
@@ -114,11 +120,20 @@ app.use('/register', registerRouter);
 app.use('/api/users', userRouter);
 app.use('/api/roles', roleRouter);
 app.use('/api/menus', menuRouter);
+app.use('/api/dropdown', dropdown);
 
 app.use('/api/aisle', aisleRouter);
 app.use('/api/mrs', mrsRouter);
 app.use('/api/waiting', ordersRouter);
 app.use('/api/stock-items', stockItemRouter);
+app.use('/api/locations', locationRouter);
+app.use('/api/inventory', inventoryRouter);
+app.use('/api/counter', counterRouter);
+
+app.use('/api/orders', allOrdersRouter);
+
+// Serve static files ในโฟลเดอร์ public/uploads
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ใช้ Swagger UI
 app.use(swaggerApp);
@@ -168,9 +183,12 @@ AppDataSource.initialize()
 
     // 2) สร้างบริการ T1M โดยฉีด gateway เข้าไป
     const t1m = new T1MOrdersService(gw); // ไม่ต้องประกาศ let แยก
+ 
+    // 3) T1 (ไม่มี gateway)
+    const t1 = new T1OrdersService();
 
     // 3) สร้าง Orchestrator แล้วส่ง T1M เข้าไป
-    const orchestrator = new OrchestratedTaskService(t1m);
+    const orchestrator = new OrchestratedTaskService(t1m, t1);
 
     // 4) ผูก routes
     app.use('/api/execution', createTasksRouter(orchestrator));  
@@ -200,7 +218,7 @@ AppDataSource.initialize()
   })
   .catch((error: any) => console.log('Error: ', error));
 
-
+// จำลอง
 // AppDataSource.initialize()
 //   .then(async () => {
 //     console.log('Connected to the database.');

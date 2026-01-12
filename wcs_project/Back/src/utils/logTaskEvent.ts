@@ -3,6 +3,7 @@ import { StatusOrders, TaskReason, TaskSource, TaskSubsystem } from "../common/g
 import { OrdersLog } from "../entities/orders_log.entity";
 import { Orders } from "../entities/orders.entity";
 import { StockItems } from "../entities/m_stock_items.entity";
+import { Locations } from "../entities/m_location.entity";
 
 export class OrdersLogService {
     public async logTaskEvent(
@@ -19,13 +20,22 @@ export class OrdersLogService {
     ): Promise<void> {
         const repo = manager.getRepository(OrdersLog);
 
+        //หา data from item_id
         const stockRepo = manager.getRepository(StockItems);
         const stock = await stockRepo.findOne({
-            where: { stock_item: order.stock_item }
+            where: { item_id: order.item_id }
         });
-
+        const stockItem = stock?.stock_item;
         const itemName = stock?.item_name ?? null;
         const itemDesc = stock?.item_desc ?? null;
+
+        //find data from loc_id
+        const locationRepo = manager.getRepository(Locations);
+        const loc = await locationRepo.findOne({
+            where: { loc_id: order.loc_id }
+        });
+        const location = loc?.loc ?? null;
+        const boxLocation = loc?.box_loc ?? null;
 
         const resolvedSource: TaskSource = (params?.source as TaskSource) ?? TaskSource.SYSTEM;
         const resolvedSubsystem: TaskSubsystem = (params?.subsystem as TaskSubsystem) ?? TaskSubsystem.CORE;
@@ -34,17 +44,15 @@ export class OrdersLogService {
 
         await repo.insert({
             order_id: String(order.order_id),
-            store_type: 'T1M',
             type: order.type as any,
-            stock_item: String(order.stock_item),
-            item_name: itemName,
-            item_desc: itemDesc,
-            from_location: order.from_location || null,
-            source_loc: order.source_loc || null,
-            source_box_loc: order.source_box_loc || null,
-            dest_loc: order.dest_loc || null,
-            dest_box_loc: order.dest_box_loc || null,
-            cond: order.cond || null,
+            item_id: order.item_id,
+            stock_item: stockItem ?? '',
+            item_name: itemName ?? null,
+            item_desc: itemDesc ?? null,
+            loc_id: order.loc_id,
+            loc: location ?? null,
+            box_loc: boxLocation ?? null,
+            cond: order.cond,
             plan_qty: order.plan_qty ?? 0,
             actual_qty: order.actual_qty ?? 0,
             status: params?.status ? (params.status as StatusOrders) : null, // ✅ แก้ตรงนี้

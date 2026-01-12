@@ -168,6 +168,27 @@ export const TransactionType =[
 ];
 
 export const StoreType =[ 
-  {value: "T1M" , text: "MRS"},
-  {value: "T1" , text: "WRS"},
+  {value: "T1M" , text: "T1M Store"},
+  {value: "T1" , text: "T1 Store"},
+  {value: "AGMB" , text: "AGMB Store"},
+  {value: "WCS" , text: "WCS"},
+];
+
+export const Condition =[ 
+  {value: "NEW" , text: "NEW"},
+  {value: "CAPITAL" , text: "CAPITAL"},
+];
+
+export const OrderStatus =[ 
+  {value: "PENDING" , text: "PENDING"},
+  {value: "PROCESSING" , text: "PROCESSING"},
+  {value: "COMPLETED" , text: "COMPLETED"},
+  {value: "FINISHED", text: "FINISHED"},
+  {value: "ERROR" , text: "ERROR"},
+];
+
+export const OrderStatusNoFinish =[ 
+  {value: "PENDING" , text: "PENDING"},
+  {value: "PROCESSING" , text: "PROCESSING"},
+  {value: "ERROR" , text: "ERROR"},
 ];

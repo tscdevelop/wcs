@@ -28,8 +28,8 @@ const WaitingExecutionPage = () => {
   const [searchWaiting, setSearchWaiting] = useState({ date: "", time: "" });
   const [searchExecution, setSearchExecution] = useState({ date: "", time: "" });
 
-  const [selectedWaiting, setSelectedWaiting] = useState(null);
-  const [selectedExecution, setSelectedExecution] = useState(null);
+  const [selectedWaitingIds, setSelectedWaitingIds] = useState([]);
+  const [selectedExecutionIds, setSelectedExecutionIds] = useState([]);
 
   const [loading, setLoading] = useState(false);
 
@@ -115,91 +115,71 @@ const WaitingExecutionPage = () => {
   // --------------------------------------------------
   // MOVE TO EXECUTION
   // --------------------------------------------------
-  const handleMoveToExecution = async () => {
-    if (!selectedWaiting) return;
+const handleMoveToExecution = async () => {
+  if (selectedWaitingIds.length === 0) return;
 
-    const row = waitingList.find((item) => item.order_id === selectedWaiting);
-    if (!row) return;
+  try {
+    const payload = {
+      items: selectedWaitingIds.map(id => ({ order_id: id }))
+    };
 
-    const payload = { order_id: row.order_id };
+    await ExecutionAPI.createTask(payload);
 
-    try {
-      const response = await ExecutionAPI.createTask(payload);
+    await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
+    setSelectedWaitingIds([]);
 
-      if (!response?.isCompleted) {
-        setAlert({
-          show: true,
-          type: "error",
-          title: "Error",
-          message: response?.message || "API rejected",
-        });
-        return;
-      }
+    setAlert({
+      show: true,
+      type: "success",
+      title: "Success",
+      message: "Moved to Execution",
+    });
+  } catch (err) {
+    console.error(err);
+    setAlert({
+      show: true,
+      type: "error",
+      title: "Error",
+      message: err.response?.data?.message || "Something went wrong",
+    });
+  }
+};
 
-      await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
-      setSelectedWaiting(null);
 
-      setAlert({
-        show: true,
-        type: "success",
-        title: "Success",
-        message: "Confirm to execution list",
-      });
-    } catch (err) {
-      console.error(err);
-
-      setAlert({
-        show: true,
-        type: "error",
-        title: "Error",
-        message: err.response?.data?.message || "Something went wrong",
-      });
-    }
-  };
 
   // --------------------------------------------------
   // DELETE EXECUTION -> BACK TO WAITING
   // --------------------------------------------------
-  const handleDeleteTask = async () => {
-    if (!selectedExecution) return;
+const handleDeleteTask = async () => {
+  if (selectedExecutionIds.length === 0) return;
 
-    const row = executionList.find((item) => item.order_id === selectedExecution);
-    if (!row) return;
+  try {
+    const payload = {
+      items: selectedExecutionIds.map(id => ({ order_id: id }))
+    };
 
-    try {
-      const response = await ExecutionAPI.changeToWaiting(row.order_id);
+    await ExecutionAPI.changeToWaiting(payload);
 
-      if (!response?.isCompleted) {
-        setAlert({
-          show: true,
-          type: "error",
-          title: "Error",
-          message: response?.message || "API rejected",
-        });
-        return;
-      }
+    await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
+    setSelectedExecutionIds([]);
 
-      await Promise.all([fetchDataWaitingAll(), fetchDataExecuteAll()]);
-      setSelectedExecution(null);
+    setAlert({
+      show: true,
+      type: "success",
+      title: "Success",
+      message: "Moved back to Waiting",
+    });
+  } catch (err) {
+    console.error(err);
+    setAlert({
+      show: true,
+      type: "error",
+      title: "Error",
+      message: err.response?.data?.message || "Something went wrong",
+    });
+  }
+};
 
-      setAlert({
-        show: true,
-        type: "success",
-        title: "Success",
-        message: "Confirm to order list",
-      });
-
-    } catch (err) {
-      console.error(err);
-
-      setAlert({
-        show: true,
-        type: "error",
-        title: "เกิดข้อผิดพลาด",
-        message: err.response?.data?.message || "Something went wrong",
-      });
-    }
-  };
 
   // --------------------------------------------------
   // TABLE COLUMNS
@@ -210,10 +190,10 @@ const WaitingExecutionPage = () => {
     { field: "stock_item", label: "Stock Item ID" },
     { field: "item_name", label: "Stock Item Name" },
     { field: "item_desc", label: "Stock Item Description" },
-    { field: "from_location", label: "Location" },
+    { field: "loc", label: "Location" },
+    { field: "box_loc", label: "Box Location" },
     { field: "cond", label: "Condition" },
     { field: "plan_qty", label: "Quantity to be handled" },
-    { field: "actual_qty", label: "Scanned Quantity" },
     { field: "status", label: "Status" },
   ];
 
@@ -332,8 +312,9 @@ const WaitingExecutionPage = () => {
                   columns={columnsWaiting}
                   rows={filteredWaiting}
                   idField="order_id"
-                  onRowClick={(row) => setSelectedWaiting(row.order_id)}
-                  selectedId={selectedWaiting}
+                  enableSelection={true}              // ⭐ เปิด checkbox
+  selectedRows={selectedWaitingIds}   // ⭐ รายการที่เลือก
+  onSelectedRowsChange={setSelectedWaitingIds} // ⭐ callback
                   fontSize="0.8rem"
                   autoHeight
                 />
@@ -364,7 +345,8 @@ const WaitingExecutionPage = () => {
                 setConfirmAction(() => handleMoveToExecution);
                 setConfirmAlert(true);
               }}
-              disabled={!selectedWaiting || loading}
+              disabled={selectedWaitingIds.length === 0 || loading}
+
               sx={{ p: 0.3 }}
             >
               <AddCircleIcon sx={{ fontSize: 36 }} />
@@ -380,7 +362,7 @@ const WaitingExecutionPage = () => {
                 setConfirmAction(() => handleDeleteTask);
                 setConfirmAlert(true);
               }}
-              disabled={!selectedExecution || loading}
+              disabled={selectedExecutionIds.length === 0 || loading}
               sx={{ p: 0.3 }}
             >
               <RemoveCircleIcon sx={{ fontSize: 36 }} />
@@ -469,8 +451,9 @@ const WaitingExecutionPage = () => {
                   columns={columnsExecute}
                   rows={filteredExecution}
                   idField="order_id"
-                  onRowClick={(row) => setSelectedExecution(row.order_id)}
-                  selectedId={selectedExecution}
+  enableSelection={true}              // ⭐ เปิด checkbox
+  selectedRows={selectedExecutionIds}   // ⭐ รายการที่เลือก
+  onSelectedRowsChange={setSelectedExecutionIds} // ⭐ callback
                   fontSize="0.8rem"
                   autoHeight
                 />

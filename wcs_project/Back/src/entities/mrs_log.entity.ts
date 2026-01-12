@@ -23,7 +23,7 @@ export class MrsLog {
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Aisle id involved (logical FK)' })
     aisle_id?: string | null;
 
-    /** งานที่เกี่ยวข้อง (เชื่อมกับ task_mrs ถ้ามี) */
+    /** งานที่เกี่ยวข้อง */
     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Task id linked to this action (logical FK)' })
     order_id?: string | null;
 

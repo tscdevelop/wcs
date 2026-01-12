@@ -109,17 +109,21 @@ const UsageHistory = () => {
           order_id: data.order_id,
           type: data.type ?? "",
           status: data.status ?? "",
+          mc_code: data.mc_code ?? "",
           work_order: data.work_order ?? "",
           usage_num: data.usage_num ?? "",
           line: data.line ?? "",
-          stock_item: data.stock_item ?? "",
           plan_qty: data.plan_qty ?? 0,
-          from_location: data.from_location ?? "",
           usage_type: data.usage_type ?? "",
           cond: data.cond ?? "",
           split: data.split ?? "",
-          actual_qty: data.actual_qty ?? 0,
           is_confirm: data.is_confirm ?? false,
+          item_id: data.item_id ?? "",
+          stock_item: data.stock_item ?? "",
+          item_name: data.item_name ?? "",
+          loc_id: data.loc_id ?? "",
+          loc: data.loc ?? "",
+          box_loc: data.box_loc ?? ""
         });
 
         setFormOpen(true);
@@ -138,13 +142,22 @@ const UsageHistory = () => {
 
   const handleSubmitUser = async (payload) => {
     try {
-      const finalPayload = {
-        ...payload,
-        store_type: "T1M",
-        priority: 5,
-        type: "USAGE",
-        usage_type: "ISSUE",
-      };
+    // สร้าง payload ใหม่ให้เป็นรูปแบบที่ backend ต้องการ
+    const finalPayload = {
+      type: "USAGE",
+      item_id: payload.item_id,
+      mc_code: payload.mc_code,
+      loc_id: payload.loc_id,
+      cond: payload.cond,
+      plan_qty: payload.plan_qty,
+      usage: {
+        work_order: payload.work_order,
+        usage_num: payload.usage_num,
+        line: payload.line,
+        usage_type: payload.usage_type,
+        split: payload.split
+      }
+    };
 
       let res;
 
@@ -229,7 +242,9 @@ const UsageHistory = () => {
     { field: "usage_num", label: "Usage" },
     { field: "line", label: "Line" },
     { field: "stock_item", label: "Stock Item ID" },
-    { field: "from_location", label: "From Location" },
+    { field: "item_name", label: "Stock Item Name" },
+    { field: "loc", label: "Source Location" },
+    { field: "box_loc", label: "Source Box Location" },
     { field: "usage_type", label: "Usage Type" },
     { field: "cond", label: "Condition" },
     { field: "split", label: "Split" },
@@ -363,38 +378,40 @@ const UsageHistory = () => {
       </MDBox>
 
       {/* Scan Qty Dialog */}
-      <ScanQtyDialog
-        open={scanDialogOpen}
-        order={selectedOrder}
-        onClose={() => setScanDialogOpen(false)}
-        onSubmit={async (order_id, actual_qty) => {
-          try {
-            const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
+      {selectedOrder && (
+        <ScanQtyDialog
+          open={scanDialogOpen}
+          order={selectedOrder}
+          onClose={() => setScanDialogOpen(false)}
+          onSubmit={async (order_id, actual_qty) => {
+            try {
+              const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
 
-            if (response.isCompleted) {
-              setAlert({
-                show: true,
-                type: "success",
-                title: "Confirmed",
-                message: response.message,
-              });
+              if (response.isCompleted) {
+                setAlert({
+                  show: true,
+                  type: "success",
+                  title: "Confirmed",
+                  message: response.message,
+                });
 
-              await fetchDataAll();
-            } else {
-              setAlert({
-                show: true,
-                type: "error",
-                title: "Error",
-                message: response.message || "Failed",
-              });
+                await fetchDataAll();
+              } else {
+                setAlert({
+                  show: true,
+                  type: "error",
+                  title: "Error",
+                  message: response.message || "Failed",
+                });
+              }
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setScanDialogOpen(false);
             }
-          } catch (err) {
-            console.error(err);
-          } finally {
-            setScanDialogOpen(false);
-          }
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* Waiting Form Dialog */}
       <WaitingFormDialog

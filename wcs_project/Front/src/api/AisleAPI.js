@@ -29,7 +29,7 @@ class AisleAPI {
     static async AisleDropdown() {
     try {
       const token = GlobalVar.getToken();
-      const endpoint = "/api/aisle/get-code-dropdown";
+      const endpoint = "/api/dropdown/get-aisle-code";
       const apiResponse = await ApiProvider.getData(endpoint, {}, token);
 
 

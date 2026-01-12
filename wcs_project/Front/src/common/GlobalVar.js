@@ -12,7 +12,8 @@ const StorageKeys = {
   HOSPITAL_ADDRESS: "hospitalAddress",
   HOSPITAL_LOGO: "hospitalLogo",
   LANGUAGE: "language",
-  FACTORY_ID: "factoryID"
+  MC_CODES: "mcCodes", 
+  STORE_TYPE: "storeType",
 
   // เพิ่มคีย์อื่นๆ ตามที่ต้องการ
 };
@@ -56,21 +57,6 @@ class GlobalVar {
     LocalStorageHelper.setItem(StorageKeys.LANGUAGE, language);
   }
 
-  // ✅ ฟังก์ชันสำหรับบันทึก FACTORY_ID
-  static setFactoryID(factoryID) {
-    LocalStorageHelper.setItem(StorageKeys.FACTORY_ID, factoryID);
-  }
-
-  // ✅ ฟังก์ชันสำหรับดึง FACTORY_ID
-  static getFactoryID() {
-    return LocalStorageHelper.getItem(StorageKeys.FACTORY_ID);
-  }
-
-  // ✅ ฟังก์ชันสำหรับลบ FACTORY_ID
-  static removeFactoryID() {
-    LocalStorageHelper.removeItem(StorageKeys.FACTORY_ID);
-  }
-
   // ฟังก์ชันในการดึงค่า token
   static getToken() {
     return LocalStorageHelper.getItem(StorageKeys.TOKEN);
@@ -88,44 +74,14 @@ class GlobalVar {
     return LocalStorageHelper.getItem(StorageKeys.USER_ID);
   }
 
-  // static getHospitalCode() {
-  //   let hospitalCode = "";
-  //   if(!LocalStorageHelper.getItem(StorageKeys.HOSPITAL_CODE))
-  //   {
-  //     hospitalCode = Number(Constants.DEFAULT_HOSPITAL_CODE);
-  //   }
-  //   else{
-  //     hospitalCode = Number(LocalStorageHelper.getItem(StorageKeys.HOSPITAL_CODE));
-  //   }
-  //   return hospitalCode;
-  // }
-
-  // static getHospitalCode() {
-  //   let hospitalCode = "";
-  //   try {
-  //     const storedHospitalCode = LocalStorageHelper.getItem(StorageKeys.HOSPITAL_CODE);
-  //     hospitalCode = storedHospitalCode || Constants.DEFAULT_HOSPITAL_CODE;
-  //   } catch (error) {
-  //     console.error("Error accessing localStorage for Hospital Code:", error);
-  //     hospitalCode = Constants.DEFAULT_HOSPITAL_CODE; // ใช้ค่า default เมื่อเกิด error
-  //   }
-  //   return hospitalCode;
-  // }
-
   static async getHospitalName() {
     try {
 
       const storedHospitalName = LocalStorageHelper.getItem(StorageKeys.HOSPITAL_NAME); // ดึง hospitalName จาก LocalStorage
-
-
       // ถ้า hospitalCode ปัจจุบันตรงกับที่เคยเก็บไว้และมี hospitalName ใน LocalStorage
       if (storedHospitalName) {
         return JSON.parse(storedHospitalName); // คืนค่าจาก LocalStorage
-      }
-
-
-
-      else {
+      } else {
         console.warn("Hospital name not found in API response, using default names.");
         return {
           hospital_name_en: Constants.DEFAULT_LPI_NAME,
@@ -141,62 +97,6 @@ class GlobalVar {
     }
   }
 
-  // static async getHospitalAddress() {
-  //   try {
-  //     const currentHospitalCode = GlobalVar.getHospitalCode(); // ดึง hospitalCode ปัจจุบัน
-  //     const storedHospitalAddress = LocalStorageHelper.getItem(StorageKeys.HOSPITAL_ADDRESS); // ดึง hospitalAddress จาก LocalStorage
-  //     const storedHospitalCode = LocalStorageHelper.getItem(StorageKeys.HOSPITAL_CODE); // ดึง hospitalCode จาก LocalStorage
-
-  //     // ถ้า hospitalCode ปัจจุบันตรงกับที่เคยเก็บไว้และมี hospitalAddress ใน LocalStorage
-  //     if (storedHospitalAddress && currentHospitalCode === storedHospitalCode) {
-  //       return JSON.parse(storedHospitalAddress); // คืนค่าจาก LocalStorage
-  //     }
-
-  //     // ถ้า hospitalCode เปลี่ยน หรือไม่มี hospitalAddress ใน LocalStorage
-  //     const response = await HospitalAPI.getHospitalCODE(currentHospitalCode);
-
-  //     if (response?.isCompleted && response?.data) {
-  //       const hospitalAddress = {
-  //         hospital_province: response.data.hospital_province,
-  //         hospital_district: response.data.hospital_district,
-  //         hospital_subdistrict: response.data.hospital_subdistrict,
-  //         hospital_road: response.data.hospital_road,
-  //         hospital_alley: response.data.hospital_alley,
-  //         hospital_address: response.data.hospital_address,
-  //         hospital_postal_code: response.data.hospital_postal_code,
-  //       };
-
-  //       // เก็บข้อมูลใน LocalStorage
-  //       LocalStorageHelper.setItem(StorageKeys.HOSPITAL_ADDRESS, JSON.stringify(hospitalAddress));
-  //       LocalStorageHelper.setItem(StorageKeys.HOSPITAL_CODE, currentHospitalCode);
-
-  //       return hospitalAddress; // คืนข้อมูลที่ดึงมา
-  //     } else {
-  //       console.warn("Hospital address not found in API response, using default address.");
-  //       return {
-  //         hospital_province: "",
-  //         hospital_district: "",
-  //         hospital_subdistrict: "",
-  //         hospital_road: "",
-  //         hospital_alley: "",
-  //         hospital_address: Constants.DEFAULT_HOSPITAL_ADDRESS,
-  //         hospital_postal_code: "",
-  //       };
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching hospital address:", error);
-  //     return {
-  //       hospital_province: "",
-  //       hospital_district: "",
-  //       hospital_subdistrict: "",
-  //       hospital_road: "",
-  //       hospital_alley: "",
-  //       hospital_address: Constants.DEFAULT_HOSPITAL_ADDRESS,
-  //       hospital_postal_code: "",
-  //     };
-  //   }
-  // }
-
   static async getHospitalLogo() {
     try {
       return Constants.DEFAULT_LPI_LOGO;
@@ -205,8 +105,6 @@ class GlobalVar {
       return Constants.DEFAULT_LPI_LOGO;
     }
   }
-
-
 
   static getLanguage() {
     let language = "";
@@ -224,8 +122,42 @@ class GlobalVar {
     return language;
   }
 
+  // =====================
+  // MC CODE
+  // =====================
+  static setMcCodes(mcCodes) {
+    // ควรเป็น array เสมอ
+    LocalStorageHelper.setItem(
+      StorageKeys.MC_CODES,
+      JSON.stringify(mcCodes ?? [])
+    );
+  }
 
+  static getMcCodes() {
+    try {
+      const value = LocalStorageHelper.getItem(StorageKeys.MC_CODES);
+      return value ? JSON.parse(value) : [];
+    } catch (e) {
+      return [];
+    }
+  }
 
+  static removeMcCodes() {
+    LocalStorageHelper.removeItem(StorageKeys.MC_CODES);
+  }
+
+ // ===== store_type =====
+  static setStoreType(storeType) {
+    LocalStorageHelper.setItem(StorageKeys.STORE_TYPE, storeType);
+  }
+
+  static getStoreType() {
+    return LocalStorageHelper.getItem(StorageKeys.STORE_TYPE);
+  }
+
+  static removeStoreType() {
+    LocalStorageHelper.removeItem(StorageKeys.STORE_TYPE);
+  }
 
   // ฟังก์ชันในการตั้งค่าข้อมูลตามคีย์
   static setDataByKey(key, data) {
@@ -247,13 +179,14 @@ class GlobalVar {
     LocalStorageHelper.removeItem(StorageKeys.TOKEN);
   }
 
-  // ฟังก์ชันในการลบ localstorage ทั้งหมด
+  // ฟังก์ชันในการลบ localstorage ทั้งหมด ตอน logout
   static removeForLogout() {
     LocalStorageHelper.removeItem(StorageKeys.TOKEN);
     LocalStorageHelper.removeItem(StorageKeys.USER_ID);
     LocalStorageHelper.removeItem(StorageKeys.USERNAME);
     LocalStorageHelper.removeItem(StorageKeys.ROLE);
-    LocalStorageHelper.removeItem(StorageKeys.FACTORY_ID);
+    LocalStorageHelper.removeItem(StorageKeys.MC_CODES);
+    LocalStorageHelper.removeItem(StorageKeys.STORE_TYPE);
   }
 }
 

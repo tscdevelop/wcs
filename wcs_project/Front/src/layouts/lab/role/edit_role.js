@@ -63,7 +63,7 @@ const roleCode = searchParams.get("role_code") || "";  // กัน null
           };
 
           // ค้นหาเมนูหลัก (Parent Menus)
-          const parentMenus = menus.filter((menu) => menu.parent_menu_id === null);
+          const parentMenus = menus.filter((menu) => menu.parent_menu_id === 0);
 
           // ค้นหาเมนูที่ไม่มี parent และไม่มี children
           const standaloneMenus = parentMenus.filter((menu) => {
@@ -74,7 +74,7 @@ const roleCode = searchParams.get("role_code") || "";  // กัน null
           // กำหนด "เมนูอื่นๆ"
           const otherMenu = {
             menu_id: "others", // ค่า menu_id แบบฟิก
-            menu_name: "เมนูอื่นๆ", // ชื่อเมนูที่แสดงใน UI
+            menu_name: "Others", // ชื่อเมนูที่แสดงใน UI
             parent_menu_id: null,
             checked: false,
             isHeader: false,
@@ -287,25 +287,48 @@ useEffect(() => {
   }
 }, [roleCode]);
 
+const validateForm = () => {
+  const errors = [];
+
+  if (!formData.role_code || !formData.role_code.trim()) {
+    errors.push("Role Code is required");
+  }
+
+  if (!formData.role_name || !formData.role_name.trim()) {
+    errors.push("Role Name is required");
+  }
+
+  // ถ้าต้องการ validate permission menu ให้มีอย่างน้อย 1 เมนูถูกเลือก
+  const hasSelectedMenuOrAction = (menus) => {
+    return menus.some(
+      (menu) =>
+        menu.checked ||
+        menu.menu_actions?.some((action) => action.checked) ||
+        (menu.children && hasSelectedMenuOrAction(menu.children))
+    );
+  };
+  if (!hasSelectedMenuOrAction(formData.permissionMenus)) {
+    errors.push("At least one permission menu or action must be selected");
+  }
+
+  return errors;
+};
 
 
   //สำหรับการส่งข้อมูลไปที่ Server 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+      e.preventDefault();
 
-    const hasSelectedMenuOrAction = (menus) => {
-      return menus.some(
-        (menu) =>
-          menu.checked ||
-          menu.menu_actions?.some((action) => action.checked) ||
-          (menu.children && hasSelectedMenuOrAction(menu.children))
-      );
-    };
-
-    if (!hasSelectedMenuOrAction(formData.permissionMenus)) {
-
-      return;
-    }
+  const errors = validateForm();
+  if (errors.length > 0) {
+    setAlert({
+      show: true,
+      type: "error",
+      title: "Validation Error",
+      message: errors.join("\n"),
+    });
+    return; // หยุดการส่งข้อมูล
+  }
 
     const generatePermissionMenus = (menus) => {
       return menus
@@ -361,7 +384,7 @@ useEffect(() => {
         setAlert({
           show: true,
           type: "success",
-          title: "ดำเนินการสำเร็จ",
+          title: "Success",
           message: response.message,
         });
 
@@ -369,7 +392,7 @@ useEffect(() => {
         setAlert({
           show: true,
           type: "error",
-          title: "เกิดข้อผิดพลาด",
+          title: "Error",
           message: response.message,
         });
       }
@@ -381,7 +404,7 @@ useEffect(() => {
   //กลับไปหน้าหลัก
   const navigate = useNavigate();
   const handleCancel = () => {
-    navigate("/data/view-role");
+    navigate("/role/view-role");
   };
 
   return (
@@ -551,7 +574,12 @@ useEffect(() => {
         type={alert.type}
         title={alert.title}
         message={alert.message}
-        onConfirm={() => setAlert({ ...alert, show: false })}
+        onConfirm={() => {
+          setAlert({ ...alert, show: false });
+          if (alert.type === "success") {
+            navigate("/role/view-role"); // redirect เมื่อสร้าง/แก้ไขสำเร็จ
+          }
+        }}
       />
     </DashboardLayout>
   );
