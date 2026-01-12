@@ -77,6 +77,8 @@ const StockItemsData = () => {
             stock_item: data.stock_item,
             item_name: data.item_name,
             item_desc: data.item_desc ?? "",
+            item_img: data.item_img ?? "",
+            item_img_url: data.item_img_url ?? "",
             });
             setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
         } else {
@@ -94,16 +96,12 @@ const StockItemsData = () => {
 
     const handleSubmitUser = async (payload) => {
         try {
-        // ✅ เพิ่ม default field ที่ต้องบังคับส่งเสมอ
-        const finalPayload = {
-            ...payload,
-        };
 
         let res;
         if (formMode === "edit") {
-            res = await StockItemsAPI.update(editingItems.item_id, finalPayload);
+            res = await StockItemsAPI.update(editingItems.item_id, payload);
         } else {
-            res = await StockItemsAPI.create(finalPayload);
+            res = await StockItemsAPI.create(payload);
         }
 
         if (res?.isCompleted) {
@@ -160,8 +158,6 @@ const StockItemsData = () => {
         { field: "stock_item", label: "Stock Item ID" },
         { field: "item_name", label: "Stock Item Name" },
         { field: "item_desc", label: "Stock Item Description" },
-        { field: "is_active", label: "Split" },
-        { field: "requested_at", label: "Condition" },
     ];
 
     return (
@@ -175,7 +171,7 @@ const StockItemsData = () => {
             </MDBox>
         </MDBox>
 
-        <MDBox mt={5}>
+        <MDBox mt={3}>
             <Card>
             <MDBox mt={3} p={3}>
                 <Grid container spacing={1} mb={1}>

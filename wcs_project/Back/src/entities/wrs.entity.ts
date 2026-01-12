@@ -1,55 +1,44 @@
-// import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-// import { Connectivity, Health, Mode } from '../common/global.enum';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
-// /**
-//  * wrs: ทะเบียนหุ่นยนต์/รถ AGV ในคลัง T1
-//  * ใช้ดูความพร้อม/ออนไลน์/ตำแหน่งคร่าว/งานที่กำลังทำ/ระดับแบต/ปุ่ม E-Stop
-//  */
-// @Entity({ name: 'wrs' })
-// export class wrs {
-//     @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of WRS robot' })
-//     wrs_id!: string;
+/**
+ * WRS/AMR: ใช้เก็บรายละเอียดหุ่นยนต์และorder ที่ต้องทำงาน
+ */
+@Entity({ name: 'wrs' })
+export class WRS {
 
-//     @Column({ type: 'varchar', length: 100, comment: 'Human readable robot name/code' })
-//     name!: string;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+    wrs_id!: string;
 
-//     @Column({ type: 'varchar', length: 32, default: 'IDLE', comment: 'Runtime status label (IDLE/RUNNING/ERROR/...)' })
-//     status!: string;
+    @Column({ type: 'varchar', length: 50, unique: true })
+    wrs_code!: string;
 
-//     @Column({ type: 'enum', default: Mode.AUTO, enum:Mode ,comment: 'Operating mode' })
-//     mode!: Mode;
+    /** Idle / Delivering / Returning / Error */
+    @Column({ type: 'varchar', length: 30 })
+    wrs_status!: string;
 
-//     @Column({ type: 'enum', default: Health.OK, enum: Health, comment: 'Health status' })
-//     health_status!: Health;
+    /** ตำแหน่งปัจจุบันของหุ่นยนต์ */
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    current_loc_id?: string | null;
 
-//     @Column({ type: 'tinyint', width: 1, default: 0, comment: 'Emergency stop active (0/1)' })
-//     e_stop!: boolean;
+    /** order ที่กำลังทำอยู่ */
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    current_order_id?: string | null;
 
-//     @Column({ type: 'enum', default: Connectivity.ONLINE , enum:Connectivity, comment: 'Connectivity status' })
-//     connectivity!: Connectivity;
+    /** counter เป้าหมาย */
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    target_counter_id?: string | null;
 
-//     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Firmware version' })
-//     firmware_version?: string;
+    /** พร้อมรับงานใหม่หรือไม่ */
+    @Column({ type: 'boolean', default: true })
+    is_available!: boolean;
 
-//     /** ตำแหน่ง/จุดจอดปัจจุบันแบบตรรกะ (ที่ระดับระบบรู้จัก) */
-//     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Current logical location id (pod/bin/area)' })
-//     current_location_id?: string;
+    /** heartbeat จาก RCS */
+    @Column({ type: 'timestamp', nullable: true })
+    last_heartbeat?: Date;
 
-//     /** งานที่กำลังทำ (logical FK) */
-//     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Current running task id (logical)' })
-//     current_task_id?: string;
+    @Column({ type: 'tinyint', width: 1, default: 0, comment: 'Emergency stop active (0/1)' })
+    e_stop!: boolean;
 
-//     /** ระดับแบตเตอรี่ (%) */
-//     @Column({ type: 'tinyint', unsigned: true, nullable: true, comment: 'Battery level 0-100%' })
-//     battery_level?: number;
-
-//     /** override โปรไฟล์รายเครื่อง (ถ้าใช้แนวเดียวกับ MRS) */
-//     @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Override control profile (optional)' })
-//     control_id?: string;
-
-//     @Column({ type: 'tinyint', width: 1, default: 1, comment: 'Available for assignment (0/1)' })
-//     is_available!: boolean;
-
-//     @Column({ type: 'timestamp', default: () => "CURRENT_TIMESTAMP" })
-//     last_update: Date;
-// }
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at!: Date;
+}

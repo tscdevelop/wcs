@@ -13,6 +13,7 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  Checkbox
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -56,6 +57,12 @@ export default function ReusableDataTable({
 
   onRowClick,
   selectedId,
+
+  // สำหรับ checkbox
+  enableSelection = false, // true = เปิด checkbox
+  selectedRows = [], // array of ids ที่เลือกอยู่
+  onSelectedRowsChange, // callback เมื่อ checkbox เปลี่ยน
+  isRowSelectable, //ถ้าไม่ส่งเลือกได้ทุกแถว 
 }) {
   // ---- local state ----
   const [page, setPage] = useState(0);
@@ -78,6 +85,15 @@ export default function ReusableDataTable({
     console.warn("ReusableDataTable: `rows` is not an array. Received:", rows);
     return [];
   }, [rows]);
+
+  // Reset page เมื่อจำนวนข้อมูลเปลี่ยน
+  React.useEffect(() => {
+    const maxPage = Math.floor((safeRows.length - 1) / rowsPerPage);
+
+    if (page > maxPage) {
+      setPage(0);
+    }
+  }, [safeRows, rowsPerPage]);
 
   const getRowId = (row, index) => row?.[idField] ?? index;
 
@@ -243,7 +259,12 @@ export default function ReusableDataTable({
 
         {/* ปุ่มเสริม */}
         {extraActionButtons.map((btn, i) => (
-          <MDButton key={i} size="small" color={btn.color || "dark"} onClick={() => btn.onClick?.(row)}>
+          <MDButton
+            key={i}
+            size="small"
+            color={btn.color || "dark"}
+            onClick={() => btn.onClick?.(row)}
+          >
             {btn.label}
           </MDButton>
         ))}
@@ -261,7 +282,7 @@ export default function ReusableDataTable({
         variant="contained"
         size="small"
         color={disabled ? "secondary" : "success"}
-      disabled={disabled}
+        disabled={disabled}
         onClick={() => !disabled && onConfirmSku?.(row)}
       >
         Confirm
@@ -269,128 +290,248 @@ export default function ReusableDataTable({
     );
   };
 
-  return (
-    <Card variant="outlined" sx={{ overflow: "hidden", borderRadius: 0 }}>
-      <TableContainer sx={{ maxHeight: 640, borderRadius: 0 }}>
-        <Table stickyHeader={stickyHeader} size={density === "compact" ? "small" : "medium"}>
-          <TableHead style={{ display: "table-header-group" }}>
-            <TableRow>
-              {columns.map((col) => {
-                const sortable = col.sortable !== false && col.type !== "confirmSku"; // ปิด sort สำหรับ confirmSku
-                const active = orderBy === col.field;
-                return (
-                  <TableCell
-                    key={col.field}
-                    onClick={() => handleSort(col.field, sortable)}
-                    sx={{
-                      cursor: sortable ? "pointer" : "default",
-                      minWidth: col.minWidth,
-                      fontWeight: 600,
-                      backgroundColor: "#fff",
-                      color: "#757575",
-                    }}
-                    align={col.align || "left"}
-                  >
-                    <Box display="inline-flex" alignItems="center" gap={0.5}>
-                      {col.label ?? col.field}
-                      {sortable && (
-                        <Box component="span" sx={{ opacity: active ? 1 : 0.3 }}>
-                          {active ? (order === "asc" ? "▲" : "▼") : "↕"}
-                        </Box>
-                      )}
-                    </Box>
-                  </TableCell>
-                );
-              })}
+  const selectableRows = isRowSelectable
+  ? safeRows.filter(isRowSelectable)
+  : safeRows;
 
-              {actionsList.length > 0 && (
+  const allSelectableIds = selectableRows.map((r, i) => getRowId(r, i));
+
+
+return (
+  <Card variant="outlined" sx={{ overflow: "hidden", borderRadius: 0 }}>
+    <TableContainer sx={{ maxHeight: 640, borderRadius: 0, overflowX: "auto" }}>
+      <Table stickyHeader={stickyHeader} size={density === "compact" ? "small" : "medium"}>
+        <TableHead style={{ display: "table-header-group" }}>
+          <TableRow>
+            {/* Checkbox Header */}
+            {enableSelection && (
+              <TableCell 
+                padding="checkbox"
+                sx={{
+                  position: "sticky",
+                  left: 0,
+                  zIndex: 4,              // header ต้องสูงกว่า row
+                  backgroundColor: "#fff",
+                }}
+              >
+                {/* <Checkbox
+                  checked={selectedRows.length > 0 && selectedRows.length === safeRows.length}
+                  indeterminate={selectedRows.length > 0 && selectedRows.length < safeRows.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const allIds = safeRows.map((r, i) => getRowId(r, i));
+                      onSelectedRowsChange?.(allIds);
+                    } else {
+                      onSelectedRowsChange?.([]);
+                    }
+                  }}
+                /> */}
+                <Checkbox
+                  checked={
+                    allSelectableIds.length > 0 &&
+                    allSelectableIds.every(id => selectedRows.includes(id))
+                  }
+                  indeterminate={
+                    selectedRows.length > 0 &&
+                    selectedRows.length < allSelectableIds.length
+                  }
+                  onChange={(e) => {
+                    onSelectedRowsChange?.(
+                      e.target.checked ? allSelectableIds : []
+                    );
+                  }}
+                />
+              </TableCell>
+            )}
+
+            {columns.map((col) => {
+              const sortable = col.sortable !== false && col.type !== "confirmSku";
+              const active = orderBy === col.field;
+              return (
                 <TableCell
-                  align="center"
+                  key={col.field}
+                  onClick={() => handleSort(col.field, sortable)}
                   sx={{
-                    width: 160,
+                    cursor: sortable ? "pointer" : "default",
+                    minWidth: col.minWidth,
                     fontWeight: 600,
                     backgroundColor: "#fff",
                     color: "#757575",
                   }}
+                  align={col.align || "left"}
                 >
-                  Actions
+                  <Box display="inline-flex" alignItems="center" gap={0.5}>
+                    {col.label ?? col.field}
+                    {sortable && (
+                      <Box component="span" sx={{ opacity: active ? 1 : 0.3 }}>
+                        {active ? (order === "asc" ? "▲" : "▼") : "↕"}
+                      </Box>
+                    )}
+                  </Box>
                 </TableCell>
-              )}
-            </TableRow>
-          </TableHead>
+              );
+            })}
 
-          <TableBody>
-  {pagedRows.map((row, idx) => {
-    const rowId = getRowId(row, idx);
-    const isSelected = rowId === selectedId;
-
-    return (
-      <TableRow
-        hover
-        key={rowId}
-        onClick={() => onRowClick?.(row)}
-        selected={isSelected}
-        sx={{
-          cursor: "pointer",
-          backgroundColor: isSelected ? "rgba(25, 118, 210, 0.12)" : "inherit",
-          "&:hover": { backgroundColor: isSelected ? "rgba(25, 118, 210, 0.18)" : "#f5f5f5" },
-        }}
-      >
-        {columns.map((col) => {
-          // ✅ ถ้าเป็นคอลัมน์ยืนยัน SKU ให้ใช้ปุ่ม
-          if (col.type === "confirmSku") {
-            return (
-              <TableCell key={col.field} align={col.align || "left"}>
-                {renderConfirmSkuCell(row)}
+            {actionsList.length > 0 && (
+              <TableCell
+                align="center"
+                sx={{
+                  width: 160,
+                  fontWeight: 600,
+                  backgroundColor: "#fff",
+                  color: "#757575",
+                }}
+              >
+                Actions
               </TableCell>
+            )}
+          </TableRow>
+        </TableHead>
+
+        <TableBody>
+          {pagedRows.map((row, idx) => {
+            const rowId = getRowId(row, idx);
+            const isSelected = rowId === selectedId;
+            const rowSelectable = isRowSelectable ? isRowSelectable(row) : true;
+
+            return (
+              <TableRow
+                hover={rowSelectable}  
+                key={rowId}
+                onClick={() => {
+                  if (!rowSelectable) return;
+                  onRowClick?.(row);
+                }}
+                selected={isSelected}
+                sx={{
+                  cursor: rowSelectable ? "pointer" : "default",
+                  backgroundColor: isSelected
+                    ? "rgba(25, 118, 210, 0.12)"
+                    : "inherit",
+                  "&:hover": rowSelectable
+                    ? {
+                        backgroundColor: isSelected
+                          ? "rgba(25, 118, 210, 0.18)"
+                          : "#f5f5f5",
+                      }
+                    : {}, // ❌ ไม่มี hover effect ถ้าเลือกไม่ได้
+                }}
+              >
+                {/* Checkbox Each Row */}
+                {/* {enableSelection && (
+                  <TableCell 
+                    padding="checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 3,
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedRows.includes(rowId)}
+                      disabled={!selectable}
+                      onChange={(e) => {
+                        if (!selectable) return;
+
+                        if (e.target.checked) {
+                          onSelectedRowsChange?.([...selectedRows, rowId]);
+                        } else {
+                          onSelectedRowsChange?.(selectedRows.filter((id) => id !== rowId));
+                        }
+                      }}
+                    />
+                  </TableCell>
+                )} */}
+                {enableSelection && (
+                  <TableCell
+                    padding="checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 3,
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedRows.includes(rowId)}
+                      //disabled={isRowSelectable ? !isRowSelectable(row) : false}
+                      disabled={!rowSelectable}
+                      sx={{
+                        opacity: rowSelectable ? 1 : 0.4,
+                      }}
+                      onChange={(e) => {
+                        //if (isRowSelectable && !isRowSelectable(row)) return;
+
+                        if (!rowSelectable) return;
+                        if (e.target.checked) {
+                          onSelectedRowsChange?.([...selectedRows, rowId]);
+                        } else {
+                          onSelectedRowsChange?.(
+                            selectedRows.filter((id) => id !== rowId)
+                          );
+                        }
+                      }}
+                    />
+                  </TableCell>
+                )}
+
+
+                {columns.map((col) => {
+                  if (col.type === "confirmSku") {
+                    return (
+                      <TableCell key={col.field} align={col.align || "center"}>
+                        {renderConfirmSkuCell(row)}
+                      </TableCell>
+                    );
+                  }
+
+                  const value = getValue(row, col);
+                  return (
+                    <TableCell key={col.field} align={col.align || "left"}>
+                      {col.renderCell ? col.renderCell(value, row) : value}
+                    </TableCell>
+                  );
+                })}
+
+                {actionsList.length > 0 && (
+                  <TableCell align="center">{renderActions(row)}</TableCell>
+                )}
+              </TableRow>
             );
-          }
+          })}
 
-          // คอลัมน์ทั่วไป
-          const value = getValue(row, col);
-          return (
-            <TableCell key={col.field} align={col.align || "left"}>
-              {col.renderCell ? col.renderCell(value, row) : value}
-            </TableCell>
-          );
-        })}
+          {safeRows.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={columns.length + (actionsList.length > 0 ? 1 : 0)}>
+                <Typography variant="body2" color="text.secondary" align="center">
+                  No data
+                </Typography>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
 
-        {actionsList.length > 0 && (
-          <TableCell align="center">{renderActions(row)}</TableCell>
-        )}
-      </TableRow>
-    );
-  })}
+    <TablePagination
+      component="div"
+      count={safeRows.length}
+      page={page}
+      onPageChange={(e, newPage) => setPage(newPage)}
+      rowsPerPage={rowsPerPage}
+      onRowsPerPageChange={(e) => {
+        setRowsPerPage(parseInt(e.target.value, 10));
+        setPage(0);
+      }}
+      rowsPerPageOptions={pageSizeOptions}
+      labelDisplayedRows={({ from, to, count }) => `Showing ${from} to ${to} of ${count} entries`}
+    />
+  </Card>
+);
 
-  {safeRows.length === 0 && (
-    <TableRow>
-      <TableCell colSpan={columns.length + (actionsList.length > 0 ? 1 : 0)}>
-        <Typography variant="body2" color="text.secondary" align="center">
-          No data
-        </Typography>
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
-
-        </Table>
-      </TableContainer>
-
-      <TablePagination
-        component="div"
-        count={safeRows.length}
-        page={page}
-        onPageChange={(e, newPage) => setPage(newPage)}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => {
-          setRowsPerPage(parseInt(e.target.value, 10));
-          setPage(0);
-        }}
-        rowsPerPageOptions={pageSizeOptions}
-        labelDisplayedRows={({ from, to, count }) => `Showing ${from} to ${to} of ${count} entries`}
-      />
-    </Card>
-  );
 }
 
 ReusableDataTable.propTypes = {
@@ -426,19 +567,28 @@ ReusableDataTable.propTypes = {
 
   // เดิม
   actionsVariant: PropTypes.oneOf(["icons", "buttons", "both"]),
-  extraActionButtons: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      color: PropTypes.string,
-      onClick: PropTypes.func,
-    })
-  ),
+extraActionButtons: PropTypes.arrayOf(
+  PropTypes.shape({
+    label: PropTypes.string.isRequired,
+    color: PropTypes.string,
+    onClick: PropTypes.func,
+  })
+),
+
 
   // ✅ ใหม่
   confirmSkuDisabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onConfirmSku: PropTypes.func,
 
   onRowClick: PropTypes.func,
-selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  // 🔥 ต้องเพิ่มเอง
+enableSelection: PropTypes.bool,
+selectedRows: PropTypes.arrayOf(
+  PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+),
+onSelectedRowsChange: PropTypes.func,
+isRowSelectable: PropTypes.func,
 
 };

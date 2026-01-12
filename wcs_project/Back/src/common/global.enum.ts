@@ -95,31 +95,35 @@ export enum StatusWaiting {
 
 export enum StatusOrders {
     WAITING = 'WAITING',
-    QUEUED = 'QUEUED', 
+    PENDING = 'PENDING', 
+    QUEUE = 'QUEUE',
     PROCESSING = 'PROCESSING',
     AISLE_OPEN = 'AISLE_OPEN', 
-    FINISHED = 'FINISHED', 
+    COMPLETED = 'COMPLETED', //scan quantity matching CAPITAL/NEW quantity(required quantity)
+    FINISHED = 'FINISHED', //scan quantity not matching CAPITAL/NEW quantity(required quantity)
+
+    ERROR = 'ERROR',
 
     FAILED = 'FAILED',
     CANCELLED ='CANCELLED',
-           
+
     WAITING_CONFIRM = 'WAITING_CONFIRM', 
     WAITING_FINISH = 'WAITING_FINISH',
     AISLE_CLOSE = 'AISLE_CLOSE',
-    COMPLETED = 'COMPLETED',
-
     
+    AMR_DELIVERING = 'AMR_DELIVERING'
 }
 /*
 | Step | StatusOrders Enum | Function / Trigger                   | Comment          |
 | ---- | ---------------- | ------------------------------------ | ---------------- |
-| 1    | `QUEUED`         | `createAndOpen()` (รอ bank ว่าง)     | งานรอเปิด        |
-| 2    | `IN_PROGRESS`      | `createAndOpen()` → `gw.openAisle()` | Opening-Aisle    |
-| 3    | `AISLE_OPEN`     | `onOpenFinished()`                   | Aisle-Open       |
-| 4    | `WAITING_FINISH` | `onOpenFinished()` (ต่อท้าย)         | Waiting-Finish   |
-| 5    | `AISLE_CLOSE`    | `closeAfterConfirm()`                | Closing-Aisle    |
-| 6    | `COMPLETED`           | `onCloseFinished()`                  | Completed        |
-| 7    | `FAILED`         | `closeAfterConfirm()` (obstacle)     | Failed(Obstacle) |
+| 1    | `WAITING`         | `createAndOpenBatch()` (รอ bank ว่าง)     | สร้าง order        |
+1.1 PENDING คือเลือกมาฝั่ง execution แต่ยังไม่เริ่ม processing
+| 2    | `QUEUE`      | `executionInbT1m()` → `gw.openAisle()` | Queue    |
+| 3    | `PROCESSING`     | `onOpenFinished()`                   | Opening-Aisle       |
+| 4    | `AISLE_OPEN` | `onOpenFinished()` (ต่อท้าย)         |  Aisle-Open  |
+| 5    | `FINISHED`    | `handleOrderItem()`                | Waiting-Confirm    |
+| 6    | `FAILED`           | `()`                  | Failed(Obstacle)        |
+| 7    | `CANCELLED`         | `()`     | stop |
 
 */
 
@@ -162,7 +166,7 @@ export enum TaskEvent {
     TASK_EXECUTING = 'TASK_EXECUTING',
     TASK_WAITING_CONFIRM = 'TASK_WAITING_CONFIRM',
     TASK_WAITING_FINISH = 'TASK_WAITING_FINISH',
-    QUEUED = 'QUEUED',
+    PENDING = 'PENDING',
     USER_CONFIRM = 'USER_CONFIRM',
     USER_CONFIRM_BLOCKED = 'USER_CONFIRM_BLOCKED',
     TASK_CLOSING_AISLE = 'TASK_CLOSING_AISLE',

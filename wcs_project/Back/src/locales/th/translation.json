@@ -54,7 +54,9 @@
         "lab_form_header": "หัวออกรีพอร์ตแลป",
         "menu": "เมนู",
         "role":"สิทธิ์การใช้งานระบบ",
-        "order": "Waiting List"
+        "order": "Orders",
+        "waiting": "Waiting List",
+        "execution": "Execution List"
     },
     "field": {
         "user_id": "ไอดีผู้ใช้",
@@ -78,6 +80,13 @@
         "annotation": "หมายเหตุ",
         "transaction_log": "บันทึกการทำรายการ",
         "code": "รหัสรายการ",
-        "name" : "ชื่อ"
+        "name" : "ชื่อ",
+        "usage": "Usage History",
+        "receipt": "Receipt History"
+    },
+    "stock_item": {
+        "stock_id": "Stock Item ID(PK)",
+        "stock_item": "Stock Item ID",
+        "item_name": "Stock Item Name"
     }
 }

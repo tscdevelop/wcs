@@ -174,7 +174,6 @@ const T1MStore = () => {
         { field: "bank_code", label: "Zone" },
         { field: "status", label: "Status" },
         { field: "last_opened_at", label: "Last Open" },
-        { field: "last_closed_at", label: "Last Close" },
         { field: "last_event_at", label: "Last Event" },
     ];
 
@@ -201,15 +200,17 @@ const T1MStore = () => {
 
     const MRS_Columns = [
         { field: "mrs_code", label: "MRS Code" },
+        { field: "bank_code", label: "MRS Zone" },
+        { field: "mrs_status", label: "MRS Status" },
         { field: "requested_at", label: "Date" },
         { field: "type", label: "Transaction Type" },
         { field: "stock_item", label: "Stock Item ID" },
         { field: "item_name", label: "Stock Item Name" },
         { field: "item_desc", label: "Stock Item Description" },
-        { field: "from_location", label: "From Location" },
+        { field: "loc", label: "Location" },
+        { field: "box_loc", label: "Box Location" },
         { field: "plan_qty", label: "Quantity to be handled" },
         { field: "actual_qty", label: "Scanned Quantity" },
-        { field: "mrs_status", label: "MRS Status" },
         { field: "status", label: "Order Status" },
 
     ];

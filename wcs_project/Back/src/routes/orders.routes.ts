@@ -24,94 +24,114 @@ const router = Router();
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               store_type:
- *                 type: string
- *                 enum: [T1, T1M]
- *                 description: ประเภทคลัง (T1 = WRS, T1M = MRS)
- *                 example: "T1M"
  *               type:
  *                 type: string
  *                 enum: [RECEIPT, USAGE, TRANSFER]
- *                 description: ประเภทงาน เช่น Receipt (Inbound), Usage (Outbound), Transfer
  *                 example: "USAGE"
- *               work_order:
+ *
+ *               item_id:
  *                 type: string
- *                 description: หมายเลขออเดอร์/ใบคำขอ
- *                 example: "WO20251109-001"
- *               usage_num:
- *                 type: string
- *                 description: หมายเลขการใช้งาน (Usage Number)
- *                 example: "6999"
- *               line:
- *                 type: string
- *                 description: Line ของการทำงาน
  *                 example: "1"
- *               stock_item:
+ *
+ *               mc_code:
  *                 type: string
- *                 description: รหัสสินค้า (Stock Item)
- *                 example: "BHS-CRI-02034"
- *               plan_qty:
- *                 type: integer
- *                 description: จำนวนที่ต้องการ
- *                 example: 1
- *               cat_qty:
- *                 type: integer
- *                 description: จำนวน cat
- *                 example: 0
- *               recond_qty:
- *                 type: integer
- *                 description: จำนวน recond
- *                 example: 0
- *               from_location:
+ *                 example: "1"
+ *
+ *               loc_id:
  *                 type: string
- *                 description: ตำแหน่งต้นทาง (ชื่อรางเคลื่อนที่ใน MRS)
- *                 example: "LMC-M240-STORE (BHS)"
- *               usage_type:
- *                 type: string
- *                 description: ประเภทการใช้งาน เช่น ISSUE (Usage)
- *                 example: "ISSUE"
+ *                 example: "1"
+ *
  *               cond:
  *                 type: string
- *                 description: สภาพสินค้า เช่น NEW หรือ CAPITAL
  *                 example: "CAPITAL"
- *               split:
- *                 type: integer
- *                 description: Split flag (0 = no split, 1 = split)
- *                 example: 0
- *               unit_cost_handled:
+ *
+ *               plan_qty:
  *                 type: number
- *                 format: float
- *                 description: ราคาต่อหน่วย
- *                 example: 12500.50
- *               contract_num:
- *                 type: string
- *                 description: เลขที่สัญญา
- *                 example: "T23M311"
- *               po_num:
- *                 type: string
- *                 description: PO Number
- *                 example: "PO1094940"
- *               object_id:
- *                 type: string
- *                 description: Object ID
- *                 example: "61270"
+ *                 example: 1
+ *
+ *               usage:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = USAGE
+ *                 properties:
+ *                   work_order:
+ *                     type: string
+ *                     example: "WO20251109-001"
+ *                   usage_num:
+ *                     type: string
+ *                     example: "6999"
+ *                   line:
+ *                     type: string
+ *                     example: "1"
+ *                   usage_type:
+ *                     type: string
+ *                     example: "ISSUE"
+ *                   split:
+ *                     type: number
+ *                     example: 0
+ *
+ *               receipt:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = RECEIPT
+ *                 properties:
+ *                   cat_qty:
+ *                     type: number
+ *                     example: 0
+ *                   recond_qty:
+ *                     type: number
+ *                     example: 0
+ *                   unit_cost_handled:
+ *                     type: number
+ *                     format: float
+ *                     example: 12500.50
+ *                   contract_num:
+ *                     type: string
+ *                     example: "T23M311"
+ *                   po_num:
+ *                     type: string
+ *                     example: "PO1094940"
+ *                   object_id:
+ *                     type: string
+ *                     example: "61270"
+ *
+ *               transfer:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = TRANSFER
+ *                 properties:
+ *                   cat_qty:
+ *                     type: number
+ *                     example: 0
+ *                   recond_qty:
+ *                     type: number
+ *                     example: 0
+ *                   contract_num:
+ *                     type: string
+ *                     example: "T23M311"
+ *                   po_num:
+ *                     type: string
+ *                     example: "PO1094940"
+ *                   object_id:
+ *                     type: string
+ *                     example: "61270"
+ *
  *     responses:
  *       201:
  *         description: สร้างข้อมูล order สำเร็จ
  *       400:
- *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *         description: ข้อมูลไม่ครบ หรือไม่ถูกต้อง
  *       404:
- *         description: ไม่พบข้อมูล order ที่ร้องขอ
+ *         description: ไม่พบข้อมูล
  *       500:
- *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ *         description: เซิร์ฟเวอร์ผิดพลาด
  */
-router.post('/create'
-    , authenticateToken
-    , orderController.create);
+router.post('/create',
+    authenticateToken,
+    orderController.create
+);
+
 
 /**
  * @swagger
@@ -132,81 +152,99 @@ router.post('/create'
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               store_type:
- *                 type: string
- *                 enum: [T1, T1M]
- *                 description: ประเภทคลัง (T1 = WRS, T1M = MRS)
- *                 example: "T1M"
  *               type:
  *                 type: string
  *                 enum: [RECEIPT, USAGE, TRANSFER]
- *                 description: ประเภทงาน เช่น Receipt (Inbound), Usage (Outbound), Transfer
  *                 example: "USAGE"
- *               work_order:
+ *
+ *               item_id:
  *                 type: string
- *                 description: หมายเลขออเดอร์/ใบคำขอ
- *                 example: "WO20251109-001"
- *               usage_num:
- *                 type: string
- *                 description: หมายเลขการใช้งาน (Usage Number)
- *                 example: "6999"
- *               line:
- *                 type: string
- *                 description: Line ของการทำงาน
  *                 example: "1"
- *               stock_item:
+ *
+ *               mc_code:
  *                 type: string
- *                 description: รหัสสินค้า (Stock Item)
- *                 example: "BHS-CRI-02034"
- *               plan_qty:
- *                 type: integer
- *                 description: จำนวนที่ต้องการ
- *                 example: 1
- *               cat_qty:
- *                 type: integer
- *                 description: จำนวน cat
- *                 example: 0
- *               recond_qty:
- *                 type: integer
- *                 description: จำนวน recond
- *                 example: 0
- *               from_location:
+ *                 example: "1"
+ *
+ *               loc_id:
  *                 type: string
- *                 description: ตำแหน่งต้นทาง (ชื่อรางเคลื่อนที่ใน MRS)
- *                 example: "LMC-M240-STORE (BHS)"
- *               usage_type:
- *                 type: string
- *                 description: ประเภทการใช้งาน เช่น ISSUE (Usage)
- *                 example: "ISSUE"
+ *                 example: "1"
+ *
  *               cond:
  *                 type: string
- *                 description: สภาพสินค้า เช่น NEW หรือ CAPITAL
  *                 example: "CAPITAL"
- *               split:
- *                 type: integer
- *                 description: Split flag (0 = no split, 1 = split)
- *                 example: 0
- *               unit_cost_handled:
+ *
+ *               plan_qty:
  *                 type: number
- *                 format: float
- *                 description: ราคาต่อหน่วย
- *                 example: 12500.50
- *               contract_num:
- *                 type: string
- *                 description: เลขที่สัญญา
- *                 example: "T23M311"
- *               po_num:
- *                 type: string
- *                 description: PO Number
- *                 example: "PO1094940"
- *               object_id:
- *                 type: string
- *                 description: Object ID
- *                 example: "61270"
+ *                 example: 1
+ *
+ *               usage:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = USAGE
+ *                 properties:
+ *                   work_order:
+ *                     type: string
+ *                     example: "WO20251109-001"
+ *                   usage_num:
+ *                     type: string
+ *                     example: "6999"
+ *                   line:
+ *                     type: string
+ *                     example: "1"
+ *                   usage_type:
+ *                     type: string
+ *                     example: "ISSUE"
+ *                   split:
+ *                     type: number
+ *                     example: 0
+ *
+ *               receipt:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = RECEIPT
+ *                 properties:
+ *                   cat_qty:
+ *                     type: number
+ *                     example: 0
+ *                   recond_qty:
+ *                     type: number
+ *                     example: 0
+ *                   unit_cost_handled:
+ *                     type: number
+ *                     format: float
+ *                     example: 12500.50
+ *                   contract_num:
+ *                     type: string
+ *                     example: "T23M311"
+ *                   po_num:
+ *                     type: string
+ *                     example: "PO1094940"
+ *                   object_id:
+ *                     type: string
+ *                     example: "61270"
+ *
+ *               transfer:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = TRANSFER
+ *                 properties:
+ *                   cat_qty:
+ *                     type: number
+ *                     example: 0
+ *                   recond_qty:
+ *                     type: number
+ *                     example: 0
+ *                   contract_num:
+ *                     type: string
+ *                     example: "T23M311"
+ *                   po_num:
+ *                     type: string
+ *                     example: "PO1094940"
+ *                   object_id:
+ *                     type: string
+ *                     example: "61270"
+ *
  *     responses:
  *       200:
  *         description: แก้ไขข้อมูล order สำเร็จ

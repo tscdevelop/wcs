@@ -249,3 +249,29 @@ export const getPermissionAction = async (req: Request, res: Response) => {
     }
 };
 
+export const getRoleDropdown = async (req: Request, res: Response) => {
+    const operation = 'RoleController.getRoleDropdown';
+
+    // ดึง username จาก token
+    const reqUsername = RequestUtils.getUsernameToken(req, res);
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
+    try {
+
+        // เรียก service getRoleDropdown เพื่อดึงข้อมูล
+        const response = await roleService.getRoleDropdown();
+
+        // ส่ง response กลับ
+        return ResponseUtils.handleResponse(res, response);
+
+    } catch (error: any) {
+        // Log ข้อผิดพลาด
+        console.error(`Error during ${operation}:`, error);
+
+        // จัดการข้อผิดพลาดและส่ง response
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.role', true, reqUsername);
+    }
+};
+

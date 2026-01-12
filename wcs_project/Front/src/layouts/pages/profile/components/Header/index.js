@@ -79,7 +79,7 @@ function Header({ children, light }) {
         const language = GlobalVar.getLanguage();
 
         console.log("UserID:", storedUserID);
-        console.log("Token:", token);
+        //console.log("Token:", token);
         console.log("language:", language);
 
         if (storedUserID && token) {
@@ -87,7 +87,7 @@ function Header({ children, light }) {
           // Fetch profile data with authorization
           const response = await UserApi.getUserDataById(storedUserID);
           if (response.isCompleted && !response.isError) {
-            console.log("Profile Data:", response.data);
+            //console.log("Profile Data:", response.data);
             setProfile(response.data);
             setLanguageCurrent(language);
           } else {

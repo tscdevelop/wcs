@@ -80,21 +80,36 @@ class ExecutionAPI {
       }
   }
 
-  static async changeToWaiting(order_id) {
-        try {
-            const token = GlobalVar.getToken();
-            const endpoint = `/api/execution/change-to-waiting/${order_id}`;
-            
-            // ทำการเรียก API ด้วย token และ endpoint
-            const response = await ApiProvider.postData(endpoint, {}, token);
-            console.log("API Response:", response);
-            
-            return response; // ส่งค่ากลับไป
-        } catch (error) {
-            console.error("Error in Waiting:", error);
-            throw error;
-        }
+  static async changeToWaiting(payload) {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = "/api/execution/change-to-waiting";
+
+      const response = await ApiProvider.postData(endpoint, payload, token);
+      console.log("API Response:", response);
+
+      return response;
+    } catch (error) {
+      console.error("Error in Waiting:", error);
+      throw error;
     }
+  }
+
+  static async changeToPending(payload) {
+    try {
+      const token = GlobalVar.getToken();
+      const endpoint = "/api/execution/change-to-pending";
+
+      const response = await ApiProvider.postData(endpoint, payload, token);
+      console.log("API Response:", response);
+
+      return response;
+    } catch (error) {
+      console.error("Error in pending:", error);
+      throw error;
+    }
+  }
+
 
   static async TaskAll() {
       try {

@@ -79,28 +79,4 @@ const router = Router();
  */
 router.get('/get-all', authenticateToken, aisleController.getAll);
 
-/**
- * @swagger
- * /api/aisle/get-code-dropdown:
- *   get:
- *     summary: ดึงข้อมูลรายการ dropdown code
- *     tags: [Aisle]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - $ref: '#/components/parameters/lng'
- *     responses:
- *       200:
- *         description: พบข้อมูล dropdown code
- *       400:
- *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
- *       404:
- *         description: ไม่พบข้อมูล dropdown code ที่ร้องขอ
- *       500:
- *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
- */
-router.get('/get-code-dropdown'
-    , authenticateToken
-    , aisleController.getCodeDropdown);
-
 export default router;

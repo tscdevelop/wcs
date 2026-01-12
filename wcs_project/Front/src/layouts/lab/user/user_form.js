@@ -1,24 +1,31 @@
-// src/pages/components/UserFormDialog.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { StyledMenuItem, StyledSelect } from "common/Global.style";
+import { StyledSelect } from "common/Global.style";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Grid, FormControl, MenuItem,
-  IconButton, InputAdornment, CircularProgress, FormHelperText
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  FormControl,
+  MenuItem,
+  IconButton,
+  InputAdornment,
+  CircularProgress,
+  FormHelperText,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import PropTypes from "prop-types";
 import MDInput from "components/MDInput";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
+import DropDownAPI from "api/DropDownAPI";
 
 export default function UserFormDialog({
   open,
-  mode = "create",           // "create" | "edit"
+  mode = "create", // "create" | "edit"
   initialData = null,
-  roleOptions = [],          // [{value:"ADMIN", label:"Admin"}, ...]
   onClose,
-  onSubmit,                  // async (payload) => boolean
+  onSubmit, // async (payload) => boolean
 }) {
   const [form, setForm] = useState({
     user_first_name: "",
@@ -27,11 +34,50 @@ export default function UserFormDialog({
     password: "",
     user_email: "",
     role_code: "",
+    mc_code: ""
   });
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [dropdownRole, setDropDownRole] = useState([]);
+  const [loadingRole, setLoadingRole] = useState(false);
+
+  const fetchDropdownRole = async () => {
+    try {
+      setLoadingRole(true);
+      const response = await DropDownAPI.getRoleDropdown();
+      if (response.isCompleted) {
+        setDropDownRole(response.data || []);
+      }
+    } finally {
+      setLoadingRole(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDropdownRole(); // ดึงข้อมูล Role เมื่อโหลดหน้า
+  }, []);
+
+  const [dropdownMcCode, setDropDownMcCode] = useState([]);
+  const [loadingMcCode, setLoadingMcCode] = useState(false);
+
+  const fetchDropdownMcCode = async () => {
+    try {
+      setLoadingMcCode(true);
+      const response = await DropDownAPI.getMcCodeDropdown();
+      if (response.isCompleted) {
+        setDropDownMcCode(response.data || []);
+      }
+    } finally {
+      setLoadingMcCode(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDropdownMcCode(); // ดึงข้อมูล maintenance code เมื่อโหลดหน้า
+  }, []);
 
   const isEdit = mode === "edit";
 
@@ -46,6 +92,7 @@ export default function UserFormDialog({
           password: "", // edit: ไม่บังคับ เปลี่ยนได้ถ้ากรอก
           user_email: initialData.user_email ?? "",
           role_code: initialData.role_code ?? "",
+          mc_code: initialData.mc_code ?? "",
         });
       } else {
         setForm({
@@ -55,6 +102,7 @@ export default function UserFormDialog({
           password: "",
           user_email: "",
           role_code: "",
+          mc_code: ""
         });
       }
     }
@@ -74,8 +122,9 @@ export default function UserFormDialog({
     if (!form.user_first_name?.trim()) next.user_first_name = "First name is required.";
     if (!form.user_last_name?.trim()) next.user_last_name = "Last name is required.";
     if (!form.username?.trim()) next.username = "Username is required.";
-    if (!form.user_email?.trim()) next.user_email = "email is required.";
+    if (!form.user_email?.trim()) next.user_email = "Email is required.";
     if (!form.role_code) next.role_code = "Role is required.";
+    //if (!form.mc_code) next.mc_code = "Maintenance Contract is required.";
 
     // password:
     // - create: บังคับ
@@ -99,8 +148,11 @@ export default function UserFormDialog({
         username: form.username.trim(),
         user_email: form.user_email.trim(),
         role_code: form.role_code,
+        mc_code: form.mc_code,
         ...(isEdit
-          ? (form.password ? { password: form.password } : {})
+          ? form.password
+            ? { password: form.password }
+            : {}
           : { password: form.password }),
       };
       const ok = await onSubmit?.(payload);
@@ -110,6 +162,13 @@ export default function UserFormDialog({
     }
   };
 
+  const renderSelectPlaceholder = (selected, items, placeholder) => {
+    if (!selected || !items.length) {
+      return <span style={{ color: "#999" }}>{placeholder}</span>;
+    }
+    return items.find(i => i.value === selected)?.text || "";
+  };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{title}</DialogTitle>
@@ -117,7 +176,9 @@ export default function UserFormDialog({
         <Grid container spacing={2} mt={0}>
           {/* First name */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">First name</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              First name
+            </MDTypography>
             <MDInput
               fullWidth
               placeholder="Enter first name"
@@ -134,7 +195,9 @@ export default function UserFormDialog({
 
           {/* Last name */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">Last name</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Last name
+            </MDTypography>
             <MDInput
               fullWidth
               placeholder="Enter last name"
@@ -151,7 +214,9 @@ export default function UserFormDialog({
 
           {/* Username */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">Username</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Username
+            </MDTypography>
             <MDInput
               fullWidth
               placeholder="Enter username"
@@ -170,7 +235,9 @@ export default function UserFormDialog({
 
           {/* Password */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">Password</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Password
+            </MDTypography>
             <MDInput
               fullWidth
               placeholder={isEdit ? "Enter new password" : "Enter password"}
@@ -193,7 +260,9 @@ export default function UserFormDialog({
 
           {/* user_email */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">Email</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Email
+            </MDTypography>
             <MDInput
               fullWidth
               placeholder="Enter Email"
@@ -210,25 +279,63 @@ export default function UserFormDialog({
 
           {/* Role */}
           <Grid item xs={12} sm={6}>
-            <MDTypography variant="body01" mb={0.5} display="block">Role</MDTypography>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Role
+            </MDTypography>
             <FormControl fullWidth error={!!errors.role_code}>
               <StyledSelect
-                sx={{ width: "400px", maxWidth: "100%", height: "45px" }}
+                disabled={loadingRole}
                 value={form.role_code ?? ""}
                 onChange={handleChange("role_code")}
                 displayEmpty
-
+                renderValue={(selected) =>
+                renderSelectPlaceholder(selected, dropdownRole, "Select role")
+              }
+                sx={{ width: "400px", maxWidth: "100%", height: "45px" }}
               >
-                <StyledMenuItem value="" disabled>
-                  Select a role
-                </StyledMenuItem>
-                {roleOptions.map((r) => (
-                  <MenuItem key={r.value} value={r.value}>
-                    {r.label}
+                {/* placeholder (ยังจำเป็นไว้กัน value = "") */}
+                <MenuItem value="" disabled>
+                  Select role
+                </MenuItem>
+
+                {dropdownRole.map((item) => (
+                  <MenuItem key={item.value} value={item.value}>
+                    {item.text}
                   </MenuItem>
                 ))}
               </StyledSelect>
               {errors.role_code && <FormHelperText>{errors.role_code}</FormHelperText>}
+            </FormControl>
+          </Grid>
+
+          {/* Maintenance Code */}
+          <Grid item xs={12} sm={6}>
+            <MDTypography variant="body01" mb={0.5} display="block">
+              Maintenance Contract
+            </MDTypography>
+            <FormControl fullWidth error={!!errors.mc_code}>
+              <StyledSelect
+                disabled={loadingMcCode}
+                value={form.mc_code ?? ""}
+                onChange={handleChange("mc_code")}
+                displayEmpty
+                renderValue={(selected) =>
+                renderSelectPlaceholder(selected, dropdownMcCode, "Select maintenance contract")
+              }
+                sx={{ width: "400px", maxWidth: "100%", height: "45px" }}
+              >
+                {/* placeholder (ยังจำเป็นไว้กัน value = "") */}
+                <MenuItem value="" disabled>
+                  Select maintenance contract
+                </MenuItem>
+
+                {dropdownMcCode.map((item) => (
+                  <MenuItem key={item.value} value={item.value}>
+                    {item.text}
+                  </MenuItem>
+                ))}
+              </StyledSelect>
+              {errors.mc_code && <FormHelperText>{errors.mc_code}</FormHelperText>}
             </FormControl>
           </Grid>
 
@@ -253,7 +360,6 @@ export default function UserFormDialog({
           {submitting ? <CircularProgress size={18} /> : isEdit ? "Update" : "Save"}
         </MDButton>
       </DialogActions>
-
     </Dialog>
   );
 }
@@ -262,9 +368,6 @@ UserFormDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   mode: PropTypes.oneOf(["create", "edit"]),
   initialData: PropTypes.object,
-  roleOptions: PropTypes.arrayOf(
-    PropTypes.shape({ value: PropTypes.string, label: PropTypes.string })
-  ),
   onClose: PropTypes.func,
   onSubmit: PropTypes.func,
 };

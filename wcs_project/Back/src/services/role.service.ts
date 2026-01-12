@@ -799,4 +799,40 @@ export class RoleService {
         }
     }
 
+    async getRoleDropdown(
+        manager?: EntityManager
+    ): Promise<ApiResponse<any>> {
+        const response = new ApiResponse<any>();
+        const operation = 'RoleService.getRoleDropdown';
+    
+        try {
+            const repository = manager ? manager.getRepository(s_role) : this.roleRepository;
+    
+            const rawData = await repository
+                .createQueryBuilder('o')
+                .select('o.role_code', 'role_code')
+                .where('o.role_code IS NOT NULL')
+                .andWhere('o.role_code <> \'\'')
+                .distinct(true)
+                .orderBy('o.role_code', 'ASC')
+                .getRawMany();
+    
+            // หากไม่พบข้อมูล
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('item.role'));
+            }
+            
+            const data = rawData.map(r => ({
+                value: r.role_code,
+                text: r.role_code
+            }));
+            
+            // ส่งข้อมูลกลับ
+            return response.setComplete(lang.msgFound('item.role'), data);
+        } catch (error: any) {
+            console.error(`Error in ${operation}`, error);
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        }
+    }
+
 }

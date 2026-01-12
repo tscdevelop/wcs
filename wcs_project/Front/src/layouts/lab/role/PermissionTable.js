@@ -263,7 +263,7 @@ const PermissionTable = ({
               All
             </TableCell>
             <TableCell>Menu</TableCell>
-            <TableCell>Action</TableCell>
+            {/* <TableCell>Action</TableCell> */}
           </TableRow>
         </TableHead>
         <TableBody>{renderMenuRows(permissionMenus ?? [])}</TableBody>
