@@ -80,6 +80,22 @@ class ExecutionAPI {
       }
   }
 
+    static async handleOrderItemT1(order_id, actual_qty) {
+      try {
+          const token = GlobalVar.getToken();
+          const endpoint = `/api/execution/handle-order-item-t1/${order_id}/${actual_qty}`;
+          
+          // ทำการเรียก API ด้วย token และ endpoint
+          const response = await ApiProvider.postData(endpoint, {}, token);
+          console.log("confirm order API Response:", response);
+          
+          return response; // ส่งค่ากลับไป
+      } catch (error) {
+          console.error("Error in Task:", error);
+          throw error;
+      }
+  }
+
   static async changeToWaiting(payload) {
     try {
       const token = GlobalVar.getToken();

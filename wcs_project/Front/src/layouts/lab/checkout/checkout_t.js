@@ -167,7 +167,8 @@ const CheckOutTPage = () => {
           onClose={() => setScanDialogOpen(false)}
           onSubmit={async (order_id, actual_qty) => {
             try {
-              const response = await ExecutionAPI.handleOrderItem(order_id, actual_qty);
+              const response = await ExecutionAPI.handleOrderItemT1(order_id, actual_qty);
+              console.log("response",response);
               if (response.isCompleted) {
                 setAlert({ show: true, type: "success", title: "Confirmed", message: response.message });
                 await fetchDataAll();
