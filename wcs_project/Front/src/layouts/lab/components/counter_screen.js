@@ -1,6 +1,6 @@
 import { Box, Card, Typography, Grid } from "@mui/material";
 
-export default function PickCounterCard({
+export default function CounterScreen({
   counter,       // object counter จาก API
   stock_item,
   brand,
@@ -17,7 +17,7 @@ export default function PickCounterCard({
   return (
     <Box
       sx={{
-        background: "#f4cfc6",
+        background: "#fcdedb",
         border: "4px solid black",
         borderRadius: 3,
         p: 2,
@@ -31,7 +31,6 @@ export default function PickCounterCard({
         mb={2}
         sx={{ cursor: "pointer", color: counterColor }}
         onClick={() => {
-          // เปิด tab ใหม่พร้อมส่ง counterId และ orderId
           window.open(
             `/counter-detail?counterId=${counter?.id}&orderId=${transaction?.objectId}`,
             "_blank"
@@ -89,9 +88,9 @@ export default function PickCounterCard({
           background: counterColor,
           color: "white",
           textAlign: "center",
-          fontSize: 48,
+          fontSize: 64,
           fontWeight: "bold",
-          py: 3,
+          py: 4,
           borderRadius: 3,
           my: 2,
         }}
@@ -113,7 +112,7 @@ export default function PickCounterCard({
                   <Box key={index} textAlign="center">
                     <Typography
                       fontWeight="bold"
-                      color={active ? counterColor : "black"}
+                      color={active ? "white" : "black"}
                     >
                       {index}
                     </Typography>
@@ -144,7 +143,7 @@ export default function PickCounterCard({
             }}
           >
             {imageUrl ? (
-              <img src={imageUrl} alt="item" style={{ maxHeight: 80 }} />
+              <img src={imageUrl} alt="item" style={{ maxHeight: 100 }} />
             ) : (
               <Typography color="text.secondary">No image</Typography>
             )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Box, Grid,} from "@mui/material";
+import { Card, Box, Grid } from "@mui/material";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import MDBox from "components/MDBox";
@@ -29,14 +29,22 @@ const CheckOutTPage = () => {
 
   const storeType = GlobalVar.getStoreType();
 
+  const FIXED_COUNTER_IDS = [1, 2, 3, 4, 5, 6];
+
+const createDefaultCounter = (id) => ({
+  id,
+  status: "IDLE",
+  color: "#000",
+  actual: 0,
+  plan: 0,
+});
+
+
   /* ---------------- Fetch Orders ---------------- */
   const fetchDataAll = async () => {
     setLoading(true);
     try {
-      const response = await CounterAPI.getAllOrders({
-        isExecution: true,
-        store_type: storeType === "WCS" ? undefined : storeType,
-      });
+      const response = await CounterAPI.getAllOrders();
       setOrdersList(Array.isArray(response?.data) ? response.data : []);
     } catch (error) {
       console.error(error);
@@ -48,28 +56,58 @@ const CheckOutTPage = () => {
 
   /* ---------------- Fetch Counters ---------------- */
   const fetchCounters = async () => {
-    try {
-      const res = await CounterAPI.getCounterAll();
-      const list = Array.isArray(res?.data)
-        ? res.data.map(c => ({ ...c, color: c.color || "#FFFFFF" })) // default color
-        : [];
-      setCounters(list);
-    } catch (err) {
-      console.error(err);
-      setCounters([]);
-    }
-  };
+  try {
+    const res = await CounterAPI.getCounterAll();
+    const apiCounters = Array.isArray(res?.data) ? res.data : [];
+
+    const mappedCounters = FIXED_COUNTER_IDS.map((counterId) => {
+      const apiCounter = apiCounters.find(
+        (c) => Number(c.id) === counterId || Number(c.counter_id) === counterId
+      );
+
+      const isActive =
+        apiCounter &&
+        (Number(apiCounter.plan) > 0 || Number(apiCounter.actual) > 0);
+
+      return {
+        ...createDefaultCounter(counterId),
+        ...(apiCounter || {}),
+        id: counterId,
+
+        // ⭐ สี counter ใช้เมื่อ active เท่านั้น
+        color: isActive ? apiCounter.color || "#000" : "#000",
+
+        // normalize status
+        status: isActive ? apiCounter.status : "IDLE",
+
+        // ⭐ ส่ง flag ไปให้ CounterBox
+        isActive,
+      };
+    });
+
+    setCounters(mappedCounters);
+  } catch (err) {
+    console.error(err);
+    setCounters(FIXED_COUNTER_IDS.map(createDefaultCounter));
+  }
+};
+
+
 
   useEffect(() => {
     fetchDataAll();
     fetchCounters();
   }, []);
 
-  const counterGroups = React.useMemo(() => [
-    counters.slice(0, 2),
-    counters.slice(2, 4),
-    counters.slice(4, 6),
-  ], [counters]);
+const counterGroups = React.useMemo(
+  () => [
+    counters.filter((c) => c.id === 1 || c.id === 2),
+    counters.filter((c) => c.id === 3 || c.id === 4),
+    counters.filter((c) => c.id === 5 || c.id === 6),
+  ],
+  [counters]
+);
+
 
   /* ---------------- Table Columns ---------------- */
   const columns = [
@@ -82,18 +120,68 @@ const CheckOutTPage = () => {
     { field: "cond", label: "Condition" },
     { field: "actual_qty", label: "Scanned Quantity" },
     { field: "plan_qty", label: "Required Quantity" },
-    { field: "counter_id", label: "Counter" },
+     { 
+    field: "counter_id", 
+    label: "Counter",
+    render: (row) => (
+      <span style={{ color: row.counter_color || "#000" }}>
+        {row.counter_id}
+      </span>
+    )
+  },
     { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];
+
+  //แปลงชื่อคลัง
+  let storeTypeTrans = "";
+
+  switch (storeType) {
+    case "T1":
+      storeTypeTrans = "T1 Store";
+      break;
+
+    case "T1M":
+      storeTypeTrans = "T1M Store";
+      break;
+
+    case "AGMB":
+      storeTypeTrans = "AGMB Store";
+      break;
+
+    case "WCS":
+      storeTypeTrans = "WCS";
+      break;
+
+    default:
+      storeTypeTrans = storeType;
+  }
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox p={2}>
-        <MDTypography variant="h3" color="inherit">
-          {storeType} - Check Out
-        </MDTypography>
-        <Box mb={2} sx={{ width: "120px", height: "5px", backgroundColor: "#FFA726" }} />
+        <Box display="flex" alignItems="baseline" gap={1}>
+          {/* storeTypeTrans + underline */}
+          <Box display="inline-block">
+            <MDTypography variant="h3" color="bold">
+              {storeTypeTrans}
+            </MDTypography>
+            <Box
+              sx={{
+                width: "100%",
+                height: "5px",
+                backgroundColor: "#FFA726",
+                borderRadius: "4px",
+                mt: "12px",
+              }}
+            />
+          </Box>
+
+          {/* Check Out */}
+          <MDTypography variant="h3" color="bold">
+            - Check Out
+          </MDTypography>
+        </Box>
       </MDBox>
 
       {/* Counters */}
@@ -107,18 +195,9 @@ const CheckOutTPage = () => {
               <Card>
                 <MDBox p={3}>
                   <Grid container spacing={2} justifyContent="center">
-                    {group.map(counter => (
+                    {group.map((counter) => (
                       <Grid item xs={6} key={counter.id}>
-                        <Box
-                          sx={{ cursor: "pointer" }}
-                          onClick={() => {
-                            // ส่ง counterId ผ่าน URL
-                            const url = `/checkout/counter/${counter.id}`;
-                            window.open(url, "_blank"); // เปิดแท็บใหม่
-                          }}
-                        >
-                          <CounterBox counter={counter} />
-                        </Box>
+                        <CounterBox counter={counter} />
                       </Grid>
                     ))}
                   </Grid>
@@ -132,7 +211,9 @@ const CheckOutTPage = () => {
       {/* Orders Table */}
       <MDBox mt={3}>
         <MDBox mb={1} display="flex" alignItems="center">
-          <MDTypography variant="h4" color="inherit">Orders</MDTypography>
+          <MDTypography variant="h4" color="inherit">
+            Orders
+          </MDTypography>
         </MDBox>
         <Card>
           <MDBox p={3}>
@@ -147,8 +228,8 @@ const CheckOutTPage = () => {
                   defaultPageSize={10}
                   pageSizeOptions={[10, 25, 50]}
                   fontSize="0.8rem"
-                  confirmSkuDisabled={row => row.status !== "PROCESSING"}
-                  onConfirmSku={row => {
+                  confirmSkuDisabled={(row) => row.status !== "PROCESSING"}
+                  onConfirmSku={(row) => {
                     setSelectedOrder(row);
                     setScanDialogOpen(true);
                   }}
@@ -168,12 +249,26 @@ const CheckOutTPage = () => {
           onSubmit={async (order_id, actual_qty) => {
             try {
               const response = await ExecutionAPI.handleOrderItemT1(order_id, actual_qty);
-              console.log("response",response);
+              console.log("response", response);
               if (response.isCompleted) {
-                setAlert({ show: true, type: "success", title: "Confirmed", message: response.message });
+                setAlert({
+                  show: true,
+                  type: "success",
+                  title: "Confirmed",
+                  message: response.message,
+                });
+                // โหลด Orders ใหม่
                 await fetchDataAll();
+
+                // โหลด Counters ใหม่
+                await fetchCounters();
               } else {
-                setAlert({ show: true, type: "error", title: "Error", message: response.message || "Failed" });
+                setAlert({
+                  show: true,
+                  type: "error",
+                  title: "Error",
+                  message: response.message || "Failed",
+                });
               }
             } catch (err) {
               console.error(err);
@@ -190,7 +285,10 @@ const CheckOutTPage = () => {
         type={alert.type}
         title={alert.title}
         message={alert.message}
-        onConfirm={() => { alert.onConfirm?.(); setAlert({ ...alert, show: false }); }}
+        onConfirm={() => {
+          alert.onConfirm?.();
+          setAlert({ ...alert, show: false });
+        }}
       />
     </DashboardLayout>
   );

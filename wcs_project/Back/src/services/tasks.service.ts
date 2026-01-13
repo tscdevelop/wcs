@@ -1,6 +1,6 @@
 // services/orchestrated-task.service.ts
 import { AppDataSource } from "../config/app-data-source";
-import { EntityManager, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, In, QueryFailedError, Repository } from 'typeorm';
 import { ApiResponse } from '../models/api-response.model';
 import { Orders} from '../entities/orders.entity';
 import { AisleStatus, ScanStatus, StatusMRS, StatusOrders, TypeInfm } from '../common/global.enum';
@@ -32,6 +32,8 @@ export type CreateTaskBatchDto = {
   items: CreateTaskItem[];     // อาร์เรย์เสมอ (แม้มี 1 รายการ)
 };
 
+const COUNTER_COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'CYAN'];
+
 // services/tasks.service.ts
 export class OrchestratedTaskService {
     private ordersRepository: Repository<Orders>;
@@ -41,19 +43,6 @@ export class OrchestratedTaskService {
         private readonly t1Orders: T1OrdersService, // ✅ ต้องมี
         ) {
         this.ordersRepository = AppDataSource.getRepository(Orders);
-    }
-
-    // ------------------------------
-    // 🔥 ฟังก์ชัน Generate execution_group_id
-    // ------------------------------
-    private async generateExecutionGroupId(): Promise<string> {
-        const last = await this.ordersRepository
-            .createQueryBuilder("o")
-            .select("MAX(CAST(o.execution_group_id AS UNSIGNED))", "max")
-            .getRawOne();
-
-        const nextNumber = (Number(last.max) || 0) + 1;
-        return nextNumber.toString();
     }
 
     // ------------------------------
@@ -73,24 +62,27 @@ export class OrchestratedTaskService {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
 
-    let execution_group_id: string;
     const resultList: any[] = [];
+
+    let execution_group_id: string | null = null;
 
     try {
         // ---------- START TRANSACTION ----------
         await queryRunner.startTransaction();
 
-        // generate execution_group_id
-        execution_group_id = await this.generateExecutionGroupId();
+        // ✅ WAITING execution_group record
+        const insertResult = await queryRunner.manager.insert(
+            ExecutionGroup,
+            {
+                status: 'WAITING',
+                total_orders: dto.items.length,
+                finished_orders: 0,
+                started_at: new Date(),
+            }
+        );
 
-        // ✅ CREATE execution_group record
-await queryRunner.manager.insert(ExecutionGroup, {
-    execution_group_id,
-    status: 'CREATED',
-    total_orders: dto.items.length,
-    finished_orders: 0,
-    started_at: new Date(),
-});
+        execution_group_id =
+            insertResult.identifiers[0].execution_group_id;
 
         for (const item of dto.items) {
             const order_id = item.order_id;
@@ -188,11 +180,18 @@ await queryRunner.manager.insert(ExecutionGroup, {
     // 🚀 AFTER COMMIT (NO TRANSACTION)
     // =================================================
 
-    try {
-        await this.t1Orders.executeGroupAutoService(
-            execution_group_id,
-            reqUser
+    if (!execution_group_id) {
+        return res.setError(
+            'Execution group not created',
+            'createAndOpenBatch',
+            null,
+            reqUser,
+            true
         );
+    }
+
+    try {
+        await this.t1Orders.executeGroupAutoService(execution_group_id);
     } catch (e: any) {
         // ❗ ไม่ rollback แล้ว แค่ log
         console.error(
@@ -804,7 +803,7 @@ if (wrs) {
 
 const executionGroupId = order.execution_group_id; // type = string
 
-        await this.callNextQueueT1(executionGroupId, reqUsername, useManager);
+        await this.callNextQueueT1(executionGroupId, useManager);
 
         if (!manager && queryRunner) {
             await queryRunner.commitTransaction();
@@ -836,52 +835,106 @@ const executionGroupId = order.execution_group_id; // type = string
     }
 }
 
-async callNextQueueT1(
-    execution_group_id: string,
-    reqUser: string,
-    manager: EntityManager
-) {
-    const ordersRepo = manager.getRepository(Orders);
+private mapColorToHex(color: string): string {
+    const map: Record<string, string> = {
+        RED: '#FF0000',
+        BLUE: '#0000FF',
+        GREEN: '#00FF00',
+        YELLOW: '#FFFF00',
+        PURPLE: '#800080',
+        CYAN: '#00FFFF'
+    };
+    return map[color] || '#FFFFFF';
+}
 
-    const nextOrder = await ordersRepo.findOne({
+private async pickAvailableColor(
+    manager: EntityManager
+): Promise<string | null> {
+
+    const executionGroupRepo = manager.getRepository(ExecutionGroup);
+
+    // สีที่ถูกใช้โดย group ที่ RUNNING
+    const usedColors = (
+        await executionGroupRepo.find({
+            where: { status: 'RUNNING' }
+        })
+    )
+        .map(g => g.counter_color)
+        .filter((c): c is string => !!c);
+
+    // เลือกสีที่ยังไม่ถูกใช้
+    const availableColor = COUNTER_COLORS.find(
+        color => !usedColors.includes(color)
+    );
+
+    return availableColor ?? null;
+}
+
+async callNextQueueT1(execution_group_id: string, manager: EntityManager) {
+    const ordersRepo = manager.getRepository(Orders);
+    const groupRepo = manager.getRepository(ExecutionGroup);
+    const counterRepo = manager.getRepository(Counter);
+
+    const counter = await counterRepo.findOne({
+        where: { status: 'EMPTY' }
+    });
+    if (!counter) return;
+
+    const order = await ordersRepo.findOne({
         where: {
             execution_group_id,
-            store_type: "T1",
-            status: StatusOrders.PENDING
+            store_type: 'T1',
+            status: StatusOrders.QUEUE
         },
         order: {
             priority: 'DESC',
             requested_at: 'ASC'
         }
     });
+    if (!order) return;
 
-    if (!nextOrder) {
-    // ❗ ไม่มี order ค้างแล้ว → ปิด execution_group
-    await manager.getRepository(ExecutionGroup).update(
-        { execution_group_id },
-        {
-            status: 'FINISHED',
-            finished_at: new Date(),
+    const group = await groupRepo.findOne({ where: { execution_group_id } });
+    if (!group) return;
+
+    if (group.status !== 'RUNNING') {
+        group.status = 'RUNNING';
+        group.started_at = new Date();
+
+        if (!group.counter_color) {
+            const color = await this.pickAvailableColor(manager);
+            if (!color) {
+                // ❗ ไม่มีสี → ยังไม่ start
+                return;
+            }
+            group.counter_color = color;
         }
-    );
 
-    return;
+        await groupRepo.save(group);
+    }
+
+    // assign
+    order.status = StatusOrders.PROCESSING;
+    order.started_at = new Date();
+    await ordersRepo.save(order);
+
+    counter.status = 'WAITING_AMR';
+    counter.execution_group_id = execution_group_id;
+
+    if (group.status === 'RUNNING') {
+        // ใน RUNNING → ต้องมีสี
+        if (!group.counter_color) {
+            throw new Error('RUNNING group must have counter_color');
+        }
+
+        counter.light_color_hex = this.mapColorToHex(group.counter_color);
+    }
+
+
+    counter.current_order_id = order.order_id;
+    await counterRepo.save(counter);
 }
 
 
-const executionGroupId = nextOrder.execution_group_id;
-
-if (!executionGroupId) {
-    return; // หรือ throw error
-}
-
-return await this.t1Orders.executeGroupAutoService(
-    executionGroupId,
-    reqUser,
-    manager
-);
-
-}
 
 
 

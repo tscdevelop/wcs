@@ -101,4 +101,8 @@ export class Orders {
     @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Error message (if failed)' })
     error_msg?: string;
 
+    /** ไอดี user_id */
+    @Column({ type: 'bigint', unsigned: true })
+    user_id: number;
+
 }
