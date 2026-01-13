@@ -22,7 +22,8 @@ export const AppDataSource = new DataSource({
     entities: ["src/entities/*.ts"],
     migrations: ["src/migrations/**/*.ts"],
     subscribers: [],
-    cache: false, // ✅ เปิด Query Cache ที่ระดับ Database
+    cache: false, // ✅ เปิด Query Cache ที่ระดับ Database,
+    connectTimeout: 30000,
 });
 
 // ✅ ตรวจสอบก่อน `initialize`
