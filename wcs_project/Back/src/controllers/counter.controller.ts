@@ -9,49 +9,76 @@ dotenv.config();
 
 const counterService = new CounterService();
 
-export const getOrderAll = async (req: Request, res: Response) => {
-    const operation = 'checkoutController.getOrderAll';
+// export const getOrderAll = async (req: Request, res: Response) => {
+//     const operation = 'checkoutController.getOrderAll';
+
+//     const reqUsername = RequestUtils.getUsernameToken(req, res);
+//     if (!reqUsername) return;
+
+//     try {
+//         // 🔹 รับค่าจาก query
+//         const {
+//             isExecution,
+//             store_type,
+//             mc_code,
+//         } = req.query;
+
+//         const response = await counterService.getOrderAll({
+//             isExecution: isExecution === 'true',
+//             store_type: store_type as string | undefined,
+//             mc_code: mc_code as string | undefined,
+//         });
+
+//         return ResponseUtils.handleResponse(res, response);
+//     } catch (error: any) {
+//         console.error(`Error during ${operation}:`, error);
+//         return ResponseUtils.handleErrorGet(
+//             res,
+//             operation,
+//             error.message,
+//             'item.counter',
+//             true,
+//             reqUsername
+//         );
+//     }
+// };
+export const getOrderAllByUser = async (req: Request, res: Response) => {
+    const operation = 'counterController.getOrderAllByUser';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) return;
 
+    const reqUserId = RequestUtils.getUserIdToken(req, res);
+    if (!reqUserId) return;
+
     try {
-        // 🔹 รับค่าจาก query
-        const {
-            isExecution,
-            store_type,
-            mc_code,
-        } = req.query;
-
-        const response = await counterService.getOrderAll({
-            isExecution: isExecution === 'true',
-            store_type: store_type as string | undefined,
-            mc_code: mc_code as string | undefined,
-        });
-
+        // สมมติว่า userId เก็บไว้ใน token/reqUsername
+        const userId = reqUserId; 
+        const response = await counterService.getOrderAllByUser(userId);
         return ResponseUtils.handleResponse(res, response);
+
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(
-            res,
-            operation,
-            error.message,
-            'item.counter',
-            true,
-            reqUsername
-        );
+        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.counter', true, reqUsername);
     }
 };
 
-export const getAll = async (req: Request, res: Response) => {
-    const operation = 'checkoutController.getAll';
+
+export const getCounterAllByUser = async (req: Request, res: Response) => {
+    const operation = 'counterController.getCounterAllByUser';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) return;
 
+    const reqUserId = RequestUtils.getUserIdToken(req, res);
+    if (!reqUserId) return;
+
     try {
-        const response = await counterService.getAll();
+        // สมมติว่า userId เก็บไว้ใน token/reqUsername
+        const userId = reqUserId; 
+        const response = await counterService.getCounterAllByUser(userId);
         return ResponseUtils.handleResponse(res, response);
+
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
         return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.counter', true, reqUsername);

@@ -81,7 +81,7 @@ import ResetCover from "layouts/authentication/reset-password/cover";
 
 
 import Icon from "@mui/material/Icon";
-
+import { GlobalVar } from "common/GlobalVar";
 // Menu initial
 import HomePage from "layouts/lab/home";
 import LoginPage from "layouts/lab/login";
@@ -108,7 +108,7 @@ import PickExecutionPage from "layouts/lab/pick/execution";
 import OrderStatusReqPage from "layouts/lab/status/order_status_req";
 import OrderStatusPage from "layouts/lab/status/order_status";
 import CheckOutTPage from "layouts/lab/checkout/checkout_t";
-import PickCounterPage from "layouts/lab/checkout/PickCounterPage";
+import PickCounterPage from "layouts/lab/checkout/pick_counter_page";
 const getComponent = (componentName) => {
   switch (componentName) {
     // for menu intital // menu_key
@@ -162,7 +162,7 @@ const getComponent = (componentName) => {
         return <OrderStatusReqPage />;
     case "checkout-t1":
       return <CheckOutTPage />;
-      case "counter-detail":
+    case "counter-screen":
       return <PickCounterPage />;
 
     // เพิ่มกรณีสำหรับ components อื่นๆ
@@ -252,9 +252,24 @@ const transformRoute =  (route) => ({
     : undefined,
 });
 
-export async function  generateRoutesFromApi(apiRoutes) {
-  const apiRoutesTransformed = await apiRoutes.map(transformRoute);
-  return [  ...initialRoutes,...apiRoutesTransformed,...initialRoutesTest ];
+export async function generateRoutesFromApi(apiRoutes) {
+  const storeType = GlobalVar.getStoreType();
+
+  const filteredRoutes = apiRoutes.filter(route => {
+    // ❌ ถ้าเป็น WCS ให้ซ่อน Checkout
+    if (storeType === "WCS" && route.key === "checkout-t1") {
+      return false;
+    }
+    return true;
+  });
+
+  const apiRoutesTransformed = filteredRoutes.map(transformRoute);
+
+  return [
+    ...initialRoutes,
+    ...apiRoutesTransformed,
+    ...initialRoutesTest,
+  ];
 }
 
 
