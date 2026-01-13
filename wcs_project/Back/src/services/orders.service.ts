@@ -15,6 +15,7 @@ import { OrdersUsage } from '../entities/order_usage.entity';
 import { OrdersReceipt } from '../entities/order_receipt.entity';
 import { OrdersTransfer } from '../entities/order_transfer.entity';
 import { Locations } from '../entities/m_location.entity';
+import { s_user } from '../entities/s_user.entity';
 
 interface CreateOrderInput extends Partial<Orders> {
     usage?: Partial<OrdersUsage>;
@@ -27,12 +28,14 @@ export class OrdersService {
     private logRepository: Repository<OrdersLog>;
     private stockItemsRepository: Repository<StockItems>;
     private locationRepository: Repository<Locations>;
+    private userRepository: Repository<s_user>;
 
     constructor(){
         this.ordersRepository = AppDataSource.getRepository(Orders);
         this.logRepository = AppDataSource.getRepository(OrdersLog);
         this.stockItemsRepository = AppDataSource.getRepository(StockItems);
         this.locationRepository = AppDataSource.getRepository(Locations);
+        this.userRepository = AppDataSource.getRepository(s_user);
     }
 
     
@@ -77,14 +80,23 @@ export class OrdersService {
             if (!existingLocation) {
                 return response.setIncomplete('location not found');
             }
+
+            //เช็คเอา user_id
+            const user = await this.userRepository.findOne({ where: { username: reqUsername } });
+            if (!user) {
+                return response.setIncomplete(lang.msgNotFound('user not found'));
+            }
+
             // 👉 ดึง store_type จาก m_location
             const storeType = existingLocation.store_type;
+            const user_id = user.user_id;
 
             const cleanedData: Partial<Orders> = {
                 ...data,
                 type: data.type?.toUpperCase() as any,
                 requested_at: new Date(),
                 requested_by: reqUsername,
+                user_id: user_id,
                 store_type: storeType
             };
 
@@ -200,13 +212,22 @@ export class OrdersService {
             if (!existingLocation) {
                 return response.setIncomplete('location not found');
             }
+
+            //เช็คเอา user_id
+            const user = await this.userRepository.findOne({ where: { username: reqUsername } });
+            if (!user) {
+                return response.setIncomplete(lang.msgNotFound('user not found'));
+            }
+
             // 👉 ดึง store_type จาก m_location
             const storeType = existingLocation.store_type;
+            const user_id = user.user_id;
 
             const cleanedData: Partial<Orders> = {
                 ...data,
                 updated_at: new Date(),
                 requested_by: reqUsername,
+                user_id: user_id,
                 store_type: storeType
             };
 

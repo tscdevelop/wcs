@@ -1,4 +1,4 @@
-import { EntityManager, IsNull, QueryFailedError, Repository } from "typeorm";
+import { EntityManager, In, IsNull, QueryFailedError, Repository } from "typeorm";
 import { AppDataSource } from "../config/app-data-source";
 import { ApiResponse } from "../models/api-response.model";
 import { MRS } from "../entities/mrs.entity";
@@ -241,7 +241,6 @@ private mapColorToHex(color: string): string {
 
 async executeGroupAutoService(
     executionGroupId: string,
-    reqUsername: string,
     manager?: EntityManager
 ) {
     const useManager = manager ?? AppDataSource.manager;
@@ -251,7 +250,6 @@ async executeGroupAutoService(
     const counterRepo = useManager.getRepository(Counter);
     const wrsRepo = useManager.getRepository(WRS);
     const wrsLogRepo = useManager.getRepository(WrsLog);
-
 
     /* ----------------------------------------------------
      * 1) Load execution group
@@ -266,52 +264,16 @@ async executeGroupAutoService(
     }
 
     /* ----------------------------------------------------
-     * 2) Ensure group status = RUNNING
-     * -------------------------------------------------- */
-    if (group.status === 'CREATED' || group.status === 'WAITING') {
-        group.status = 'RUNNING';
-        group.started_at = new Date();
-        await executionGroupRepo.save(group);
-    }
-
-
-    /* ----------------------------------------------------
-     * 3) Lock / assign counter color (once)
-     * -------------------------------------------------- */
-    if (!group.counter_color) {
-        // สีที่ถูกใช้โดย group อื่นที่ยัง RUNNING
-        const usedColors = (
-            await executionGroupRepo.find({
-                where: { status: 'RUNNING' }
-            })
-        )
-            .map(g => g.counter_color)
-            .filter(Boolean);
-
-        const availableColor = COUNTER_COLORS.find(
-            c => !usedColors.includes(c)
-        );
-
-        if (!availableColor) {
-            // ไม่มีสีว่าง → รอรอบถัดไป
-            return { message: 'No available counter color' };
-        }
-
-        group.counter_color = availableColor;
-        await executionGroupRepo.save(group);
-    }
-
-    const groupColor = group.counter_color;
-
-    /* ----------------------------------------------------
-     * 4) Load waiting orders (T1 only)
+     * 2) Load waiting orders (PENDING + QUEUE)
      * -------------------------------------------------- */
     const waitingOrders = await ordersRepo.find({
         where: {
             execution_group_id: executionGroupId,
             store_type: 'T1',
-            status: StatusOrders.PENDING,
-            requested_by: reqUsername
+            status: In([
+                StatusOrders.PENDING,
+                StatusOrders.QUEUE
+            ])
         },
         order: {
             priority: 'DESC',
@@ -319,31 +281,21 @@ async executeGroupAutoService(
         }
     });
 
+    console.log('[AUTO] waitingOrders count:', waitingOrders.length);
+
     if (waitingOrders.length === 0) {
-        // ตรวจว่าทำครบหรือยัง
+        // ไม่มี order ค้าง → เช็คจบกลุ่ม
         if (group.finished_orders >= group.total_orders) {
             group.status = 'FINISHED';
             group.finished_at = new Date();
             await executionGroupRepo.save(group);
-
-            // ปลด lock counter
-            await counterRepo.update(
-                { execution_group_id: executionGroupId },
-                {
-                    execution_group_id: undefined,
-                    group_color: undefined,
-                    status: 'EMPTY'
-                }
-            );
-
             return { message: 'ExecutionGroup finished' };
         }
-
         return { message: 'No waiting orders' };
     }
 
     /* ----------------------------------------------------
-     * 5) Load available counters (slot)
+     * 3) Load available counters
      * -------------------------------------------------- */
     const availableCounters = await counterRepo.find({
         where: {
@@ -352,30 +304,84 @@ async executeGroupAutoService(
         }
     });
 
+    console.log('[AUTO] availableCounters count:', availableCounters.length);
+
+    if (availableCounters.length === 0) {
+    console.log('[AUTO] EXIT: counter full → orders stay QUEUE');
+
+    // อัปเดต status ของ order ที่รอทั้งหมดเป็น QUEUE
+    for (const order of waitingOrders) {
+        if (order.status === 'PENDING') {
+            await ordersRepo.update(
+                { order_id: order.order_id },
+                { status: StatusOrders.QUEUE, queued_at: new Date() }
+            );
+        }
+    }
+
+    return { message: 'Counter full, orders queued' };
+}
+
+
     const slot = Math.min(
         availableCounters.length,
         waitingOrders.length
     );
 
-    if (slot === 0) {
-        return { message: 'No available counter slot' };
+    /* ----------------------------------------------------
+     * 4) Prepare group RUNNING + color (but not save yet)
+     * -------------------------------------------------- */
+    let groupColor = group.counter_color;
+
+    if (!groupColor) {
+        const usedColors = (
+            await executionGroupRepo.find({
+                where: { status: 'RUNNING' }
+            })
+        )
+            .filter(g => g.execution_group_id !== executionGroupId)
+            .map(g => g.counter_color)
+            .filter((c): c is string => !!c);
+
+        const availableColor = COUNTER_COLORS.find(
+            c => !usedColors.includes(c)
+        );
+
+        if (!availableColor) {
+            console.warn('[AUTO] no available counter color');
+            return { message: 'No available counter color' };
+        }
+
+        groupColor = availableColor;
     }
 
+    let assignedCount = 0;
+
     /* ----------------------------------------------------
-     * 6) Assign slot-based execution
+     * 5) Assign execution
      * -------------------------------------------------- */
     for (let i = 0; i < slot; i++) {
         const order = waitingOrders[i];
         const counter = availableCounters[i];
 
-        // --- หา AMR ว่าง ---
+        // หา AMR ว่าง
         const amr = await wrsRepo.findOne({
             where: {
                 is_available: true,
                 wrs_status: 'IDLE'
             }
         });
-        if (!amr) break;
+
+        if (!amr) {
+            console.warn('[AUTO] no AMR available, stop assigning');
+            break;
+        }
+
+        console.log('[AUTO] assigning', {
+            order_id: order.order_id,
+            counter_id: counter.counter_id,
+            wrs_id: amr.wrs_id
+        });
 
         /* -------------------------------
          * Update Order
@@ -389,11 +395,11 @@ async executeGroupAutoService(
          * ----------------------------- */
         counter.status = 'WAITING_AMR';
         counter.execution_group_id = executionGroupId;
-        counter.light_color_hex = groupColor;
         counter.light_color_hex = this.mapColorToHex(groupColor);
         counter.light_mode = 'ON';
         counter.current_order_id = order.order_id;
         counter.current_wrs_id = amr.wrs_id;
+        counter.last_event_at = new Date();
         await counterRepo.save(counter);
 
         /* -------------------------------
@@ -419,57 +425,36 @@ async executeGroupAutoService(
             })
         );
 
-/* ===============================
- * ⏱️ AUTO RESET → IDLE (5 sec)
- * =============================== */
-setTimeout(async () => {
-    try {
-        const wrsRepo2 = AppDataSource.getRepository(WRS);
-        const wrsLogRepo2 = AppDataSource.getRepository(WrsLog);
-
-        const freshAmr = await wrsRepo2.findOne({
-            where: { wrs_id: amr.wrs_id }
-        });
-
-        // ป้องกัน case มีงานใหม่ซ้อน
-        if (
-            freshAmr &&
-            freshAmr.wrs_status === 'Delivering' &&
-            freshAmr.current_order_id === order.order_id
-        ) {
-            freshAmr.wrs_status = 'IDLE';
-            freshAmr.current_order_id = null;
-            freshAmr.target_counter_id = null;
-            freshAmr.is_available = true;
-
-            await wrsRepo2.save(freshAmr);
-
-            await wrsLogRepo2.save(
-                wrsLogRepo2.create({
-                    wrs_id: freshAmr.wrs_id,
-                    order_id: order.order_id,
-                    status: 'IDLE',
-                    operator: ControlSource.AUTO,
-                    event: 'Auto reset AMR',
-                    message: `AMR ${freshAmr.wrs_code} auto reset to IDLE`
-                })
-            );
-        }
-    } catch (err) {
-        console.error('Auto reset AMR failed', err);
-    }
-}, 5000);
-
+        assignedCount++;
     }
 
     /* ----------------------------------------------------
-     * 7) Auto-continue (optional)
+     * 6) Commit group RUNNING only if assigned
+     * -------------------------------------------------- */
+    if (assignedCount > 0) {
+        if (group.status !== 'RUNNING') {
+            group.status = 'RUNNING';
+            group.started_at = group.started_at ?? new Date();
+        }
+
+        if (!group.counter_color) {
+            group.counter_color = groupColor!;
+        }
+
+        await executionGroupRepo.save(group);
+    }
+
+    /* ----------------------------------------------------
+     * 7) Done
      * -------------------------------------------------- */
     return {
-        message: 'ExecutionGroup processed',
+        message: 'ExecutionGroup auto processed',
         execution_group_id: executionGroupId,
-        used_color: groupColor
+        assigned: assignedCount,
+        used_color: group.counter_color ?? null
     };
 }
+
+
 
 }

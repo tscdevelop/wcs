@@ -2,20 +2,32 @@ import React from "react";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 
+const DEFAULT_TEXT_COLOR = "#000";
+const DEFAULT_BG_COLOR = "#FFF";
+
 const CounterBox = ({ counter }) => {
-  const isWaiting = counter.status === "WAITING";
-  const isIdle = counter.status === "IDLE";
+  const status = counter.status || "IDLE";
+  const isWaiting = status === "WAITING";
+  const isIdle = status === "IDLE";
+
+  const counterTextColor = isIdle
+    ? DEFAULT_TEXT_COLOR
+    : counter.color || DEFAULT_TEXT_COLOR;
+
+  const boxBgColor = isIdle
+    ? DEFAULT_BG_COLOR
+    : counter.color || DEFAULT_BG_COLOR;
+
+  const quantityColor = counter.isActive
+    ? counterTextColor
+    : "#FFF";
 
   return (
     <MDBox textAlign="center">
-      {/* Counter number */}
-      {/*IDLE=ดำ , สถานะเปลี่ยนสีค่อยเปลี่ยน*/}
+      {/* Counter ID */}
       <MDTypography
         variant="h3"
-        sx={{ 
-            color: isIdle ? "#000" : counter.color,
-            mb: 1.5 
-        }}
+        sx={{ color: counterTextColor, mb: 1.5 }}
       >
         {counter.id}
       </MDTypography>
@@ -26,7 +38,7 @@ const CounterBox = ({ counter }) => {
           width: 135,
           height: 165,
           border: "2px solid #000",
-          backgroundColor: isIdle ? "#FFF" : counter.color,
+          backgroundColor: boxBgColor,
           position: "relative",
           mx: "auto",
         }}
@@ -49,7 +61,10 @@ const CounterBox = ({ counter }) => {
       </MDBox>
 
       {/* Quantity */}
-      <MDTypography variant="h5" sx={{ color: counter.color, mt: 4.5 }}>
+      <MDTypography
+        variant="h5"
+        sx={{ color: quantityColor, mt: 4.5 }}
+      >
         {counter.actual}/{counter.plan}
       </MDTypography>
     </MDBox>

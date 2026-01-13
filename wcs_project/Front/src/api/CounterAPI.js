@@ -51,7 +51,7 @@ class CounterAPI {
     static async getCounterAll() {
         try {
             const token = GlobalVar.getToken();
-            const endpoint = "/api/counter/get-all";
+            const endpoint = "/api/counter/get-all-by-user";
 
             const response = await ApiProvider.getData(
                 endpoint,
@@ -70,7 +70,7 @@ class CounterAPI {
     static async getAllOrders(params) {
         try {
             const token = GlobalVar.getToken();
-            const endpoint = "/api/counter/get-all-orders";
+            const endpoint = "/api/counter/get-all-order-by-user";
 
             const response = await ApiProvider.getData(
                 endpoint,
