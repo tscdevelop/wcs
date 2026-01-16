@@ -17,7 +17,7 @@ const roleService = new RoleService();
 // Controller สำหรับการสร้าง role ใหม่
 export const create = async (req: Request, res: Response) => {
     const operation = 'RoleController.create';
-    console.log("operation : ", operation);
+    // console.log("operation : ", operation);
 
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -25,7 +25,7 @@ export const create = async (req: Request, res: Response) => {
 
     try {
         //const { role_code, role_name, role_decription, role_is_active } = req.body;
-        console.log("req.body : ", req.body);
+        // console.log("req.body : ", req.body);
 
         // ใช้ DataSanitizer เพื่อแปลงและ sanitize ข้อมูลจาก req.body ไปยัง RoleUpdateModel
         let data: Partial<RoleCreateModel> = DataSanitizer.fromObject<RoleCreateModel>(req.body, RoleCreateModel);
@@ -33,7 +33,7 @@ export const create = async (req: Request, res: Response) => {
            // บันทึกชื่อผู้ที่แก้ไข role
         data.create_by = reqUsername;
 
-        console.log('Sanitized data : ', JSON.stringify(data, null, 2));
+        // console.log('Sanitized data : ', JSON.stringify(data, null, 2));
 
         // เรียกใช้ service สำหรับสร้าง role
         const response = await roleService.create(data);
@@ -57,7 +57,7 @@ export const update = async (req: Request, res: Response) => {
         return ResponseUtils.handleBadRequestIsRequired(res, 'field.role_code');
     }
 
-    console.log('Raw req.body : ', req.body);
+    // console.log('Raw req.body : ', req.body);
 
     try {
         // ใช้ DataSanitizer เพื่อแปลงและ sanitize ข้อมูลจาก req.body ไปยัง RoleUpdateModel
@@ -66,7 +66,7 @@ export const update = async (req: Request, res: Response) => {
         // บันทึกชื่อผู้ที่แก้ไข role
         data.update_by = reqUsername;
 
-        console.log('Sanitized data : ', JSON.stringify(data, null, 2));
+        // console.log('Sanitized data : ', JSON.stringify(data, null, 2));
 
         const response = await roleService.update(role_code, data);
         return ResponseUtils.handleResponse(res, response);
@@ -149,7 +149,7 @@ export const getByRoleCode = async (req: Request, res: Response) => {
 
     // ดึง role_code ที่ต้องการดึงข้อมูลจาก query parameters
     const { role_code } = req.params;
-    console.log("role_code : " ,role_code);
+    // console.log("role_code : " ,role_code);
 
     try {
         // เรียกใช้ service สำหรับดึงข้อมูล role และสิทธิ์ที่เกี่ยวข้อง
@@ -175,7 +175,7 @@ export const getPermissionByRole = async (req: Request, res: Response) => {
         return ResponseUtils.handleErrorSearch(res, operation, "Role code is missing", 'item.role', true, reqUsername);
     }
 
-    console.log("role_code : ", role_code);
+    // console.log("role_code : ", role_code);
 
     try {
         // เรียก service เพื่อนำข้อมูลมาใช้
@@ -192,16 +192,16 @@ export const getMenuByPermission = async (req: Request, res: Response) => {
     const reqRole = RequestUtils.getRoleToken(req, res);
     if (!reqRole) return;
     
-    console.log('params:', req.params);
+    // console.log('params:', req.params);
     let { role_code } = req.params;
-    console.log('role_codeee:', role_code);
+    // console.log('role_codeee:', role_code);
 
     // ใช้ role_code จากพารามิเตอร์ถ้ามี หรือจาก token ถ้าไม่มีพารามิเตอร์
     if (role_code === '' || role_code === '{role_code}') {
         role_code = reqRole;
     }
 
-    console.log("role_code:", role_code);
+    // console.log("role_code:", role_code);
 
     if (!role_code) {
         return ResponseUtils.handleErrorSearch(res, operation, "Role code is missing", 'item.role', true, reqRole);

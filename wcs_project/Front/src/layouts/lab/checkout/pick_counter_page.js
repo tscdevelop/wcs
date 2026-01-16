@@ -1,110 +1,156 @@
-// import React, { useEffect, useState } from "react";
-// import { useParams } from "react-router-dom";
-// import CounterScreen from "../components/counter_screen";
-// import CounterAPI from "api/CounterAPI";
-// import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-// import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-// import MDBox from "components/MDBox";
-
-// const PickCounterPage = () => {
-//   const { counterId } = useParams();
-//   const [counter, setCounter] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     const fetchCounter = async () => {
-//       try {
-//         const res = await CounterAPI.getByID(counterId);
-//         setCounter(res?.data);
-//         console.log("res", res);
-//       } catch (err) {
-//         console.error(err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-//     fetchCounter();
-//   }, [counterId]);
-
-//   if (loading) return <div>Loading...</div>;
-//   if (!counter) return <div>Counter not found</div>;
-
-//   return (
-//     <DashboardLayout>
-//       <DashboardNavbar />
-//       <MDBox p={2}>
-//         <CounterScreen
-//           counter={counter}                     // ✅ ส่ง object ทั้งตัว
-//           stock_item={counter.stock_item}       // ✅ ชื่อสินค้า
-//           brand={counter.brand}                 // ✅ ยี่ห้อ
-//           item_desc={counter.item_desc}         // ✅ รายละเอียดสินค้า
-//           plan_qty={counter.plan}               // ✅ จำนวนที่ต้อง pick
-//           pickedQty={counter.actual}            // ✅ จำนวนที่ pick แล้ว
-//           imageUrl={counter.imageUrl || ""}     // ✅ รูปสินค้า
-//           transaction={counter.order || {}}     // ✅ ข้อมูล transaction
-//           slots={6}
-//           activeSlot={1}
-//         />
-//       </MDBox>
-//     </DashboardLayout>
-//   );
-// };
-
-// export default PickCounterPage;
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import CounterScreen from "../components/counter_screen";
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import CounterAPI from "api/CounterAPI";
 import MDBox from "components/MDBox";
+import DisplayLayout from "../../../utils/DisplayLayout";
+import CounterStandbyScreen from "../components/counter_standby_screen";
 
-const PickCounterPageMock = () => {
+const PickCounterPage = () => {
+  const { counterId } = useParams();
   const [counter, setCounter] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // mock data
-    const mockData = {
-      id: 1,
-      color: "#FF0000", // สีแดง
-      stock_item: "AGL-TCL-10081",
-      brand: "CAPITAL",
-      item_desc: "45W 6.6A PK30D Lamp, Model: 64319Z",
-      plan: 55,          // จำนวนที่ต้อง pick
-      actual: 0,         // จำนวนที่ pick แล้ว
-      imageUrl: "/mock_lamp.png", // ถ้าไม่มี image ให้ว่าง ""
-      order: {
-        code: "T18M101",
-        type: "Transfer (Pick)",
-        spr: "SPR20-1000060",
-        workOrder: "WO20-182320",
-        po: "6000",
-        objectId: 1,
-      },
+    const fetchCounter = async () => {
+      try {
+        const res = await CounterAPI.getByCounterIdPublic(counterId); // คืนค่า array
+        const data = res?.data;
+
+        if (!data || data.length === 0) {
+          setCounter(null);
+        } else {
+          // ใช้แถวแรกเป็นตัวอย่าง
+          setCounter(data[0]);
+        }
+
+        console.log("res", data);
+      } catch (err) {
+        console.error(err);
+        setCounter(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCounter();
+  }, [counterId]);
+
+  //ทำ sse
+  useEffect(() => {
+    if (!counterId) return;
+
+    console.log("Connecting SSE to counter:", counterId);
+
+    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
+
+    const es = new EventSource(
+      `${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}`
+    );
+
+    es.onopen = () => {
+      console.log("✅ SSE connected");
     };
 
-    setCounter(mockData);
-  }, []);
+    es.onmessage = (e) => {
+      console.log("📡 SSE message:", e.data);
 
-  if (!counter) return <div>Loading mock data...</div>;
+      const data = JSON.parse(e.data);
+
+      setCounter((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          actual_qty: data.actualQty, // 👈 ตรง backend
+        };
+      });
+    };
+
+    es.onerror = (err) => {
+      console.error("❌ SSE error", err);
+      es.close();
+    };
+
+    return () => {
+      console.log("🔌 SSE closed");
+      es.close();
+    };
+  }, [counterId]);
+
+  function ScaledWrapper({ children }) {
+    const BASE_W = 1920;
+    const BASE_H = 1080;
+
+    const [scale, setScale] = React.useState(1);
+
+    React.useEffect(() => {
+      const resize = () => {
+        const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
+        setScale(s);
+      };
+
+      resize();
+      window.addEventListener("resize", resize);
+      return () => window.removeEventListener("resize", resize);
+    }, []);
+
+    return (
+      <div
+        style={{
+          width: BASE_W,
+          height: BASE_H,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+
+          /* 🔥 จัดให้อยู่กลาง "หลังจาก scale" */
+          marginLeft: `calc((100vw - ${BASE_W * scale}px) / 2)`,
+          marginTop: `calc((100vh - ${BASE_H * scale}px) / 2)`,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  if (loading) return <div>Loading...</div>;
+  if (!counter) return <div>Counter not found</div>;
 
   return (
-    <DashboardLayout>
-      <DashboardNavbar />
-      <MDBox p={2}>
-        <CounterScreen
-          counter={counter}
-          stock_item={counter.stock_item}
-          brand={counter.brand}
-          item_desc={counter.item_desc}
-          plan_qty={counter.plan}
-          pickedQty={counter.actual}
-          imageUrl={counter.imageUrl}
-          transaction={counter.order}
-          slots={6}
-          activeSlot={1}
-        />
+    <DisplayLayout>
+      <MDBox
+        sx={{
+          width: "100vw",
+          height: "100vh",
+          overflow: "hidden",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <ScaledWrapper>
+          {counter?.trx_type === null ? (
+            <CounterStandbyScreen counter={counter} />
+          ) : (
+            <CounterScreen
+              counter={counter} // counter object
+              stock_item={counter.stock_item} // จาก flattened row
+              item_desc={counter.item_desc}
+              plan_qty={counter.plan_qty}
+              pickedQty={counter.actual_qty}
+              spr_no={counter.spr_no}
+              type={counter.trx_type} // เปลี่ยนจาก counter.type
+              work_order={counter.work_order}
+              mc_code={counter.mc_code}
+              usage_num={counter.usage_num}
+              usage_line={counter.usage_line}
+              po_num={counter.po_num}
+              object_id={counter.object_id}
+              item_id={counter.item_id}
+              imageUrl={counter.item_img_url}
+              slots={6}
+            />
+          )}
+        </ScaledWrapper>
       </MDBox>
-    </DashboardLayout>
+    </DisplayLayout>
   );
 };
-
-export default PickCounterPageMock;
+export default PickCounterPage;

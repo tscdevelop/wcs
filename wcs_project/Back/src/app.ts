@@ -22,6 +22,7 @@ import userRouter from './routes/user.routes';
 import roleRouter from './routes/role.routes';
 import menuRouter from './routes/menu.routes';
 import dropdown from './routes/drodown.routes';
+import images2Router from './routes/image.routes';
 import aisleRouter from './routes/aisle.routes';
 import mrsRouter from './routes/mrs.routes';
 import ordersRouter from './routes/orders.routes';
@@ -30,6 +31,7 @@ import locationRouter from './routes/locations.routes';
 import inventoryRouter from './routes/inventory.routes';
 import allOrdersRouter from './routes/all_orders.routes';
 import counterRouter from './routes/counter.routes';
+import sseRouters from "./routes/sse.routes";
 
 import swaggerApp from './swagger'; // นำเข้า swagger
 
@@ -133,6 +135,7 @@ app.use('/api/users', userRouter);
 app.use('/api/roles', roleRouter);
 app.use('/api/menus', menuRouter);
 app.use('/api/dropdown', dropdown);
+app.use('/api/images', images2Router);
 
 app.use('/api/aisle', aisleRouter);
 app.use('/api/mrs', mrsRouter);
@@ -143,6 +146,14 @@ app.use('/api/inventory', inventoryRouter);
 app.use('/api/counter', counterRouter);
 
 app.use('/api/orders', allOrdersRouter);
+
+console.log("🔥 Mounting /api/sse");
+app.use('/api/sse', sseRouters);
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+
 
 // Serve static files ในโฟลเดอร์ public/uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));

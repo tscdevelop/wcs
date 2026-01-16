@@ -14,8 +14,6 @@ export enum LabTestParamDataType {
 }
 
 export enum Directories {
-    register_image = "dirUploadRigisterImage",
-    employee_image = "dirUploadEmployeeImage",
     stock_items_image = "dirUploadStockItemsImage",
 }
 

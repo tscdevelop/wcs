@@ -5,7 +5,7 @@ import MDTypography from "components/MDTypography";
 const DEFAULT_TEXT_COLOR = "#000";
 const DEFAULT_BG_COLOR = "#FFF";
 
-const CounterBox = ({ counter }) => {
+const CounterBox = ({ counter, onClick }) => {
   const status = counter.status || "IDLE";
   const isWaiting = status === "WAITING";
   const isIdle = status === "IDLE";
@@ -23,7 +23,7 @@ const CounterBox = ({ counter }) => {
     : "#FFF";
 
   return (
-    <MDBox textAlign="center">
+    <MDBox textAlign="center" sx={{ cursor: "pointer" }} onClick={onClick}>
       {/* Counter ID */}
       <MDTypography
         variant="h3"

@@ -59,7 +59,7 @@ class OrdersAPI {
                 token
             );
 
-            console.log("API Response:", response);
+            //console.log("API Response:", response);
             return response;
 
         } catch (error) {
@@ -79,7 +79,7 @@ class OrdersAPI {
                 token
             );
 
-            console.log("API Response:", response);
+            //console.log("API Response:", response);
             return response;
 
         } catch (error) {

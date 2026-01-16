@@ -377,7 +377,7 @@ async executeGroupAutoService(
             break;
         }
 
-        console.log('[AUTO] assigning', {
+    console.log('[AUTO] assigning', {
             order_id: order.order_id,
             counter_id: counter.counter_id,
             wrs_id: amr.wrs_id

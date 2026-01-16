@@ -65,7 +65,7 @@ class LocationsAPI {
             language
             );
 
-            console.log("apiResponse:", apiResponse);
+            //console.log("apiResponse:", apiResponse);
             return apiResponse;
 
         } catch (error) {

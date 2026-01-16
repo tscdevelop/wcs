@@ -21,13 +21,13 @@ export const create = async (req: Request, res: Response) => {
     }
 
     try {  
-        console.log('Raw req.body:', req.body);
+        //console.log('Raw req.body:', req.body);
 
         // Sanitization ข้อมูลจาก req.body
         const data: Partial<StockItems> = DataSanitizer.fromObject<StockItems>(req.body, StockItems);
         
         const files = req.files as { [key: string]: Express.Multer.File[] };
-        console.log('files:', files);
+        //console.log('files:', files);
 
         const response = await stockItemService.create(data, files, reqUsername);
 
@@ -62,7 +62,7 @@ export const update = async (req: Request, res: Response) => {
         const data: Partial<StockItems> = DataSanitizer.fromObject<StockItems>(req.body, StockItems);
         
         const files = req.files as { [key: string]: Express.Multer.File[] };
-        console.log('files:', files);
+        //console.log('files:', files);
 
         // เรียก service update
         const response = await stockItemService.update(item_id, data, files, reqUsername);

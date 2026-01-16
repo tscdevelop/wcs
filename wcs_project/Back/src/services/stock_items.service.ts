@@ -81,17 +81,17 @@ export class StockItemService {
             // Handle file uploads ถ้ามีไฟล์
             if (files && savedData && savedData.item_id) {
                 const subfolder = savedData.item_id.toString();
-                console.log('subfolder:', subfolder);
+                //console.log('subfolder:', subfolder);
 
                 const updateUploadData = await handleFileUploads(files, subfolder, UploadDirKey.DIR_UPLOAD_ITEMS_IMAGE, reqUsername, ItemFileMapping);
-                console.log('updateUploadData:', updateUploadData);
+                //console.log('updateUploadData:', updateUploadData);
 
                 if (Object.keys(updateUploadData).length > 0) {
                     const updateUploadResponse = await this.updateUploadfile(savedData.item_id, updateUploadData, useManager);
                     if (!updateUploadResponse.isCompleted) {
                         throw new Error(updateUploadResponse.message);
                     }
-                    console.log('updateUploadResponse:', updateUploadResponse);
+                    //console.log('updateUploadResponse:', updateUploadResponse);
                 }
             }
 
@@ -200,7 +200,7 @@ export class StockItemService {
                     if (!updateUploadResponse.isCompleted) {
                         throw new Error(updateUploadResponse.message);
                     }
-                    console.log('updateUploadResponse:', updateUploadResponse);
+                    //console.log('updateUploadResponse:', updateUploadResponse);
                 }
             }
             
@@ -296,7 +296,7 @@ async delete(item_id: string, reqUsername: string, manager?: EntityManager): Pro
         // 4️⃣ ลบทั้งโฟลเดอร์
         try {
             await fs.rm(fullDir, { recursive: true, force: true });
-            console.log("🗑 Deleted folder:", fullDir);
+            //console.log("🗑 Deleted folder:", fullDir);
         } catch (err) {
             console.error("⚠ Could not delete directory:", err);
         }
