@@ -51,7 +51,7 @@ class StockItemsAPI {
         const token = GlobalVar.getToken();
         const endpoint = "/api/stock-items/create";
         const response = await ApiProvider.postData(endpoint, payload, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
 
@@ -69,7 +69,7 @@ class StockItemsAPI {
             
             // ทำการเรียก API ด้วย token และ endpoint
             const response = await ApiProvider.putData(endpoint, formData, token);
-            console.log("update API Response:", response);
+            //console.log("update API Response:", response);
             
             return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -85,7 +85,7 @@ class StockItemsAPI {
             
             // ทำการเรียก API ด้วย token และ endpoint
             const response = await ApiProvider.deleteData(endpoint, {}, token);
-            console.log("API Response:", response);
+            //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -100,7 +100,7 @@ class StockItemsAPI {
         const token = GlobalVar.getToken();
         const endpoint = "/api/stock-items/get-all";
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
 
@@ -118,7 +118,7 @@ class StockItemsAPI {
             
             // ทำการเรียก API ด้วย token และ endpoint
             const response = await ApiProvider.getData(endpoint, {}, token);
-            console.log("API Response:", response);
+            //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -145,7 +145,7 @@ class StockItemsAPI {
             language
             );
 
-            console.log("apiResponse:", apiResponse);
+            //console.log("apiResponse:", apiResponse);
             return apiResponse;
 
         } catch (error) {
@@ -172,7 +172,7 @@ class StockItemsAPI {
             language
             );
 
-            console.log("apiResponse:", apiResponse);
+            //console.log("apiResponse:", apiResponse);
             return apiResponse;
 
         } catch (error) {
@@ -180,8 +180,6 @@ class StockItemsAPI {
             throw new Error(`Error: ${error.message}`);
         }
     }
-
-
 }
 
 export default StockItemsAPI;

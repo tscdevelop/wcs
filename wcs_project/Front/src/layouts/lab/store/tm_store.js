@@ -67,7 +67,7 @@ const T1MStore = () => {
     const fetchAisleDataAll = async () => {
         try {
             const response = await AisleAPI.AisleAll();
-            console.log("Aisle All :", response);
+            //console.log("Aisle All :", response);
 
             if (response?.isCompleted) {
                 const list =
@@ -94,7 +94,7 @@ const T1MStore = () => {
     const fetchMRSDataAll = async () => {
         try {
             const response = await MrsAPI.MRSAll();
-            console.log("MRS All :", response);
+            //console.log("MRS All :", response);
 
             if (response?.isCompleted) {
                 const list =

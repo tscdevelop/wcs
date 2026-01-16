@@ -55,7 +55,7 @@ class MenuAPI {
             const endpoint = "/api/menus/get-menu-all";
             
             const apiResponse =await ApiProvider.getData(endpoint,{},token);
-            console.log("apiResponse : ", apiResponse);
+            //console.log("apiResponse : ", apiResponse);
 
             return apiResponse;
 

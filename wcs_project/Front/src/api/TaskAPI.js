@@ -53,7 +53,7 @@ class ExecutionAPI {
       const token = GlobalVar.getToken();
       const endpoint = "/api/execution/create";
       const response = await ApiProvider.postData(endpoint, payload, token);
-      console.log("API Response:", response);
+      //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
 
@@ -71,7 +71,7 @@ class ExecutionAPI {
           
           // ทำการเรียก API ด้วย token และ endpoint
           const response = await ApiProvider.postData(endpoint, {}, token);
-          console.log("confirm order API Response:", response);
+          //console.log("confirm order API Response:", response);
           
           return response; // ส่งค่ากลับไป
       } catch (error) {
@@ -87,7 +87,7 @@ class ExecutionAPI {
           
           // ทำการเรียก API ด้วย token และ endpoint
           const response = await ApiProvider.postData(endpoint, {}, token);
-          console.log("confirm order API Response:", response);
+          //console.log("confirm order API Response:", response);
           
           return response; // ส่งค่ากลับไป
       } catch (error) {
@@ -102,7 +102,7 @@ class ExecutionAPI {
       const endpoint = "/api/execution/change-to-waiting";
 
       const response = await ApiProvider.postData(endpoint, payload, token);
-      console.log("API Response:", response);
+      //console.log("API Response:", response);
 
       return response;
     } catch (error) {
@@ -117,7 +117,7 @@ class ExecutionAPI {
       const endpoint = "/api/execution/change-to-pending";
 
       const response = await ApiProvider.postData(endpoint, payload, token);
-      console.log("API Response:", response);
+      //console.log("API Response:", response);
 
       return response;
     } catch (error) {
@@ -133,7 +133,7 @@ class ExecutionAPI {
       const endpoint = "/api/execution/get-all";
       const response = await ApiProvider.getData(endpoint, {}, token);
 
-      console.log("API Response:", response);
+      //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
 

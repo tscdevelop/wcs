@@ -53,7 +53,7 @@
         const token = GlobalVar.getToken();
         const endpoint = "/api/waiting/create";
         const response = await ApiProvider.postData(endpoint, payload, token);
-        console.log("create API Response:", response);
+        //console.log("create API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -69,7 +69,7 @@
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.putData(endpoint, formData, token);
-        console.log("update API Response:", response);
+        //console.log("update API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -85,7 +85,7 @@
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.deleteData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -100,7 +100,7 @@
         const endpoint = "/api/waiting/get-all";
         const response = await ApiProvider.getData(endpoint, {}, token);
 
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -114,7 +114,7 @@
         const token = GlobalVar.getToken();
         const endpoint = "/api/waiting/get-usage-all";
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -130,7 +130,7 @@
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -144,7 +144,7 @@
         const token = GlobalVar.getToken();
         const endpoint = "/api/waiting/get-receipt-all";
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -160,7 +160,7 @@
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {

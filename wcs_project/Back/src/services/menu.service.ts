@@ -44,14 +44,14 @@ export class MenuService {
                 // .andWhere('menu.menu_id NOT BETWEEN 1 AND 12') // เพิ่มเงื่อนไขไม่แสดง menu_id ระหว่าง 1 ถึง 12
                 .getRawMany();
     
-                console.log('rawData : ', rawData);
+                //console.log('rawData : ', rawData);
             if (rawData.length === 0) {
                 return response.setIncomplete(lang.msgNotFound('item.menu'));
             }
     
             // ใช้ฟังก์ชัน mapping เพื่อแปลงข้อมูลเป็น Model
             const modelData = mapToMenuModel(rawData);
-            console.log('modelData : ', modelData);
+            //console.log('modelData : ', modelData);
             return response.setComplete(lang.msgFound('item.menu'), modelData);    
     
         } catch (error: any) {

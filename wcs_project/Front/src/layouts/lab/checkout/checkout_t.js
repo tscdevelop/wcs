@@ -31,14 +31,13 @@ const CheckOutTPage = () => {
 
   const FIXED_COUNTER_IDS = [1, 2, 3, 4, 5, 6];
 
-const createDefaultCounter = (id) => ({
-  id,
-  status: "IDLE",
-  color: "#000",
-  actual: 0,
-  plan: 0,
-});
-
+  const createDefaultCounter = (id) => ({
+    id,
+    status: "IDLE",
+    color: "#000",
+    actual: 0,
+    plan: 0,
+  });
 
   /* ---------------- Fetch Orders ---------------- */
   const fetchDataAll = async () => {
@@ -56,58 +55,54 @@ const createDefaultCounter = (id) => ({
 
   /* ---------------- Fetch Counters ---------------- */
   const fetchCounters = async () => {
-  try {
-    const res = await CounterAPI.getCounterAll();
-    const apiCounters = Array.isArray(res?.data) ? res.data : [];
+    try {
+      const res = await CounterAPI.getCounterAll();
+      const apiCounters = Array.isArray(res?.data) ? res.data : [];
 
-    const mappedCounters = FIXED_COUNTER_IDS.map((counterId) => {
-      const apiCounter = apiCounters.find(
-        (c) => Number(c.id) === counterId || Number(c.counter_id) === counterId
-      );
+      const mappedCounters = FIXED_COUNTER_IDS.map((counterId) => {
+        const apiCounter = apiCounters.find(
+          (c) => Number(c.id) === counterId || Number(c.counter_id) === counterId
+        );
 
-      const isActive =
-        apiCounter &&
-        (Number(apiCounter.plan) > 0 || Number(apiCounter.actual) > 0);
+        const isActive =
+          apiCounter && (Number(apiCounter.plan) > 0 || Number(apiCounter.actual) > 0);
 
-      return {
-        ...createDefaultCounter(counterId),
-        ...(apiCounter || {}),
-        id: counterId,
+        return {
+          ...createDefaultCounter(counterId),
+          ...(apiCounter || {}),
+          id: counterId,
 
-        // ⭐ สี counter ใช้เมื่อ active เท่านั้น
-        color: isActive ? apiCounter.color || "#000" : "#000",
+          // ⭐ สี counter ใช้เมื่อ active เท่านั้น
+          color: isActive ? apiCounter.color || "#000" : "#000",
 
-        // normalize status
-        status: isActive ? apiCounter.status : "IDLE",
+          // normalize status
+          status: isActive ? apiCounter.status : "IDLE",
 
-        // ⭐ ส่ง flag ไปให้ CounterBox
-        isActive,
-      };
-    });
+          // ⭐ ส่ง flag ไปให้ CounterBox
+          isActive,
+        };
+      });
 
-    setCounters(mappedCounters);
-  } catch (err) {
-    console.error(err);
-    setCounters(FIXED_COUNTER_IDS.map(createDefaultCounter));
-  }
-};
-
-
+      setCounters(mappedCounters);
+    } catch (err) {
+      console.error(err);
+      setCounters(FIXED_COUNTER_IDS.map(createDefaultCounter));
+    }
+  };
 
   useEffect(() => {
     fetchDataAll();
     fetchCounters();
   }, []);
 
-const counterGroups = React.useMemo(
-  () => [
-    counters.filter((c) => c.id === 1 || c.id === 2),
-    counters.filter((c) => c.id === 3 || c.id === 4),
-    counters.filter((c) => c.id === 5 || c.id === 6),
-  ],
-  [counters]
-);
-
+  const counterGroups = React.useMemo(
+    () => [
+      counters.filter((c) => c.id === 1 || c.id === 2),
+      counters.filter((c) => c.id === 3 || c.id === 4),
+      counters.filter((c) => c.id === 5 || c.id === 6),
+    ],
+    [counters]
+  );
 
   /* ---------------- Table Columns ---------------- */
   const columns = [
@@ -120,15 +115,11 @@ const counterGroups = React.useMemo(
     { field: "cond", label: "Condition" },
     { field: "actual_qty", label: "Scanned Quantity" },
     { field: "plan_qty", label: "Required Quantity" },
-     { 
-    field: "counter_id", 
-    label: "Counter",
-    render: (row) => (
-      <span style={{ color: row.counter_color || "#000" }}>
-        {row.counter_id}
-      </span>
-    )
-  },
+    {
+      field: "counter_id",
+      label: "Counter",
+      render: (row) => <span style={{ color: row.counter_color || "#000" }}>{row.counter_id}</span>,
+    },
     { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];
 
@@ -197,7 +188,13 @@ const counterGroups = React.useMemo(
                   <Grid container spacing={2} justifyContent="center">
                     {group.map((counter) => (
                       <Grid item xs={6} key={counter.id}>
-                        <CounterBox counter={counter} />
+                        <CounterBox
+                          counter={counter}
+                          onClick={() => {
+                            // เปิด PickCounterPage ใหม่ พร้อม counterId
+                            window.open(`/pick-counter/${counter.id}`, "_blank");
+                          }}
+                        />
                       </Grid>
                     ))}
                   </Grid>

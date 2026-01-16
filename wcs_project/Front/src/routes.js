@@ -109,6 +109,7 @@ import OrderStatusReqPage from "layouts/lab/status/order_status_req";
 import OrderStatusPage from "layouts/lab/status/order_status";
 import CheckOutTPage from "layouts/lab/checkout/checkout_t";
 import PickCounterPage from "layouts/lab/checkout/pick_counter_page";
+
 const getComponent = (componentName) => {
   switch (componentName) {
     // for menu intital // menu_key
@@ -219,14 +220,7 @@ const initialRoutes = [
     key: "role-edit",
     route: "/role-edit",
     component: getComponent("role-edit"),
-  },
-   {
-  name: "menu.counter-detail",
-  key: "counter-detail",
-  route: "/checkout/counter/:counterId", // dynamic route
-  component: getComponent("counter"), // หรือเปลี่ยนเป็น "counter-detail"
-}
-
+  }
 ];
 
 const initialRoutesTest = [
