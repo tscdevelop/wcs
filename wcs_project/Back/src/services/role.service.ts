@@ -64,7 +64,7 @@ export class RoleService {
             }
 
             for (const menu of data.permission_menus) {
-            console.log("🔍 Checking menu existence:", menu.menu_id);
+            //console.log("🔍 Checking menu existence:", menu.menu_id);
             const menuEntity = await menuRepo.findOne({ where: { menu_id: menu.menu_id } });
             if (!menuEntity) {
                 throw new Error(lang.msgNotFound(`Menu ID ${menu.menu_id} not found`));
@@ -95,10 +95,10 @@ export class RoleService {
             }
 
             // --- create role ---
-            console.log("📝 Creating Role:", data.role_code);
+            //console.log("📝 Creating Role:", data.role_code);
             const role = roleRepo.create(data);
             const savedRole = await roleRepo.save(role);
-            console.log("✅ Role Created:", savedRole);
+            //console.log("✅ Role Created:", savedRole);
 
             // --- save permissions (ใช้ useManager เดียวกัน) ---
             try {
@@ -362,7 +362,7 @@ export class RoleService {
         const operation = 'RoleService.savePermissions';
     
         try {
-            console.log('permissionMenus : ', permissionMenus);
+            //console.log('permissionMenus : ', permissionMenus);
     
             // ดึงฟังก์ชัน getParentMenusRecursively มาใช้จาก service getMenuByPermission
             const getParentMenusRecursively = async (parentMenuIds: number[], menuRepository: Repository<s_menu>): Promise<any[]> => {
@@ -412,7 +412,7 @@ export class RoleService {
                             const rolePermisMenu = new s_role_permis_menu();
                             rolePermisMenu.role_code = role_code;
                             rolePermisMenu.menu_id = menuItem.menu_id;
-                            console.log('rolePermisMenu : ', rolePermisMenu);
+                            //console.log('rolePermisMenu : ', rolePermisMenu);
                             await transactionManager.getRepository(s_role_permis_menu).save(rolePermisMenu);
     
                             // บันทึก menu_id ลงใน Set เพื่อป้องกันการบันทึกซ้ำ
@@ -430,7 +430,7 @@ export class RoleService {
     
                                     rolePermisAction.rpm_id = rolePermisMenu.rpm_id;
                                     rolePermisAction.action_code = actionEntity.action_code;
-                                    console.log('rolePermisAction : ', rolePermisAction);
+                                    //console.log('rolePermisAction : ', rolePermisAction);
                                     await transactionManager.getRepository(s_role_permis_action).save(rolePermisAction);
                                 }
                             }
@@ -580,7 +580,7 @@ export class RoleService {
     
             // เรียกใช้ฟังก์ชัน mapping เพื่อจัดรูปแบบข้อมูล
             const modelData = mapToRoleMenuModel(rawData);
-            console.log('modelData : ', modelData);
+            //console.log('modelData : ', modelData);
             return response.setComplete(lang.msgFound('item.menu'), modelData);
     
         } catch (error: any) {
@@ -651,7 +651,7 @@ export class RoleService {
                 .getRawMany();
 
     
-            // console.log('Raw Data:', rawData); // Debug raw data
+            //console.log('Raw Data:', rawData); // Debug raw data
     
             if (rawData.length === 0) {
                 return response.setIncomplete(lang.msgNotFound('item.role'));
@@ -660,7 +660,7 @@ export class RoleService {
             // ฟังก์ชันสำหรับแปลงข้อมูลให้เป็น NewMenuRouteModel
             const finalMenus = this.mapToNewMenuRouteModel(rawData);
     
-            // console.log('Final Menus:', finalMenus); // Debug final menus
+            //console.log('Final Menus:', finalMenus); // Debug final menus
     
             return response.setComplete(lang.msgFound('item.menu'), finalMenus);
         } catch (error: any) {
@@ -685,21 +685,21 @@ export class RoleService {
                 collapse: []
             };
             menuMap.set(menu.menu_id, menuItem);
-            // console.log("Added menu item to menuMap:", menuItem); // ตรวจสอบการเพิ่มรายการใน map
+            //console.log("Added menu item to menuMap:", menuItem); // ตรวจสอบการเพิ่มรายการใน map
         });
     
-        // console.log("menuMap:", menuMap); // ตรวจสอบการเพิ่มรายการใน menuMap
+        //console.log("menuMap:", menuMap); // ตรวจสอบการเพิ่มรายการใน menuMap
         // สร้างโครงสร้างเมนูตาม parent_menu_id
         const menuTree: MenuRouteModel[] = [];
-        // console.log("Initial menuTree:", menuTree); // ตรวจสอบค่าเริ่มต้นของ menuTree
+        //console.log("Initial menuTree:", menuTree); // ตรวจสอบค่าเริ่มต้นของ menuTree
     
         rawData.forEach(menu => {
             const parentMenuId = menu.parent_menu_id;
             const menuItem = menuMap.get(menu.menu_id);
-            // console.log("Processing menu:", menu); // ตรวจสอบเมนูปัจจุบันที่กำลังประมวลผล
+            //console.log("Processing menu:", menu); // ตรวจสอบเมนูปัจจุบันที่กำลังประมวลผล
     
             if (!menuItem) {
-                console.log("MenuItem not found, skipping:", menu.menu_id); // ถ้าไม่พบ menuItem
+                //console.log("MenuItem not found, skipping:", menu.menu_id); // ถ้าไม่พบ menuItem
                 return;
             }
     
@@ -707,7 +707,7 @@ export class RoleService {
             if (parentMenuId === null || parentMenuId === 0) {
                 // ถ้าเป็นเมนูหลัก (ไม่มี parent)
                 menuTree.push(menuItem);
-                // console.log("Added to root menuTree:", menuItem); // ตรวจสอบการเพิ่มใน root tree
+                //console.log("Added to root menuTree:", menuItem); // ตรวจสอบการเพิ่มใน root tree
             } else {
                 // ถ้าเป็นเมนูย่อย
                 const parentMenu = menuMap.get(parentMenuId);
@@ -721,16 +721,16 @@ export class RoleService {
                     }
     
                     parentMenu.collapse.push(menuItem);
-                    // console.log("Added to parent collapse:", parentMenu); // ตรวจสอบการเพิ่มเข้าไปในเมนูย่อย
+                    //console.log("Added to parent collapse:", parentMenu); // ตรวจสอบการเพิ่มเข้าไปในเมนูย่อย
                 } else {
-                    console.log("Parent menu not found for menuId:", menu.menu_id); // ถ้าไม่พบ parent menu
+                    //console.log("Parent menu not found for menuId:", menu.menu_id); // ถ้าไม่พบ parent menu
                 }
             }
         });
     
         // กำหนด type ให้กับเมนูที่เหลือ
         function setMenuType(menuList: MenuRouteModel[]) {
-            // console.log("menuList:", menuList); // ตรวจสอบการเพิ่มรายการใน menuMap
+            //console.log("menuList:", menuList); // ตรวจสอบการเพิ่มรายการใน menuMap
             menuList.forEach(menu => {
                 if (menu.collapse && menu.collapse.length > 0) {
                     menu.type = 'collapse';
@@ -738,12 +738,12 @@ export class RoleService {
                 } else {
                     menu.type = 'item';
                 }
-                // console.log("Menu type set:", menu); // ตรวจสอบการตั้งค่า type
+                //console.log("Menu type set:", menu); // ตรวจสอบการตั้งค่า type
             });
         }
     
         setMenuType(menuTree);
-        // console.log("Final menuTree:", menuTree); // ตรวจสอบโครงสร้างสุดท้ายของ tree
+        //console.log("Final menuTree:", menuTree); // ตรวจสอบโครงสร้างสุดท้ายของ tree
         return menuTree;
     }
     

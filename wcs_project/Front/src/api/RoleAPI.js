@@ -55,7 +55,7 @@ class RoleAPI {
       const endpoint = "/api/roles/search";
       
       const apiResponse = await ApiProvider.getData(endpoint, {}, token);
-      console.log("apiResponse : ", apiResponse);
+      //console.log("apiResponse : ", apiResponse);
 
       return new ApiResponse({
         isCompleted: true,
@@ -82,7 +82,7 @@ class RoleAPI {
       // ส่ง role_code เป็น query parameter ใน URL
       const endpoint = `/api/roles/check-role-code?role_code=${role_code}`;
       const apiResponse = await ApiProvider.getData(endpoint, {}, token);
-      console.log("apiResponse : ", apiResponse);
+      //console.log("apiResponse : ", apiResponse);
 
       return new ApiResponse({
         isCompleted: apiResponse.isCompleted,
@@ -104,7 +104,7 @@ class RoleAPI {
       const token = GlobalVar.getToken(); // ดึง token จาก GlobalVar
 
       const endpoint = `/api/roles/get/${role_code}`; // กำหนด endpoint สำหรับเรียก API
-      console.log("Request Endpoint:", endpoint);
+      //console.log("Request Endpoint:", endpoint);
       const apiResponse = await ApiProvider.getData(endpoint, {}, token); // เรียก API เพื่อดึงข้อมูลพนักงาน
 
       if (!apiResponse || typeof apiResponse !== "object") {
@@ -243,7 +243,7 @@ class RoleAPI {
       const apiResponse = await ApiProvider.postData(endpoint, form, token); // ส่งคำขอ POST
 
       // ตรวจสอบ response ที่ได้รับจาก API
-      console.log("API Response:", apiResponse);
+      //console.log("API Response:", apiResponse);
 
       if (!apiResponse || apiResponse.isError) {
         console.error("Error response from API:", apiResponse);

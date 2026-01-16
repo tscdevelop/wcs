@@ -93,7 +93,7 @@ class CounterAPI {
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -101,6 +101,58 @@ class CounterAPI {
         throw error;
         }
     }
+
+static async scanToServer(counterId) {
+  try {
+    const token = GlobalVar.getToken();
+    const endpoint = `/api/sse/${counterId}/scan`;
+
+    // ใช้ postData แบบเดียวกับ API อื่น ๆ
+    const response = await ApiProvider.postData(
+      endpoint,
+      {},      // body ว่าง (เราแค่บอกว่า scan 1 ครั้ง)
+      token
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Error scanToServer:", error.message || error);
+    return new ApiResponse({
+      isCompleted: false,
+      isError: true,
+      message: error.message || "Scan failed",
+      data: null,
+      error: error,
+    });
+  }
+}
+
+static async resetCounter(counterId) {
+  const token = GlobalVar.getToken();
+  return ApiProvider.postData(
+    `/api/sse/${counterId}/reset`,
+    {},
+    token
+  );
+}
+
+static async getByCounterIdPublic(counterId) {
+  const endpoint = `/api/counter/get-by-id-public/${counterId}`;
+
+  const response = await ApiProvider.getData(
+    endpoint,
+    {},
+    null, // ❌ ไม่ใช้ token
+    "en",
+    "json",
+    {
+      "x-wcs-key": process.env.REACT_APP_WCS_SCREEN_KEY,
+    }
+  );
+  return response;
+}
+
+
 }
 
 export default CounterAPI;

@@ -47,6 +47,7 @@ import { useMaterialUIController, setMiniSidenav } from "context";
 //import * as Constants from 'common/constants';
 import { GlobalVar } from "common/GlobalVar";
 
+import PickCounterPage from "../src/layouts/lab/checkout/pick_counter_page";
 
 export default function App() {
   const [controller, dispatch] = useMaterialUIController();
@@ -56,18 +57,27 @@ export default function App() {
     layout,
    
     sidenavColor,
-    transparentSidenav,
-    whiteSidenav,
+    // transparentSidenav,
+    // whiteSidenav,
     darkMode,
   } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
   const [rtlCache, setRtlCache] = useState(null);
   const { pathname } = useLocation();
+
+  const isCounterScreen = pathname.startsWith("/pick-counter");
+
   const [routes, setRoutes] = useState(initialRoutes); 
   // const [routesIntital, setRoutesIntital] = useState(initialRoutes); 
   // const [loading, setLoading] = useState(true); // เพิ่มสถานะ loading เพื่อให้ระบบรู้ว่าควรรอจนกว่าจะดึงข้อมูลเสร็จ
 
   const navigate = useNavigate(); // ใช้สำหรับเปลี่ยนเส้นทาง
+
+  //ไม่ login
+  const publicRoutes = [
+    "/login",
+    "/pick-counter", // base path
+  ];
 
 
   // Cache for the rtl
@@ -127,17 +137,33 @@ export default function App() {
     document.scrollingElement.scrollTop = 0;
   }, [pathname]);
 
-  // ตรวจสอบ token เมื่อแอปโหลดขึ้นมา
-  useEffect(() => {
-    const token = GlobalVar.getToken(); // หรือใช้ localStorage.getItem('token');
+  // // ตรวจสอบ token เมื่อแอปโหลดขึ้นมา
+  // useEffect(() => {
+  //   const token = GlobalVar.getToken(); // หรือใช้ localStorage.getItem('token');
 
-    if (!token && pathname !== "/login") {
-      // ถ้าไม่มี token และไม่ได้อยู่ที่หน้า login ให้เปลี่ยนเส้นทางไปที่หน้า Login
+  //   if (!token && pathname !== "/login") {
+  //     // ถ้าไม่มี token และไม่ได้อยู่ที่หน้า login ให้เปลี่ยนเส้นทางไปที่หน้า Login
+  //     navigate("/login", { replace: true });
+  //   } else {
+  //     fetchMenuPermissions(); // เรียกดึงเมนูทันทีหลังจากล็อกอิน
+  //   }
+  // }, [navigate, pathname]);
+
+  //ละเว้นบางค่า
+  useEffect(() => {
+    const token = GlobalVar.getToken();
+
+    const isPublicRoute = publicRoutes.some(path =>
+      pathname.startsWith(path)
+    );
+
+    if (!token && !isPublicRoute) {
       navigate("/login", { replace: true });
     } else {
-      fetchMenuPermissions(); // เรียกดึงเมนูทันทีหลังจากล็อกอิน
+      fetchMenuPermissions();
     }
   }, [navigate, pathname]);
+
 
   // Fetch routes from API and set routes state
   useEffect(() => {
@@ -169,7 +195,7 @@ export default function App() {
     <CacheProvider value={rtlCache}>
       <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
         <CssBaseline />
-        {layout === "dashboard" && (
+        {/* {layout === "dashboard" && (
           <>
             <Sidenav
               color={sidenavColor}
@@ -181,7 +207,21 @@ export default function App() {
             />
             <Configurator />
           </>
-        )}
+        )} */}
+        
+{layout === "dashboard" && !isCounterScreen && (
+<>
+<Sidenav
+color={sidenavColor}
+brand={GlobalVar.getHospitalLogo()}
+routes={routes}
+onMouseEnter={handleOnMouseEnter}
+onMouseLeave={handleOnMouseLeave}
+/>
+<Configurator />
+</>
+)}
+
         {layout === "vr" && <Configurator />}
         <Routes>
          {/*  {getRoutes(routesIntital)} */}
@@ -202,7 +242,7 @@ export default function App() {
   ) : (
     <ThemeProvider theme={darkMode ? themeDark : theme}>
       <CssBaseline />
-      {layout === "dashboard" && (
+      {/* {layout === "dashboard" && (
         <>
           <Sidenav
             color={sidenavColor}
@@ -214,11 +254,33 @@ export default function App() {
           />
           <Configurator />
         </>
-      )}
+      )} */}
+
+{layout === "dashboard" && !isCounterScreen && (
+<>
+<Sidenav
+color={sidenavColor}
+brand={GlobalVar.getHospitalLogo()}
+routes={routes}
+onMouseEnter={handleOnMouseEnter}
+onMouseLeave={handleOnMouseLeave}
+/>
+<Configurator />
+</>
+)}
+
       {layout === "vr" && <Configurator />}
       <Routes>
         {/* {getRoutes(routesIntital)} */}
         {/* <Route path="*" element={<Navigate to="/login" />} /> */}
+
+{/* ✅ Public WCS Screen */}
+<Route
+path="/pick-counter/:counterId"
+element={<PickCounterPage />}
+/>
+
+        {/* ✅ Public WCS Screen */}
         {getRoutes(routes)}
         <Route path="*" element={<Navigate to="/home" />} />
         {/* <Route 

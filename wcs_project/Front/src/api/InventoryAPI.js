@@ -51,7 +51,7 @@ class InventoryAPI {
         const token = GlobalVar.getToken();
         const endpoint = "/api/inventory/get-all";
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
             
             return response; // ส่งค่ากลับไป
 

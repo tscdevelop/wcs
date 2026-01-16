@@ -1,153 +1,244 @@
 import { Box, Card, Typography, Grid } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 export default function CounterScreen({
-  counter,       // object counter จาก API
+  counter, // counter object จาก API
   stock_item,
-  brand,
   item_desc,
   plan_qty,
   pickedQty,
-  transaction,
-  slots = 6,
-  activeSlot = 1,
+  spr_no,
+  type,
+  mc_code,
+  work_order,
+  usage_num,
+  usage_line,
+  po_num,
+  object_id,
+  item_id,
   imageUrl,
+  slots = 6,
 }) {
-  const counterColor = counter?.color || "red";
+  const counterColor = counter?.color || "#ff0000";
+
+  const isReceiptOrTransfer = type === "RECEIPT" || type === "TRANSFER";
+
+  const transactionFields = isReceiptOrTransfer
+    ? [
+        ["Transaction Type", type],
+        ["PO No.", po_num],
+        ["OBJECT ID", object_id],
+        ["SPR No.", spr_no],
+        ["Work Order", work_order],
+      ]
+    : [
+        ["Transaction Type", type],
+        ["SPR No.", spr_no],
+        ["Work Order", work_order],
+        ["USAGE NO.", usage_num],
+        ["USAGE Line", usage_line],
+      ];
 
   return (
     <Box
       sx={{
-        background: "#fcdedb",
+        width: "100%", // 🔒 รับขนาดจาก wrapper
+        height: "100%", // 🔒 ไม่คุมจอเอง
+        backgroundColor: alpha(counterColor || "#000", 0.1),
         border: "4px solid black",
-        borderRadius: 3,
-        p: 2,
+        borderRadius: 0,
+        p: 4,
+        boxSizing: "border-box", // 🔥 สำคัญมาก
       }}
     >
       {/* Counter Title */}
       <Typography
-        variant="h4"
+        variant="h2"
         fontWeight="bold"
         textAlign="left"
         mb={2}
-        sx={{ cursor: "pointer", color: counterColor }}
+        sx={{
+          cursor: "pointer",
+          color: "#000", // 🔒 ดำล้วน
+        }}
         onClick={() => {
-          window.open(
-            `/counter-detail?counterId=${counter?.id}&orderId=${transaction?.objectId}`,
-            "_blank"
-          );
+          window.location.reload();
         }}
       >
-        Counter {counter?.id || "?"}
+        Counter {counter?.counter_id || "?"}
       </Typography>
 
-      {/* Top */}
       <Grid container spacing={2}>
-        {/* Item Info */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderRadius: 3, p: 2, textAlign: "left" }}>
-            <Typography fontWeight="bold" mt={1}>
-              {stock_item} ({brand})
-            </Typography>
-            <Typography fontSize={14} color="text.secondary">
-              {item_desc}
-            </Typography>
-            <Typography mt={1} fontWeight="bold">
-              Pick Quantity: {plan_qty}
-            </Typography>
-          </Card>
+        {/* Top */}
+        <Grid item xs={12}>
+          <Grid container spacing={4} alignItems="stretch">
+            {/* Item Info */}
+            <Grid item xs={12} md={6} display="flex">
+              <Card
+                sx={{
+                  borderRadius: 7,
+                  p: 3,
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column", // 🔥 สำคัญ
+                }}
+              >
+                <Typography fontWeight="bold" fontSize={30}>
+                  {stock_item} ({item_id})
+                </Typography>
+
+                <Typography fontSize={25}>{item_desc}</Typography>
+
+                <Typography
+                  fontWeight="bold"
+                  fontSize={30}
+                  sx={{ mt: "auto" }} // 🔥 ดันลงล่างสุด
+                >
+                  Pick Quantity: {plan_qty}
+                </Typography>
+              </Card>
+            </Grid>
+
+            {/* Transaction / Order Info */}
+            <Grid item xs={12} md={6} display="flex">
+              <Card
+                sx={{
+                  borderRadius: 7,
+                  p: 3,
+                  textAlign: "left",
+                  width: "100%",
+                }}
+              >
+                <Typography fontWeight="bold" fontSize={30}>
+                  {mc_code || "-"}
+                </Typography>
+                <Grid container spacing={0.5}>
+                  {transactionFields.map(([label, value], i) => (
+                    <Grid item xs={12} key={i}>
+                      <Box display="flex">
+                        <Typography fontWeight="bold" sx={{ width: 220 }}>
+                          {label} :
+                        </Typography>
+                        <Typography>{value ?? "-"}</Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Card>
+            </Grid>
+          </Grid>
         </Grid>
 
-        {/* Transaction Info */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderRadius: 3, p: 2, textAlign: "left" }}>
-            <Typography variant="h6" fontWeight="bold">
-              {transaction?.code}
-            </Typography>
-            <Typography>
-              <b>Transaction Type:</b> {transaction?.type}
-            </Typography>
-            <Typography>
-              <b>SPR No.:</b> {transaction?.spr}
-            </Typography>
-            <Typography>
-              <b>Work Order:</b> {transaction?.workOrder}
-            </Typography>
-            <Typography>
-              <b>PO No.:</b> {transaction?.po}
-            </Typography>
-            <Typography>
-              <b>OBJECT ID:</b> {transaction?.objectId}
-            </Typography>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Counter Bar */}
-      <Box
-        sx={{
-          background: counterColor,
-          color: "white",
-          textAlign: "center",
-          fontSize: 64,
-          fontWeight: "bold",
-          py: 4,
-          borderRadius: 3,
-          my: 2,
-        }}
-      >
-        {pickedQty}/{plan_qty}
-      </Box>
-
-      {/* Bottom */}
-      <Grid container spacing={2}>
-        {/* Slot Indicator */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderRadius: 3, p: 2 }}>
-            <Box display="flex" gap={2} justifyContent="center">
-              {Array.from({ length: slots }).map((_, i) => {
-                const index = i + 1;
-                const active = index === activeSlot;
-
-                return (
-                  <Box key={index} textAlign="center">
-                    <Typography
-                      fontWeight="bold"
-                      color={active ? "white" : "black"}
-                    >
-                      {index}
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: 50,
-                        height: 70,
-                        border: "2px solid black",
-                        background: active ? counterColor : "white",
-                      }}
-                    />
-                  </Box>
-                );
-              })}
-            </Box>
-          </Card>
-        </Grid>
-
-        {/* Image */}
-        <Grid item xs={12} md={6}>
-          <Card
+        {/* Middle */}
+        <Grid item xs={12}>
+          {/* Counter Bar */}
+          <Box
             sx={{
-              borderRadius: 3,
-              p: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              backgroundColor: counterColor,
+              color: "#fff",
+              textAlign: "center",
+              fontSize: 120,
+              fontWeight: "bold",
+              py: 0.5, //padding ระยะภายใน
+              borderRadius: 7,
+              my: 2, //margin ระยะภายนอก
+              textShadow: "2px 2px 4px rgba(0,0,0,0.6)",
             }}
           >
-            {imageUrl ? (
-              <img src={imageUrl} alt="item" style={{ maxHeight: 100 }} />
-            ) : (
-              <Typography color="text.secondary">No image</Typography>
-            )}
-          </Card>
+            {pickedQty}/{plan_qty}
+          </Box>
+        </Grid>
+
+        {/* Bottom */}
+        <Grid item xs={12}>
+          <Grid container spacing={4} alignItems="stretch">
+            {/* Slot Indicator */}
+            <Grid item xs={12} md={8} display="flex">
+              <Card
+                sx={{
+                  borderRadius: 7,
+                  p: 5,
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "stretch", // 🔥 สำคัญ
+                }}
+              >
+                <Box
+                  display="flex"
+                  gap={{ xs: 0.5, md: 2 }}
+                  width="100%"
+                  alignItems="stretch" // 🔥 ทำให้สูงตามกัน
+                >
+                  {Array.from({ length: slots }).map((_, i) => {
+                    const index = i + 1;
+                    const counterId = Number(counter?.counter_id);
+                    const isActive = counterId >= 1 && counterId <= slots && index === counterId;
+                    const color = isActive ? counter?.color || "#000" : "#000";
+
+                    return (
+                      <Box
+                        key={index}
+                        sx={{
+                          flex: 1, // 🔥 ยืดตาม Card
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography fontWeight="bold" sx={{ color }}>
+                          {index}
+                        </Typography>
+
+                        <Box
+                          sx={{
+                            width: "100%",
+                            aspectRatio: "2 / 2.70", // 🔥 ตัวกำหนดความสูงทั้งหมด
+                            border: "2px solid black",
+                            backgroundColor: isActive ? color : "#fff",
+                            transition: "all 0.2s ease",
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Card>
+            </Grid>
+
+            {/* Image */}
+            <Grid item xs={12} md={4} display="flex">
+              <Card
+                sx={{
+                  borderRadius: 7,
+                  p: 3,
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {imageUrl ? (
+                  <Box
+                    component="img"
+                    src={imageUrl}
+                    alt="stock item image"
+                    sx={{
+                      width: "100%",
+                      maxWidth: "100%", // 🔥 เต็ม card
+                      maxHeight: {
+                        xs: 220, // มือถือ
+                        md: 320, // desktop
+                        lg: 380, // จอใหญ่
+                      },
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : (
+                  <Typography color="text.secondary">No image</Typography>
+                )}
+              </Card>
+            </Grid>
+          </Grid>
         </Grid>
       </Grid>
     </Box>

@@ -121,7 +121,7 @@ export const login = async (req: Request, res: Response) => {
 export const create = async (req: Request, res: Response) => {
   const operation = 'UserController.create';
 
-  console.log('Raw req.body:', req.body);
+  //console.log('Raw req.body:', req.body);
 
    // รับข้อมูล user ปกติ
   const data: Partial<s_user> & { mc_code?: string[] } =
@@ -132,7 +132,7 @@ export const create = async (req: Request, res: Response) => {
     data.mc_code = req.body.mc_code;
   }
 
-  console.log('Parsed data:', data);
+  //console.log('Parsed data:', data);
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -158,7 +158,7 @@ export const create = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   const operation = 'UserController.update';
   const { user_id } = req.params;
-  console.log('Raw req.body:', req.body);
+  //console.log('Raw req.body:', req.body);
 
   // รับข้อมูล user ปกติ
   const data: Partial<s_user> & { mc_code?: string[] } =
@@ -168,7 +168,7 @@ export const update = async (req: Request, res: Response) => {
   if (Array.isArray(req.body.mc_code)) {
     data.mc_code = req.body.mc_code;
   }
-  console.log('Parsed data:', data);
+  //console.log('Parsed data:', data);
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -195,7 +195,7 @@ export const del = async (req: Request, res: Response) => {
   if (!user_id) {
     return ResponseUtils.handleBadRequestIsRequired(res, 'field.user_id');
   }
-  console.log('Raw user_id:', user_id);
+  //console.log('Raw user_id:', user_id);
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
@@ -222,7 +222,7 @@ export const search = async (req: Request, res: Response) => {
   if (!reqUsername) {
       return ResponseUtils.handleBadRequestIsRequired(res, 'field.username');
   }
-  console.log('req reqUsername:', reqUsername);
+  //console.log('req reqUsername:', reqUsername);
   
   try {
     response = await userService.search(username as string, role_code as string);

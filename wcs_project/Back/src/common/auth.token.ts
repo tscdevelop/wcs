@@ -60,69 +60,19 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
+//ใช้เฉพาะผ่าน auth wcs
+export const authenticateWCS = (req: any, res: any, next: any) => {
+  const key =
+    req.query.key ||              // ✅ SSE
+    req.headers["x-wcs-key"];     // ✅ normal API
 
-// 2024-08-08 : ก่อนปรับ เพิ่มต่ออายุ API
-/* 
-import { Request, Response, NextFunction } from 'express';
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import config from '../config/GlobalConfig.json';
+    console.log("🔑 incoming key:", key);
+    console.log("🔐 server key:", process.env.WCS_SCREEN_KEY);
 
-const JWT_SECRET = config.JwtConfig.Key;
-
-// Define the shape of the token payload if needed
-export interface UserPayload {
-  user_id: number;
-  username: string;
-  role: string;
-  // Add any additional fields that you store in the token
-}
-
-// Extend the Request interface to include user property
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: UserPayload; // Optional user property on Request
-  }
-}
-
-// Middleware to verify the JWT token and attach user info to req.user
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Access token missing' });
+  if (key !== process.env.WCS_SCREEN_KEY) {
+    console.warn("⛔ WCS FORBIDDEN", req.params.counterId);
+    return res.status(403).end();
   }
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = decoded as UserPayload; // Type assertion for decoded payload
-    next(); // Continue to the next middleware or route handler
-  } catch (err) {
-    return res.status(403).json({ message: 'Invalid token' });
-  }
+  next();
 };
- */
-
-
-/* import { expressjwt, GetVerificationKey } from 'express-jwt';
-
-const config = require('../config/GlobalConfig.json');
-const JWT_SECRET = config.JwtConfig.Key;
-
-// Define the shape of the token payload if needed
-export interface UserPayload {
-    user_id: number;
-    username: string;
-    role: string;
-    // Add any additional fields that you store in the token
-  }
-
-// Middleware for authenticating the token
-export const authenticateToken = expressjwt({
-    secret: JWT_SECRET as GetVerificationKey,
-    algorithms: ['HS256'],
-    requestProperty: 'auth', // This will store the decoded token in req.auth
-    credentialsRequired: true, // Ensure credentials are required
-  });
-  
- */

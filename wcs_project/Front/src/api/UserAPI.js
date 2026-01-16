@@ -96,7 +96,7 @@ class UserApi {
       const token = GlobalVar.getToken();
       const endpoint = `/api/users/update/${user_id}`;
       const apiResponse = await ApiProvider.putData(endpoint, payload, token);
-      console.log("apiResponse : ", apiResponse);
+      //console.log("apiResponse : ", apiResponse);
 
       return new ApiResponse({
         isCompleted: true,
@@ -120,7 +120,7 @@ class UserApi {
 
       // ทำการเรียก API ด้วย token และ endpoint
       const response = await ApiProvider.deleteData(endpoint, {}, token);
-      console.log("API Response:", response);
+      //console.log("API Response:", response);
 
       return response; // ส่งค่ากลับไป
     } catch (error) {

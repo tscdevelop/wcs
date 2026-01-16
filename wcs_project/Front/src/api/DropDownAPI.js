@@ -55,7 +55,7 @@ class DropDownAPI {
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
@@ -71,7 +71,7 @@ class DropDownAPI {
 
         // ทำการเรียก API ด้วย token และ endpoint
         const response = await ApiProvider.getData(endpoint, {}, token);
-        console.log("API Response:", response);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {
