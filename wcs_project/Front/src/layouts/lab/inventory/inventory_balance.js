@@ -1,38 +1,42 @@
 import React, { useState, useEffect } from "react"; // นำเข้า useState และ useEffect จาก React
-import { Card, Grid } from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
-// import SweetAlertComponent from "../components/sweetAlert";
+import { Card, Grid, Box, InputAdornment, FormControl} from "@mui/material"; // นำเข้า components จาก MUI (Material-UI)
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout"; // นำเข้า layout component
 import DashboardNavbar from "examples/Navbars/DashboardNavbar"; // นำเข้า navbar component
 import MDBox from "components/MDBox";
-// import TableComponent from "../components/table_component";
 import MDTypography from "components/MDTypography";
 import InventoryAPI from "api/InventoryAPI";
-// import { GlobalVar } from "../../../common/GlobalVar";
+import { GlobalVar } from "../../../common/GlobalVar";
 import ReusableDataTable from "../components/table_component_v2";
-// import MDButton from "components/MDButton";
-// import ItemsFormDialog from "./stock_itefms_form";
+import SearchIcon from "@mui/icons-material/Search";
+import { StoreType, Condition } from "common/dataMain";
 import MDInput from "components/MDInput";
-// import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-// import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import MDButton from "components/MDButton";
+import { StyledMenuItem, StyledSelect } from "common/Global.style";
 
 const InventoryBalance = () => {
+    const storeType = GlobalVar.getStoreType();
     const [loading , setLoading] = useState(true);
-    // const [deleteItems, setDeleteItems] = useState(""); // รหัสที่จะลบ
-    // const [confirmAlert, setConfirmAlert] = useState(false);
-    // const [alert, setAlert] = useState({
-    //     show: false,
-    //     type: "success",
-    //     title: "",
-    //     message: "",
-    // });
+    
     const [itemsList, setItemsList] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
-    const [searchItems, setSearchItems] = useState({ date: "", time: "" });
+    const [searchItems, setSearchItems] = useState({ 
+        stock_item: "",
+        item_desc: "",
+        org_id: "",
+        dept: "",
+        status: "", 
+        mc_code: "",
+        total_inv_qty: "",
+        avg_unit_cost: "",
+        total_cost_inv: "",
+        cond: "",
+        loc: "",
+        box_loc: "",
+    });
 
-    // const [formOpen, setFormOpen] = useState(false);
-    // const [formMode, setFormMode] = useState("create"); // "create" | "edit"
-    // const [editingItems, setEditingItems] = useState(null);
-
+    const [filterCondition, setFilterCondition] = useState("");
+    const [filterLocation, setFilterLocation] = useState("");
+    
     const fetchDataAll = async () => {
         try {
         const response = await InventoryAPI.getAll();
@@ -55,171 +59,372 @@ const InventoryBalance = () => {
     useEffect(() => {
         const filtered = itemsList.filter(
         (item) =>
-            (item.requested_at || "").includes(searchItems.date) &&
-            (item.requested_at || "").includes(searchItems.time)
+            (item.stock_item || "").includes(searchItems.stock_item) &&
+            (item.item_desc || "").includes(searchItems.item_desc) &&
+            (item.org_id || "").includes(searchItems.org_id) &&
+            (item.dept || "").includes(searchItems.dept) &&
+            (item.status || "").includes(searchItems.status) &&
+            // (item.mc_code || "").includes(searchItems.mc_code) &&
+            String(item.total_inv_qty ?? "").includes(searchItems.total_inv_qty) &&
+            (item.avg_unit_cost || "").includes(searchItems.avg_unit_cost) &&
+            (item.total_cost_inv || "").includes(searchItems.total_cost_inv) &&
+            // (filterCondition === "" || item.cond === filterCondition) &&
+            (filterLocation === "" || item.cond === filterLocation) &&
+            (item.box_loc || "").includes(searchItems.box_loc)
         );
         setFilteredItems(filtered);
-    }, [itemsList, searchItems]);
-
-    // const handleAdd = () => {
-    //     setFormMode("create");
-    //     setEditingItems(null);
-    //     setFormOpen(true);
-    // };
-
-    // const fetchDataById = async (item_id) => {
-    //     try {
-    //     const response = await InventoryAPI.getByID(item_id);
-    //     if (response.isCompleted) {
-    //         const data = response.data;
-    //         setEditingItems({
-    //         item_id: data.item_id,
-    //         stock_item: data.stock_item,
-    //         item_name: data.item_name,
-    //         item_desc: data.item_desc ?? "",
-    //         item_img: data.item_img ?? "",
-    //         item_img_url: data.item_img_url ?? "",
-    //         });
-    //         setFormOpen(true); // เปิดฟอร์มหลังได้ข้อมูล
-    //     } else {
-    //         console.error("Failed to fetch stock items:", response.message);
-    //     }
-    //     } catch (error) {
-    //     console.error("Error fetching stock items by id:", error);
-    //     }
-    // };
-
-    // const handleEditClick = (row) => {
-    //     setFormMode("edit");
-    //     fetchDataById(row.item_id); // ใช้ item_id ดึงข้อมูล
-    // };
-
-    // const handleSubmitUser = async (payload) => {
-    //     try {
-
-    //     let res;
-    //     if (formMode === "edit") {
-    //         res = await InventoryAPI.update(editingItems.item_id, payload);
-    //     } else {
-    //         res = await InventoryAPI.create(payload);
-    //     }
-
-    //     if (res?.isCompleted) {
-    //         setAlert({
-    //         show: true,
-    //         type: "success",
-    //         title: formMode === "edit" ? "Updated" : "Created",
-    //         message: res.message,
-    //         });
-    //         await fetchDataAll();
-    //         return true;
-    //     } else {
-    //         setAlert({
-    //         show: true,
-    //         type: "error",
-    //         title: "Error",
-    //         message: res?.message || "Failed",
-    //         });
-    //         return false;
-    //     }
-    //     } catch (err) {
-    //     console.error("Error in handleSubmitUser:", err);
-    //     return false;
-    //     }
-    // };
-
-    // const handleDelete = async () => {
-    //     try {
-    //     const response = await InventoryAPI.delete(deleteItems);
-    //     if (response.isCompleted) {
-    //         setAlert({
-    //         show: true,
-    //         type: "success",
-    //         title: "Success",
-    //         message: response.message,
-    //         });
-    //         await fetchDataAll();
-    //     } else {
-    //         setAlert({
-    //         show: true,
-    //         type: "error",
-    //         title: "Error",
-    //         message: response.message,
-    //         });
-    //     }
-    //     } catch (error) {
-    //     console.error("Error during submit:", error);
-    //     } finally {
-    //     setConfirmAlert(false); // ซ่อน SweetAlert ยืนยัน
-    //     }
-    // };
+    }, [itemsList, searchItems, filterLocation]);
 
     const columns = [
-        { field: "stock_item", label: "Stock Item ID" },
-        { field: "item_name", label: "Stock Item Name" },
-        { field: "loc", label: "Source Location" },
-        { field: "box_loc", label: "Source Box Location" },
-        { field: "unit_cost_inv", label: "Unit Cost" },
+        { field: "stock_item", label: "Stock Item No." },
+        { field: "item_desc", label: "Stock Item Description" },
+        //{ field: "mc_code", label: "Maintenance Contract" },
+        { field: "total_inv_qty", label: "Inventory Quantity" },
+        { field: "avg_unit_cost", label: "Average Unit Cost" },
         { field: "total_cost_inv", label: "Total Cost" },
-        { field: "org_id", label: "ORG ID" },
-        { field: "item_status", label: "Stock Item Status" },
-        { field: "inv_qty", label: "Inventory Quantity" },
+        //{ field: "cond", label: "Condition" },
+        { field: "loc", label: "Store Location" },
+        { field: "box_loc", label: "Box Location" },
     ];
 
+    //แปลงชื่อคลัง
+    let storeTypeTrans = "";
+
+    switch (storeType) {
+        case "T1":
+        storeTypeTrans = "T1 Store";
+        break;
+
+        case "T1M":
+        storeTypeTrans = "T1M Store";
+        break;
+
+        case "AGMB":
+        storeTypeTrans = "AGMB Store";
+        break;
+
+        case "WCS":
+        storeTypeTrans = "WCS";
+        break;
+
+        default:
+        storeTypeTrans = storeType;
+    }
+    
     return (
         <DashboardLayout>
         <DashboardNavbar />
+        {/* ===== Header Home ===== */}
         <MDBox p={2}>
-            <MDBox mt={2}>
-            <MDTypography variant="h3" color="inherit">
-                Inventory Balance
+            <Box display="flex" alignItems="baseline" gap={1}>
+            {/* storeTypeTrans + underline */}
+            <Box display="inline-block">
+                <MDTypography variant="h3" fontWeight="bold" gutterBottom>
+                {storeTypeTrans}
+                </MDTypography>
+                <Box
+                sx={{
+                    width: "100%",
+                    height: "5px",
+                    backgroundColor: "#FFA726",
+                    borderRadius: "4px",
+                }}
+                />
+            </Box>
+            {/* Inventory Profile */}
+            <MDTypography variant="h3" color="bold">
+                - Inventory - Balance
             </MDTypography>
-            </MDBox>
+            </Box>
         </MDBox>
 
-        <MDBox mt={3}>
+        {/* 🟠 ขวา : ปุ่ม (ซ้าย / ขวา) */}
+        <MDBox display="flex" justifyContent="flex-end" gap={2} mb={3}>
+            {/* ซ้าย : Create */}
+            <MDButton variant="contained" color="info">
+            Change To Box Location View
+            </MDButton>
+
+            {/* ขวา : Import */}
+            <MDButton variant="contained" color="info">
+            Import
+            </MDButton>
+        </MDBox>
+
+        <MDBox mt={1}>
             <Card>
-            <MDBox mt={3} p={3}>
-                {<Grid container spacing={1} mb={1}>
-                <Grid item xs={3}>
-                    <MDTypography variant="h6">Stock Item ID</MDTypography>
+            <MDBox p={3}>
+                <Box sx={{ flexGrow: 1 }} mb={3}>
+                <Grid container spacing={2} sx={{ mb: 0.5 }}>
+                {/* Stock Item No. */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Stock Item No.</MDTypography>
                     <MDInput
-                    placeholder="search"
-                    value={searchItems.date}
-                    onChange={(e) => setSearchItems({ ...searchItems, date: e.target.value })}
-                    // InputProps={{
-                    //     endAdornment: (
-                    //     <InputAdornment position="end">
-                    //         <CalendarMonthIcon fontSize="small" />
-                    //     </InputAdornment>
-                    //     ),
-                    // }}
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.stock_item}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, stock_item: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
                     />
                 </Grid>
-                <Grid item xs={3}>
-                    <MDTypography variant="h6">Stock Item Name</MDTypography>
+                
+                {/* Stock Item Description */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Stock Item Description</MDTypography>
                     <MDInput
-                    placeholder="search"
-                    value={searchItems.time}
-                    onChange={(e) => setSearchItems({ ...searchItems, time: e.target.value })}
-                    // InputProps={{
-                    //     endAdornment: (
-                    //     <InputAdornment position="end">
-                    //         <AccessTimeIcon fontSize="small" />
-                    //     </InputAdornment>
-                    //     ),
-                    // }}
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.item_desc}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, item_desc: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+
+                {/* OGR ID */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">OGR ID</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.org_id}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, org_id: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+
+                {/* Department */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Department</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.dept}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, dept: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+
+                {/* Status */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Status</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.status}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, status: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+                
+                </Grid>
+                <Grid container spacing={2} sx={{ mb: 0.5 }}>
+                {/* Maintenance Contract */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Maintenance Contract</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.mc_code}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, mc_code: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+                {/* Inventory Quantity */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Inventory Quantity</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.total_inv_qty}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, total_inv_qty: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+                {/* Average Unit Cost */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Average Unit Cost</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.avg_unit_cost}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, avg_unit_cost: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+
+                {/* Total Cost */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Total Cost</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.total_cost_inv}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, total_cost_inv: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
+                    />
+                </Grid>
+
+                {/* Condition */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Condition</MDTypography>
+                    <FormControl fullWidth>
+                    <StyledSelect
+                        sx={{ height: "45px" }}
+                        name="filterCondition"
+                        value={filterCondition}
+                        onChange={(e) => setFilterCondition(e.target.value)}
+                        displayEmpty
+                    >
+                        <StyledMenuItem value="">Pull Down List</StyledMenuItem>
+
+                        {Condition.map((t) => (
+                        <StyledMenuItem key={t.value} value={t.value}>
+                            {t.text}
+                        </StyledMenuItem>
+                        ))}
+                    </StyledSelect>
+                    </FormControl>
+                </Grid>
+                </Grid>
+                <Grid container spacing={2} sx={{ mb: 0.5 }}>
+                {/* Store Location */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Store Location</MDTypography>
+                    <FormControl fullWidth>
+                    <StyledSelect
+                        sx={{ height: "45px" }}
+                        name="filterLocation"
+                        value={filterLocation}
+                        onChange={(e) => setFilterLocation(e.target.value)}
+                        displayEmpty
+                    >
+                        <StyledMenuItem value="">Pull Down List</StyledMenuItem>
+
+                        {StoreType.map((t) => (
+                        <StyledMenuItem key={t.value} value={t.value}>
+                            {t.text}
+                        </StyledMenuItem>
+                        ))}
+                    </StyledSelect>
+                    </FormControl>
+                </Grid>
+
+                {/* Box Location */}
+                <Grid item xs={12} md={2.4}>
+                    <MDTypography variant="caption" fontWeight="bold">Box Location</MDTypography>
+                    <MDInput
+                    placeholder="Text Field"
+                    sx={{ height: "45px" }}
+                    value={searchItems.box_loc}
+                    onChange={(e) =>
+                        setSearchItems({ ...searchItems, box_loc: e.target.value })
+                    }
+                    displayEmpty
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    fullWidth
                     />
                 </Grid>
                 </Grid>
-               /* <MDBox mb={5} display="flex" justifyContent="flex-end">
-                <MDButton color="dark" onClick={handleAdd}>
-                    Create
-                </MDButton>
-                </MDBox> */}
-                {loading ? (
-  <div>Loading...</div>
-) : (
+            </Box>
+            {loading ? (
+            <div>Loading...</div>
+            ) : (
                 <ReusableDataTable
                 columns={columns}
                 rows={filteredItems}

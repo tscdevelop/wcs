@@ -573,23 +573,35 @@ async transfer(manager: EntityManager, order: Orders) {
             const repository = manager ? manager.getRepository(Inventory): this.inventoryRepo;
 
             // Query ข้อมูลทั้งหมด
-            const rawData = await repository.createQueryBuilder('inv')
+            const rawData = await repository
+                .createQueryBuilder('inv')
                 .leftJoin('m_stock_items', 'stock', 'stock.item_id = inv.item_id')
                 .leftJoin('m_location', 'loc', 'loc.loc_id = inv.loc_id')
                 .select([
-                    'inv.inv_id AS inv_id',
                     'inv.item_id AS item_id',
                     'stock.stock_item AS stock_item',
-                    'stock.item_name AS item_name',
-                    'loc.loc_id AS loc_id',
+                    'stock.item_desc AS item_desc',
+                    'inv.loc_id AS loc_id',
                     'loc.loc AS loc',
                     'loc.box_loc AS box_loc',
-                    'inv.unit_cost_inv AS unit_cost_inv',
-                    'inv.total_cost_inv AS total_cost_inv',
-                    'inv.org_id AS org_id',
-                    'inv.inv_qty AS inv_qty'
+
+                    // 🔢 รวมจำนวน
+                    'SUM(inv.inv_qty) AS total_inv_qty',
+
+                    // 💰 รวมต้นทุน
+                    'SUM(inv.total_cost_inv) AS total_cost_inv',
+
+                    // ⭐ ค่าเฉลี่ยถ่วงน้ำหนัก
+                    'ROUND(SUM(inv.total_cost_inv) / NULLIF(SUM(inv.inv_qty), 0), 4) AS avg_unit_cost'
                 ])
+                .groupBy('inv.item_id')
+                .addGroupBy('inv.loc_id')
+                .addGroupBy('stock.stock_item')
+                .addGroupBy('stock.item_desc')
+                .addGroupBy('loc.loc')
+                .addGroupBy('loc.box_loc')
                 .getRawMany();
+
 
             if (!rawData || rawData.length === 0) {
                 return response.setIncomplete(lang.msgNotFound('inventory'));

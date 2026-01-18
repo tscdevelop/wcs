@@ -19,6 +19,10 @@ import { T1OrdersService } from "./order_wrs.service";
 import { ExecutionGroup } from "../entities/execution_group_id";
 import { Counter } from "../entities/counter.entity";
 import { WRS } from "../entities/wrs.entity";
+import { CounterRuntimeService } from './counter_runtime.service';
+import { broadcast } from "./sse.service";
+
+const runtimeService = new CounterRuntimeService();
 
 // (ถ้ามี) import { WRSTaskService } from './wrs-task.service';
 
@@ -759,19 +763,27 @@ async handleOrderItemWRS(
 });
 
 if (counter) {
-    await counterRepo.update(
-        { counter_id: counter.counter_id },
-        {
-            status: "EMPTY",
-             execution_group_id: () => 'NULL',   // ⭐ FIX
-            current_order_id: () => 'NULL',     // ⭐ FIX
-            light_color_hex: () => 'NULL',
-            current_wrs_id: () => 'NULL',
-            light_mode: "OFF",
-            last_event_at: new Date()
-        }
-    );
+  await counterRepo.update(
+    { counter_id: counter.counter_id },
+    {
+      status: "EMPTY",
+      execution_group_id: () => 'NULL',
+      current_order_id: () => 'NULL',
+      light_color_hex: () => 'NULL',
+      current_wrs_id: () => 'NULL',
+      light_mode: "OFF",
+      last_event_at: new Date()
+    }
+  );
+
+  await runtimeService.reset(Number(counter.counter_id));
+
+  broadcast(String(counter.counter_id), {
+    counter_id: counter.counter_id,
+    actualQty: 0
+  });
 }
+
 
 
         const wrs = await wrsRepo.findOne({

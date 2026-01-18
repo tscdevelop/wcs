@@ -19,6 +19,8 @@ const CheckOutTPage = () => {
   const [counters, setCounters] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [actualQty, setActualQty] = useState(0);
+
   const [alert, setAlert] = useState({
     show: false,
     type: "success",
@@ -228,6 +230,7 @@ const CheckOutTPage = () => {
                   confirmSkuDisabled={(row) => row.status !== "PROCESSING"}
                   onConfirmSku={(row) => {
                     setSelectedOrder(row);
+                    setActualQty(row.actual_qty || 0);
                     setScanDialogOpen(true);
                   }}
                 />
@@ -242,6 +245,8 @@ const CheckOutTPage = () => {
         <ScanQtyDialog
           open={scanDialogOpen}
           order={selectedOrder}
+          actualQty={actualQty}
+          onQtyChange={setActualQty}
           onClose={() => setScanDialogOpen(false)}
           onSubmit={async (order_id, actual_qty) => {
             try {

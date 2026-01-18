@@ -170,6 +170,7 @@
         "receipt_history": "Receipt History",
         "administrator": "Administrator",
         "stock_items": "Stock Items Data",
+        "inventory": "Inventory",
         "inventory_profile": "Inventory Profile",
         "inventory_balance": "Inventory Balance",
         "pick": "Pick",

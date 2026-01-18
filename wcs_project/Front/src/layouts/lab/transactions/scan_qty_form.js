@@ -202,12 +202,11 @@ import PropTypes from "prop-types";
 import MDButton from "components/MDButton";
 import CounterAPI from "api/CounterAPI";
 
-export default function ScanQtyDialog({ open, order, onClose, onSubmit }) {
+export default function ScanQtyDialog({ open, order, actualQty, onQtyChange, onClose, onSubmit }) {
   const planQty = order?.plan_qty || 0;
   const counterId = order?.counter_id;
 
   const [scanItem, setScanItem] = useState("");
-  const [actualQty, setActualQty] = useState(order?.actual_qty || 0);
 
   // dialogType: null | confirm | shortage | overScan
   const [dialogType, setDialogType] = useState(null);
@@ -216,10 +215,9 @@ export default function ScanQtyDialog({ open, order, onClose, onSubmit }) {
   useEffect(() => {
     if (open) {
       setScanItem("");
-      setActualQty(order?.actual_qty || 0);
       setDialogType(null);
     }
-  }, [open, order]);
+  }, [open]);
 
   /* ---------------- Scan Logic ---------------- */
 
@@ -252,14 +250,20 @@ export default function ScanQtyDialog({ open, order, onClose, onSubmit }) {
         return;
       }
 
-      if (actualQty + 1 > planQty) {
+      if (actualQty >= planQty) {
         setDialogType("overScan");
+        setScanItem("");
         return;
       }
 
       // ยิงไป backend เพื่อ broadcast SSE
       const res = await CounterAPI.scanToServer(counterId);
       console.log("SCAN RESPONSE", res);
+
+      if (res?.actualQty !== undefined) {
+        onQtyChange?.(res.actualQty); // 🔥 บอก parent
+      }
+
       if (res?.isError) {
         console.error(res.message);
       }
@@ -270,24 +274,6 @@ export default function ScanQtyDialog({ open, order, onClose, onSubmit }) {
       setScanItem("");
     }
   };
-
-  useEffect(() => {
-    if (!counterId || !open) return;
-
-    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
-    const es = new EventSource(
-      `${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}`
-    );
-
-    es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setActualQty(data.actualQty);
-    };
-
-    return () => {
-      es.close(); // ✅ ปิด SSE จริง ๆ
-    };
-  }, [counterId, open]);
 
   //reset sacn dialog
   const handleCancel = async () => {
@@ -526,6 +512,8 @@ export default function ScanQtyDialog({ open, order, onClose, onSubmit }) {
 ScanQtyDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   order: PropTypes.object.isRequired,
+  actualQty: PropTypes.number.isRequired,
+  onQtyChange: PropTypes.func,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
 };

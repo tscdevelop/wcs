@@ -99,7 +99,6 @@ import ReportPage from "layouts/lab/report/view_report";
 import WaitingExecutionPage from "layouts/lab/order/list";
 import UsageHistory from "layouts/lab/transactions/usage_history";
 import ReceiptHistory from "layouts/lab/transactions/receipt_history";
-import StockItemsData from "layouts/lab/administrator/stock_items";
 import InventoryProfile from "layouts/lab/inventory/inventory_profile";
 import InventoryBalance from "layouts/lab/inventory/inventory_balance";
 import PickExecutionReqPage from "layouts/lab/pick/execution_req";
@@ -145,8 +144,6 @@ const getComponent = (componentName) => {
         return <UsageHistory />;
     case "transactions-receipt":
         return <ReceiptHistory />;
-    case "stock-items":
-        return <StockItemsData />;
     case "inventory-profile":
         return <InventoryProfile />;
     case "inventory-balance":
@@ -250,10 +247,19 @@ export async function generateRoutesFromApi(apiRoutes) {
   const storeType = GlobalVar.getStoreType();
 
   const filteredRoutes = apiRoutes.filter(route => {
-    // ❌ ถ้าเป็น WCS ให้ซ่อน Checkout
+    // ❌ ซ่อน Checkout เฉพาะ WCS
     if (storeType === "WCS" && route.key === "checkout-t1") {
       return false;
     }
+
+    // ❌ ถ้าไม่ใช่ WCS → ซ่อน inventory menus
+    if (
+      storeType !== "WCS" &&
+      ["inventory","inventory-profile", "inventory-balance"].includes(route.key)
+    ) {
+      return false;
+    }
+
     return true;
   });
 
@@ -265,6 +271,7 @@ export async function generateRoutesFromApi(apiRoutes) {
     ...initialRoutesTest,
   ];
 }
+
 
 
 export { initialRoutes};

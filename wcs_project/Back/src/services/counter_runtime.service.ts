@@ -1,0 +1,47 @@
+
+import { AppDataSource } from "../config/app-data-source";
+import { CounterRuntime } from "../entities/counter_runtime.entity";
+
+export class CounterRuntimeService {
+  private repo = AppDataSource.getRepository(CounterRuntime);
+
+  async get(counterId: number) {
+    return this.repo.findOne({ where: { counter_id: counterId } });
+  }
+
+  async ensure(counterId: number, orderId: number) {
+    let row = await this.get(counterId);
+    if (!row) {
+      row = this.repo.create({
+        counter_id: counterId,
+        order_id: orderId,
+        actual_qty: 0,
+      });
+      await this.repo.save(row);
+    }
+    return row;
+  }
+
+  async increment(counterId: number, orderId: number) {
+    await this.ensure(counterId, orderId);
+
+    await this.repo.increment(
+      { counter_id: counterId },
+      "actual_qty",
+      1
+    );
+
+    return this.get(counterId);
+  }
+
+  async reset(counterId: number) {
+  await this.repo.update(
+    { counter_id: counterId },
+    {
+      actual_qty: 0,
+      order_id: undefined, // ✅ แทน null
+    }
+  );
+}
+
+}
