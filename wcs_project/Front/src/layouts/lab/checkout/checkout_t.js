@@ -120,7 +120,18 @@ const CheckOutTPage = () => {
     {
       field: "counter_id",
       label: "Counter",
-      render: (row) => <span style={{ color: row.counter_color || "#000" }}>{row.counter_id}</span>,
+      minWidth: 120, // ⭐ สำคัญ
+      renderCell: (value, row) => (
+        <span
+          style={{
+            color: row.counter_color || "#000",
+            fontWeight: 600,
+            whiteSpace: "nowrap", // ⭐ กันขึ้นบรรทัดใหม่
+          }}
+        >
+          Counter {value}
+        </span>
+      ),
     },
     { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];

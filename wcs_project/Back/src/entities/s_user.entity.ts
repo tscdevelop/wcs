@@ -23,6 +23,9 @@ export class s_user {
     @Column({ length: 100, nullable: true })
     user_email: string;                  // Email
 
+    @Column({ type: 'varchar', length: 7, nullable: true })
+    user_color_hex?: string;        // เก็บสีของ user ตามที่ฟิก
+
     @Column({ nullable: false, default: true })
     is_active: boolean;
 

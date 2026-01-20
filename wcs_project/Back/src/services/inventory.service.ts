@@ -591,8 +591,8 @@ async transfer(manager: EntityManager, order: Orders) {
                     // 💰 รวมต้นทุน
                     'SUM(inv.total_cost_inv) AS total_cost_inv',
 
-                    // ⭐ ค่าเฉลี่ยถ่วงน้ำหนัก
-                    'ROUND(SUM(inv.total_cost_inv) / NULLIF(SUM(inv.inv_qty), 0), 4) AS avg_unit_cost'
+                    // ⭐ ค่าเฉลี่ยถ่วงน้ำหนัก (ถ้า null ให้เป็น 0)
+                    'COALESCE(ROUND(SUM(inv.total_cost_inv) / NULLIF(SUM(inv.inv_qty), 0), 4), 0) AS avg_unit_cost'
                 ])
                 .groupBy('inv.item_id')
                 .addGroupBy('inv.loc_id')

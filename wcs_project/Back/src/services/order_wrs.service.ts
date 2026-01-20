@@ -1,43 +1,37 @@
-import { EntityManager, In, IsNull, QueryFailedError, Repository } from "typeorm";
+import { EntityManager, In, IsNull, Repository } from "typeorm";
 import { AppDataSource } from "../config/app-data-source";
 import { ApiResponse } from "../models/api-response.model";
-import { MRS } from "../entities/mrs.entity";
-import { Aisle } from "../entities/aisle.entity";
-import { MrsLog } from "../entities/mrs_log.entity";
 import {
     StatusOrders,
-    AisleStatus,
     ControlSource,
-    TaskSource,
-    TaskSubsystem,
-    StatusMRS,
 } from "../common/global.enum";
 import * as lang from "../utils/LangHelper";
-import { MrsGateway } from "../gateways/mrs.gateway";
 import { OrdersLog } from "../entities/orders_log.entity";
 import { Orders } from "../entities/orders.entity";
 import { StockItems } from "../entities/m_stock_items.entity";
-import { MRS_AISLE } from "../entities/mrs_aisle.entity";
 import { Locations } from "../entities/m_location.entity";
-import { LocationsMrs } from "../entities/m_location_mrs.entity";
 import { WRS } from "../entities/wrs.entity";
 import { Counter } from "../entities/counter.entity";
 import { WrsLog } from "../entities/wrs_log.entity";
-import { ExecutionGroup } from "../entities/execution_group_id";
+import { s_user } from "../entities/s_user.entity";
 
-const COUNTER_COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'CYAN'];
+export type ExecuteResult =
+  | 'EXECUTED'
+  | 'NO_COUNTER'
+  | 'NO_AMR'
+  | 'SKIPPED';
 
 export class T1OrdersService {
-    private ordersRepository: Repository<Orders>;
-    private logRepository: Repository<OrdersLog>;
-    private stockItemsRepository: Repository<StockItems>;
-    private locationRepository: Repository<Locations>;
+    private ordersRepo: Repository<Orders>;
+    private logRepo: Repository<OrdersLog>;
+    private stockItemsRepo: Repository<StockItems>;
+    private locationRepo: Repository<Locations>;
 
     constructor(){
-        this.ordersRepository = AppDataSource.getRepository(Orders);
-        this.logRepository = AppDataSource.getRepository(OrdersLog);
-        this.stockItemsRepository = AppDataSource.getRepository(StockItems);
-        this.locationRepository = AppDataSource.getRepository(Locations);
+        this.ordersRepo = AppDataSource.getRepository(Orders);
+        this.logRepo = AppDataSource.getRepository(OrdersLog);
+        this.stockItemsRepo = AppDataSource.getRepository(StockItems);
+        this.locationRepo = AppDataSource.getRepository(Locations);
     }
 
 //     async startExecutionService(order_id: string, reqUsername: string, manager: EntityManager) {
@@ -227,233 +221,268 @@ export class T1OrdersService {
 // }
 
 
-private mapColorToHex(color: string): string {
-    const map: Record<string, string> = {
-        RED: '#FF0000',
-        BLUE: '#0000FF',
-        GREEN: '#00FF00',
-        YELLOW: '#FFFF00',
-        PURPLE: '#800080',
-        CYAN: '#00FFFF'
-    };
-    return map[color] || '#FFFFFF';
-}
+async executeT1Order(
+  order_id: string,
+  manager?: EntityManager
+): Promise<ExecuteResult> {
 
-async executeGroupAutoService(
-    executionGroupId: string,
-    manager?: EntityManager
-) {
-    const useManager = manager ?? AppDataSource.manager;
+  const queryRunner = manager
+    ? null
+    : AppDataSource.createQueryRunner();
 
-    const executionGroupRepo = useManager.getRepository(ExecutionGroup);
+  const useManager = manager || queryRunner?.manager;
+
+  if (!useManager) {
+    throw new Error('No EntityManager available');
+  }
+
+  if (!manager && queryRunner) {
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+  }
+
+  try {
     const ordersRepo = useManager.getRepository(Orders);
     const counterRepo = useManager.getRepository(Counter);
     const wrsRepo = useManager.getRepository(WRS);
     const wrsLogRepo = useManager.getRepository(WrsLog);
+    const userRepo = useManager.getRepository(s_user);
 
-    /* ----------------------------------------------------
-     * 1) Load execution group
-     * -------------------------------------------------- */
-    const group = await executionGroupRepo.findOne({
-        where: { execution_group_id: executionGroupId }
-    });
-    if (!group) throw new Error('ExecutionGroup not found');
-
-    if (group.status === 'FINISHED') {
-        return { message: 'ExecutionGroup already finished' };
-    }
-
-    /* ----------------------------------------------------
-     * 2) Load waiting orders (PENDING + QUEUE)
-     * -------------------------------------------------- */
-    const waitingOrders = await ordersRepo.find({
-        where: {
-            execution_group_id: executionGroupId,
-            store_type: 'T1',
-            status: In([
-                StatusOrders.PENDING,
-                StatusOrders.QUEUE
-            ])
-        },
-        order: {
-            priority: 'DESC',
-            requested_at: 'ASC'
-        }
+    /* ------------------------------------------------
+     * 1) Load + lock order
+     * ---------------------------------------------- */
+    const order = await ordersRepo.findOne({
+      where: {
+        order_id,
+        store_type: 'T1',
+        status: In([
+          StatusOrders.PENDING,
+          StatusOrders.QUEUE
+        ])
+      },
+      lock: { mode: 'pessimistic_write' }
     });
 
-    console.log('[AUTO] waitingOrders count:', waitingOrders.length);
-
-    if (waitingOrders.length === 0) {
-        // ไม่มี order ค้าง → เช็คจบกลุ่ม
-        if (group.finished_orders >= group.total_orders) {
-            group.status = 'FINISHED';
-            group.finished_at = new Date();
-            await executionGroupRepo.save(group);
-            return { message: 'ExecutionGroup finished' };
-        }
-        return { message: 'No waiting orders' };
+    if (!order) {
+      return 'SKIPPED';
     }
 
-    /* ----------------------------------------------------
-     * 3) Load available counters
-     * -------------------------------------------------- */
-    const availableCounters = await counterRepo.find({
-        where: {
-            status: 'EMPTY',
-            execution_group_id: IsNull()
-        }
+    /* ------------------------------------------------
+     * 2) หา counter ว่าง (lock)
+     * ---------------------------------------------- */
+    const counter = await counterRepo.findOne({
+      where: {
+        status: 'EMPTY',
+        light_mode: 'OFF'
+      },
+      order: {
+        last_event_at: 'ASC' // ว่างนานสุด
+      },
+      lock: { mode: 'pessimistic_write' }
     });
 
-    console.log('[AUTO] availableCounters count:', availableCounters.length);
+    if (!counter) {
+      if (order.status !== StatusOrders.QUEUE) {
+        order.status = StatusOrders.QUEUE;
+        order.queued_at = new Date();
+        await ordersRepo.save(order);
+      }
 
-    if (availableCounters.length === 0) {
-    console.log('[AUTO] EXIT: counter full → orders stay QUEUE');
+      if (!manager && queryRunner) {
+        await queryRunner.commitTransaction();
+      }
 
-    // อัปเดต status ของ order ที่รอทั้งหมดเป็น QUEUE
-    for (const order of waitingOrders) {
-        if (order.status === 'PENDING') {
-            await ordersRepo.update(
-                { order_id: order.order_id },
-                { status: StatusOrders.QUEUE, queued_at: new Date() }
-            );
-        }
+      return 'NO_COUNTER';
     }
 
-    return { message: 'Counter full, orders queued' };
-}
+    /* ------------------------------------------------
+     * 3) หา AMR ว่าง (lock)
+     * ---------------------------------------------- */
+    const amr = await wrsRepo.findOne({
+      where: {
+        wrs_status: 'IDLE',
+        is_available: true
+      },
+      lock: { mode: 'pessimistic_write' }
+    });
 
+    if (!amr) {
+      if (order.status !== StatusOrders.QUEUE) {
+        order.status = StatusOrders.QUEUE;
+        order.queued_at = new Date();
+        await ordersRepo.save(order);
+      }
 
-    const slot = Math.min(
-        availableCounters.length,
-        waitingOrders.length
+      if (!manager && queryRunner) {
+        await queryRunner.commitTransaction();
+      }
+
+      return 'NO_AMR';
+    }
+
+    /* ------------------------------------------------
+     * 4) Resolve user color
+     * ---------------------------------------------- */
+    const user = await userRepo.findOne({
+      where: { user_id: order.executed_by_user_id }
+    });
+
+    if (!user?.user_color_hex) {
+      throw new Error(
+        `User color not configured: ${order.executed_by_user_id}`
+      );
+    }
+
+    /* ------------------------------------------------
+     * 5) Assign order → counter → AMR
+     * ---------------------------------------------- */
+
+    // ---- Order ----
+    order.status = StatusOrders.PROCESSING;
+    order.started_at = new Date();
+    await ordersRepo.save(order);
+
+    // ---- Counter ----
+    counter.status = 'WAITING_AMR';
+    counter.current_order_id = order.order_id;
+    counter.current_wrs_id = amr.wrs_id;
+    counter.light_color_hex = user.user_color_hex;
+    counter.light_mode = 'ON';
+    counter.last_event_at = new Date();
+    await counterRepo.save(counter);
+
+    // ---- AMR ----
+    amr.wrs_status = 'DELIVERING';
+    amr.is_available = false;
+    amr.current_order_id = order.order_id;
+    amr.target_counter_id = counter.counter_id;
+    await wrsRepo.save(amr);
+
+    // ---- Log ----
+    await wrsLogRepo.save(
+      wrsLogRepo.create({
+        wrs_id: amr.wrs_id,
+        order_id: order.order_id,
+        status: 'MOVING',
+        operator: ControlSource.AUTO,
+        event: 'Assign order',
+        message: `Assigned to AMR ${amr.wrs_code}`
+      })
     );
 
-    /* ----------------------------------------------------
-     * 4) Prepare group RUNNING + color (but not save yet)
-     * -------------------------------------------------- */
-    let groupColor = group.counter_color;
-
-    if (!groupColor) {
-        const usedColors = (
-            await executionGroupRepo.find({
-                where: { status: 'RUNNING' }
-            })
-        )
-            .filter(g => g.execution_group_id !== executionGroupId)
-            .map(g => g.counter_color)
-            .filter((c): c is string => !!c);
-
-        const availableColor = COUNTER_COLORS.find(
-            c => !usedColors.includes(c)
-        );
-
-        if (!availableColor) {
-            console.warn('[AUTO] no available counter color');
-            return { message: 'No available counter color' };
-        }
-
-        groupColor = availableColor;
+    if (!manager && queryRunner) {
+      await queryRunner.commitTransaction();
     }
 
-    let assignedCount = 0;
+    /* ------------------------------------------------
+     * 6) Trigger AMR (outside transaction)
+     * ---------------------------------------------- */
+    this.mockAmrPickAndPlace(
+      order.order_id,
+      amr.wrs_id
+    );
 
-    /* ----------------------------------------------------
-     * 5) Assign execution
-     * -------------------------------------------------- */
-    for (let i = 0; i < slot; i++) {
-        const order = waitingOrders[i];
-        const counter = availableCounters[i];
+    return 'EXECUTED';
 
-        // หา AMR ว่าง
-        const amr = await wrsRepo.findOne({
-            where: {
-                is_available: true,
-                wrs_status: 'IDLE'
-            }
+  } catch (error) {
+
+    if (!manager && queryRunner) {
+      await queryRunner.rollbackTransaction();
+    }
+
+    throw error;
+
+  } finally {
+    if (!manager && queryRunner) {
+      await queryRunner.release();
+    }
+  }
+}
+
+
+
+private async mockAmrPickAndPlace(
+    orderId: string,
+    wrsId: string
+) {
+    const delay = (ms: number) =>
+        new Promise(res => setTimeout(res, ms));
+
+    setTimeout(async () => {
+        const manager = AppDataSource.manager;
+
+        const wrsRepo = manager.getRepository(WRS);
+        const wrsLogRepo = manager.getRepository(WrsLog);
+        const orderRepo = manager.getRepository(Orders);
+        const locRepo = manager.getRepository(Locations);
+
+        const order = await orderRepo.findOne({
+            where: { order_id: orderId }
+        });
+        if (!order) return;
+
+        const wrs = await wrsRepo.findOne({
+            where: { wrs_id: wrsId }
+        });
+        if (!wrs) return;
+
+        const location = await locRepo.findOne({
+            where: { loc_id: order.loc_id }
         });
 
-        if (!amr) {
-            console.warn('[AUTO] no AMR available, stop assigning');
-            break;
-        }
-
-    console.log('[AUTO] assigning', {
-            order_id: order.order_id,
-            counter_id: counter.counter_id,
-            wrs_id: amr.wrs_id
-        });
-
-        /* -------------------------------
-         * Update Order
-         * ----------------------------- */
-        order.status = StatusOrders.PROCESSING;
-        order.started_at = new Date();
-        await ordersRepo.save(order);
-
-        /* -------------------------------
-         * Update Counter
-         * ----------------------------- */
-        counter.status = 'WAITING_AMR';
-        counter.execution_group_id = executionGroupId;
-        counter.light_color_hex = this.mapColorToHex(groupColor);
-        counter.light_mode = 'ON';
-        counter.current_order_id = order.order_id;
-        counter.current_wrs_id = amr.wrs_id;
-        counter.last_event_at = new Date();
-        await counterRepo.save(counter);
-
-        /* -------------------------------
-         * Update AMR
-         * ----------------------------- */
-        amr.wrs_status = 'Delivering';
-        amr.current_order_id = order.order_id;
-        amr.target_counter_id = counter.counter_id;
-        amr.is_available = false;
-        await wrsRepo.save(amr);
-
-        /* -------------------------------
-         * Log
-         * ----------------------------- */
+        /* -----------------------------------------
+         * 1) LOG: Start Delivering
+         * ----------------------------------------- */
         await wrsLogRepo.save(
             wrsLogRepo.create({
-                wrs_id: amr.wrs_id,
+                wrs_id: wrs.wrs_id,
                 order_id: order.order_id,
-                status: 'Delivering',
+                status: 'DELIVERING',
                 operator: ControlSource.AUTO,
-                event: 'Assign order to AMR',
-                message: `Order ${order.order_id} assigned to AMR ${amr.wrs_code}`
+                event: 'Mock pick',
+                message: `Mock AMR picking from ${location?.loc ?? '-'}`
             })
         );
 
-        assignedCount++;
-    }
+        console.log(`[MOCK-AMR] Picking item from`, {
+            loc: location?.loc,
+            box_loc: location?.box_loc
+        });
 
-    /* ----------------------------------------------------
-     * 6) Commit group RUNNING only if assigned
-     * -------------------------------------------------- */
-    if (assignedCount > 0) {
-        if (group.status !== 'RUNNING') {
-            group.status = 'RUNNING';
-            group.started_at = group.started_at ?? new Date();
-        }
+        await delay(12000); // simulate AMR travel
 
-        if (!group.counter_color) {
-            group.counter_color = groupColor!;
-        }
+        console.log(`[MOCK-AMR] Delivered order ${orderId} to counter`);
 
-        await executionGroupRepo.save(group);
-    }
+        /* -----------------------------------------
+         * 2) LOG: Delivered
+         * ----------------------------------------- */
+        await wrsLogRepo.save(
+            wrsLogRepo.create({
+                wrs_id: wrs.wrs_id,
+                order_id: order.order_id,
+                status: 'IDLE',
+                operator: ControlSource.AUTO,
+                event: 'Mock deliver completed',
+                message: `Mock AMR delivered order ${order.order_id}`
+            })
+        );
 
-    /* ----------------------------------------------------
-     * 7) Done
-     * -------------------------------------------------- */
-    return {
-        message: 'ExecutionGroup auto processed',
-        execution_group_id: executionGroupId,
-        assigned: assignedCount,
-        used_color: group.counter_color ?? null
-    };
+        /* -----------------------------------------
+         * 3) Reset WRS
+         * ----------------------------------------- */
+        await wrsRepo.update(
+            { wrs_id: wrsId },
+            {
+                wrs_status: 'IDLE',
+                is_available: true,
+                current_order_id: null,
+                target_counter_id: null
+            }
+        );
+
+    }, 0);
 }
+
 
 
 

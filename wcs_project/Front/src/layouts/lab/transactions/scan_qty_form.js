@@ -291,10 +291,14 @@ export default function ScanQtyDialog({ open, order, actualQty, onQtyChange, onC
     }
 
     if (actualQty < planQty) {
-      setDialogType("confirm");
-    } else {
-      handleConfirmSubmit();
+      setDialogType("confirm"); // shortage confirm
+      return;
     }
+
+    if (actualQty === planQty) {
+      setDialogType("confirmExact"); // ✅ confirm พอดี
+    return;
+  }
   };
 
   const handleConfirmSubmit = async () => {
@@ -359,6 +363,45 @@ export default function ScanQtyDialog({ open, order, actualQty, onQtyChange, onC
             sx={{ color: "#fff" }}
           >
             Confirm
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* ================= Exact Match Confirm Dialog ================= */}
+      <Dialog
+        open={dialogType === "confirmExact"}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 10,
+            p: 2,
+          },
+        }}
+      >
+        <DialogContent sx={{ textAlign: "center", p: 4 }}>
+          <Typography>This item requires</Typography>
+          <Typography variant="h1" fontWeight={900}>
+            {planQty}
+          </Typography>
+          <Typography>You have scanned exactly</Typography>
+          <Typography variant="h1" fontWeight={900}>
+            {actualQty}
+          </Typography>
+          <Typography>Confirm submission?</Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 3 }}>
+          <MDButton variant="contained" color="success" onClick={handleConfirmSubmit}>
+            Confirm
+          </MDButton>
+          <MDButton
+            variant="contained"
+            color="secondary"
+            sx={{ color: "#fff" }}
+            onClick={() => setDialogType(null)}
+          >
+            Cancel
           </MDButton>
         </DialogActions>
       </Dialog>

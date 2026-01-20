@@ -101,8 +101,12 @@ export class Orders {
     @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Error message (if failed)' })
     error_msg?: string;
 
-    /** ไอดี user_id */
+    /** ไอดี user_id ที่สร้าง order*/
     @Column({ type: 'bigint', unsigned: true })
-    user_id: number;
+    created_by_user_id: number;
+
+    /** ไอดี user_id ที่ execute order*/
+    @Column({ type: 'bigint', unsigned: true, nullable: true, })
+    executed_by_user_id?: number;
 
 }

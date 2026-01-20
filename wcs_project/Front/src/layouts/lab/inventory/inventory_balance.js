@@ -75,6 +75,11 @@ const InventoryBalance = () => {
         setFilteredItems(filtered);
     }, [itemsList, searchItems, filterLocation]);
 
+    const rowsWithId = filteredItems.map((item) => ({
+        ...item,
+        _rowId: `${item.item_id}-${item.loc_id}`,
+    }));
+
     const columns = [
         { field: "stock_item", label: "Stock Item No." },
         { field: "item_desc", label: "Stock Item Description" },
@@ -427,51 +432,15 @@ const InventoryBalance = () => {
             ) : (
                 <ReusableDataTable
                 columns={columns}
-                rows={filteredItems}
-                idField="item_id"
+                rows={rowsWithId}
+                idField="_rowId"
                 defaultPageSize={10}
                 pageSizeOptions={[10, 25, 50]}
-                // showActions={["edit", "delete"]}
-                // onEdit={(row) => handleEditClick(row)}
-                // onDelete={(row) => {
-                //     setDeleteItems(row.item_id);
-                //     setConfirmAlert(true);
-                // }}
                 />
             )}
             </MDBox>
             </Card>
         </MDBox>
-
-        {/* Pop-up */}
-        {/* <ItemsFormDialog
-            open={formOpen}
-            mode={formMode}
-            initialData={editingItems}
-            onClose={() => setFormOpen(false)}
-            onSubmit={handleSubmitUser}
-        />
-
-        {confirmAlert && (
-            <SweetAlertComponent
-            type="error"
-            title="Confirm Deletion"
-            message="Are you sure you want to delete this data?"
-            show={confirmAlert}
-            showCancel
-            confirmText="OK"
-            cancelText="Cancel"
-            onConfirm={handleDelete}
-            onCancel={() => setConfirmAlert(false)}
-            />
-        )}
-        <SweetAlertComponent
-            show={alert.show}
-            type={alert.type}
-            title={alert.title}
-            message={alert.message}
-            onConfirm={() => setAlert({ ...alert, show: false })}
-        /> */}
         </DashboardLayout>
     );
     };
