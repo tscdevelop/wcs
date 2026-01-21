@@ -28,8 +28,6 @@ export default function CounterScreen({
         ["Transaction Type", type],
         ["PO No.", po_num],
         ["OBJECT ID", object_id],
-        ["SPR No.", spr_no],
-        ["Work Order", work_order],
       ]
     : [
         ["Transaction Type", type],
@@ -116,10 +114,10 @@ export default function CounterScreen({
                   {transactionFields.map(([label, value], i) => (
                     <Grid item xs={12} key={i}>
                       <Box display="flex">
-                        <Typography fontWeight="bold" sx={{ width: 220 }}>
+                        <Typography fontWeight="bold" sx={{ width: 220 }} fontSize={23}>
                           {label} :
                         </Typography>
-                        <Typography>{value ?? "-"}</Typography>
+                        <Typography fontSize={23}>{value ?? "-"}</Typography>
                       </Box>
                     </Grid>
                   ))}

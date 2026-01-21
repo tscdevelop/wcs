@@ -30,7 +30,7 @@ const router = Router();
  *             properties:
  *               type:
  *                 type: string
- *                 enum: [RECEIPT, USAGE, TRANSFER]
+ *                 enum: [RECEIPT, USAGE, RETURN, TRANSFER]
  *                 example: "USAGE"
  *
  *               item_id:
@@ -96,6 +96,20 @@ const router = Router();
  *                   object_id:
  *                     type: string
  *                     example: "61270"
+ *
+ *               return:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = RETURN
+ *                 properties:
+ *                   usage_trx_id:
+ *                     type: string
+ *                     example: "1"
+ *                   inv_id:
+ *                     type: string
+ *                     example: "1"
+ *                   usage_id:
+ *                     type: string
+ *                     example: "1"
  *
  *               transfer:
  *                 type: object
@@ -158,7 +172,7 @@ router.post('/create',
  *             properties:
  *               type:
  *                 type: string
- *                 enum: [RECEIPT, USAGE, TRANSFER]
+ *                 enum: [RECEIPT, USAGE, RETURN, TRANSFER]
  *                 example: "USAGE"
  *
  *               item_id:
@@ -224,6 +238,20 @@ router.post('/create',
  *                   object_id:
  *                     type: string
  *                     example: "61270"
+ *
+ *               return:
+ *                 type: object
+ *                 description: ใช้เมื่อ type = RETURN
+ *                 properties:
+ *                   usage_trx_id:
+ *                     type: string
+ *                     example: "1"
+ *                   inv_id:
+ *                     type: string
+ *                     example: "1"
+ *                   usage_id:
+ *                     type: string
+ *                     example: "1"
  *
  *               transfer:
  *                 type: object

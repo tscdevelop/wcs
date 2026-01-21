@@ -27,6 +27,7 @@ export const create = async (req: Request, res: Response) => {
         // ดึงข้อมูล table ย่อย ตาม type
         const receiptData = req.body.receipt ?? null;
         const usageData   = req.body.usage ?? null;
+        const returnData   = req.body.return ?? null;
         const transferData = req.body.transfer ?? null;
 
         const response = await ordersService.create(
@@ -34,6 +35,7 @@ export const create = async (req: Request, res: Response) => {
                 ...orderData,
                 receipt: receiptData,
                 usage: usageData,
+                return: returnData,
                 transfer: transferData
             },
             reqUsername
@@ -78,6 +80,7 @@ export const updateOrder = async (req: Request, res: Response) => {
         // --- ดึงข้อมูล table ย่อย ---
         const receiptData = req.body.receipt ?? null;
         const usageData = req.body.usage ?? null;
+        const returnData = req.body.return ?? null;
         const transferData = req.body.transfer ?? null;
 
         // รวมข้อมูลก่อนส่งเข้า service
@@ -85,6 +88,7 @@ export const updateOrder = async (req: Request, res: Response) => {
             ...orderData,
             receipt: receiptData,
             usage: usageData,
+            return: returnData,
             transfer: transferData,
         };
 

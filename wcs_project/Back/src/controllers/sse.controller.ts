@@ -23,18 +23,19 @@ export const connectSSE = async (req: Request, res: Response) => {
 
     addClient(counterId, res);
 
-    const runtime = await runtimeService.get(Number(counterId));
-
-    res.write(`data: ${JSON.stringify({
-        counter_id: counterId,
-        actualQty: runtime?.actual_qty ?? 0
-    })}\n\n`);
-    res.flush?.();
-
     const heartbeat = setInterval(() => {
         res.write(": ping\n\n");
-        res.flush?.();
     }, 15000);
+
+    try {
+        const runtime = await runtimeService.get(Number(counterId));
+        res.write(`data: ${JSON.stringify({
+        counter_id: counterId,
+        actualQty: runtime?.actual_qty ?? 0
+        })}\n\n`);
+    } catch (e) {
+        console.error("[SSE] init send error", e);
+    }
 
     req.on("close", () => {
         clearInterval(heartbeat);
