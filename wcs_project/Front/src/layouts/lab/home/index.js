@@ -19,6 +19,7 @@ const HomePage = () => {
   const [openReturnHome, setOpenReturnHome] = useState(false);
   const [openInvHome, setOpenInvHome] = useState(false);
 
+  
   // รายการ Role ที่ไม่ต้องการให้แสดงเมนู
   const hiddenRoles = ["REQUESTER", "STORE"];
   const userRole = GlobalVar.getRole(); // ดึง Role ของผู้ใช้
