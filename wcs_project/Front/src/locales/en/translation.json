@@ -170,6 +170,7 @@
         "receipt_history": "Receipt History",
         "administrator": "Administrator",
         "stock_items": "Stock Items Data",
+        "inventory": "Inventory",
         "inventory_profile": "Inventory Profile",
         "inventory_balance": "Inventory Balance",
         "pick": "Pick",
@@ -178,7 +179,10 @@
         "pick_create": "Create",
         "order_status_req": "Status",
         "order_status": "Status",
-        "checkout_t1": "Check Out"
+        "checkout_t1": "Check Out",
+        "put": "Put",
+        "put_execute": "Execute",
+        "put_create": "Create"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

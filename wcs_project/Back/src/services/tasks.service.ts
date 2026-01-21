@@ -16,9 +16,14 @@ import { Locations } from "../entities/m_location.entity";
 import { InventoryService } from "./inventory.service";
 import { LocationsMrs } from "../entities/m_location_mrs.entity";
 import { T1OrdersService } from "./order_wrs.service";
-import { ExecutionGroup } from "../entities/execution_group_id";
 import { Counter } from "../entities/counter.entity";
 import { WRS } from "../entities/wrs.entity";
+import { CounterRuntimeService } from './counter_runtime.service';
+import { broadcast } from "./sse.service";
+import { s_user } from "../entities/s_user.entity";
+import { v4 as uuidv4 } from 'uuid';
+
+const runtimeService = new CounterRuntimeService();
 
 // (ถ้ามี) import { WRSTaskService } from './wrs-task.service';
 
@@ -32,13 +37,11 @@ export type CreateTaskBatchDto = {
   items: CreateTaskItem[];     // อาร์เรย์เสมอ (แม้มี 1 รายการ)
 };
 
-const COUNTER_COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'CYAN'];
-
 // services/tasks.service.ts
 export class OrchestratedTaskService {
     private ordersRepository: Repository<Orders>;
 
-     constructor(
+    constructor(
         private readonly t1mOrders: T1MOrdersService,
         private readonly t1Orders: T1OrdersService, // ✅ ต้องมี
         ) {
@@ -46,167 +49,248 @@ export class OrchestratedTaskService {
     }
 
     // ------------------------------
-    // 🔥 ฟังก์ชันใหม่ การทำ execution โดยรองรับ array และเพิ่มการใส่เลขกลุ่ม
+    // 🔥 ฟังก์ชันใหม่ การทำ execution โดยรองรับ array 
     // ------------------------------
-    async createAndOpenBatch(
-    dto: CreateTaskBatchDto,
-    reqUser: string
+// async createAndOpenBatch(
+//     dto: CreateTaskBatchDto,
+//     reqUser: string
+// ): Promise<ApiResponse<any>> {
+
+//     const res = new ApiResponse<any>();
+
+//     if (!dto?.items?.length) {
+//         return res.setIncomplete("items[] is required");
+//     }
+
+//     const queryRunner = AppDataSource.createQueryRunner();
+//     await queryRunner.connect();
+//     await queryRunner.startTransaction();
+
+//     const resultList: any[] = [];
+
+//     try {
+//         const userRepo = queryRunner.manager.getRepository(s_user);
+//         const ordersRepo = queryRunner.manager.getRepository(Orders);
+
+//         const executeGroupId = uuidv4();
+
+//         const executor = await userRepo.findOne({
+//             where: { username: reqUser }
+//         });
+
+//         if (!executor) {
+//             throw new Error(`Executor user not found: ${reqUser}`);
+//         }
+
+//         /* ------------------------------------------------
+//          * 1) Process each order (เหมือน T1M)
+//          * ---------------------------------------------- */
+//         for (const item of dto.items) {
+//             const order_id = item.order_id;
+//             if (!order_id) continue;
+
+//             const order = await ordersRepo.findOne({
+//                 where: { order_id }
+//             });
+
+//             if (!order) {
+//                 throw new Error(`Order not found: ${order_id}`);
+//             }
+
+//             const { type, store_type } = order;
+//             let r: ApiResponse<any>;
+
+//             /* ---------- T1M (เดิม ไม่เปลี่ยน) ---------- */
+//             if (store_type === 'T1M') {
+
+//                 if (type === 'USAGE' || type === 'RECEIPT') {
+//                     r = await this.t1mOrders.executionInbT1m(
+//                         order_id,
+//                         reqUser,
+//                         queryRunner.manager
+//                     );
+//                 } else {
+//                     throw new Error(`Unknown T1M type: ${type}`);
+//                 }
+
+//             }
+
+//             /* ---------- T1 (ใหม่: per order) ---------- */
+//             else if (store_type === 'T1') {
+
+//                 await ordersRepo.update(
+//                     { order_id },
+//                     {
+//                     executed_by_user_id: executor.user_id,
+//                     status: StatusOrders.QUEUE,
+//                     execution_group_id: executeGroupId
+//                     }
+//                 );
+
+//                 r = new ApiResponse<any>().setComplete(
+//                     'T1 order queued',
+//                     {}
+//                 );
+//             }
+
+
+//             else {
+//                 throw new Error(`Unknown store_type: ${store_type}`);
+//             }
+
+//             if (!r.isCompleted) {
+//                 throw new Error(r.message);
+//             }
+
+//             resultList.push({
+//                 order_id,
+//                 store_type,
+//                 type
+//             });
+//         }
+
+//         // trigger scheduler ครั้งเดียว
+// await this.callNextQueueT1(queryRunner.manager);
+
+
+//         await queryRunner.commitTransaction();
+
+//         return res.setComplete(
+//             'Confirm to Execution successfully',
+//             {
+//                 items: resultList
+//             }
+//         );
+
+//     } catch (e: any) {
+
+//         if (queryRunner.isTransactionActive) {
+//             await queryRunner.rollbackTransaction();
+//         }
+
+//         return res.setError(
+//             `createAndOpenBatch failed: ${e.message}`,
+//             'createAndOpenBatch',
+//             e,
+//             reqUser,
+//             true
+//         );
+
+//     } finally {
+//         await queryRunner.release();
+//     }
+// }
+async createAndOpenBatch(
+  orderIds: string[],
+  userId: number
 ): Promise<ApiResponse<any>> {
 
-    const res = new ApiResponse<any>();
+  const res = new ApiResponse<any>();
 
-    if (!dto?.items?.length) {
-        return res.setIncomplete("items[] is required");
+  if (!orderIds?.length) {
+    return res.setIncomplete('orderIds[] is required');
+  }
+
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const manager = queryRunner.manager;
+    const userRepo = manager.getRepository(s_user);
+    const ordersRepo = manager.getRepository(Orders);
+
+    const executor = await userRepo.findOne({
+      where: { user_id: userId }
+    });
+
+    if (!executor) {
+      throw new Error(`Executor not found: ${userId}`);
     }
 
-    const queryRunner = AppDataSource.createQueryRunner();
-    await queryRunner.connect();
-
+    const executionGroupId = uuidv4();
     const resultList: any[] = [];
 
-    let execution_group_id: string | null = null;
+    /* ================= LOOP หลาย order ================= */
+    for (const order_id of orderIds) {
 
-    try {
-        // ---------- START TRANSACTION ----------
-        await queryRunner.startTransaction();
+      const order = await ordersRepo.findOne({ where: { order_id } });
+      if (!order) {
+        throw new Error(`Order not found: ${order_id}`);
+      }
 
-        // ✅ WAITING execution_group record
-        const insertResult = await queryRunner.manager.insert(
-            ExecutionGroup,
-            {
-                status: 'WAITING',
-                total_orders: dto.items.length,
-                finished_orders: 0,
-                started_at: new Date(),
-            }
-        );
+      const { type, store_type } = order;
+      let r: ApiResponse<any>;
 
-        execution_group_id =
-            insertResult.identifiers[0].execution_group_id;
-
-        for (const item of dto.items) {
-            const order_id = item.order_id;
-            if (!order_id) continue;
-
-            // load order
-            const order = await queryRunner.manager.findOne(Orders, {
-                where: { order_id }
-            });
-
-            if (!order) {
-                throw new Error(`Order not found: ${order_id}`);
-            }
-
-            const { type, store_type } = order;
-            let r: ApiResponse<any>;
-
-            // ========== ROUTING SERVICE ==========
-            if (store_type === "T1M") {
-
-                // T1M → execute ทันที
-                if (type === "USAGE" || type === "RECEIPT") {
-                    r = await this.t1mOrders.executionInbT1m(
-                        order_id,
-                        reqUser,
-                        queryRunner.manager
-                    );
-                } else {
-                    throw new Error(
-                        `Unknown type (${type}) for store_type=T1M (order_id: ${order_id})`
-                    );
-                }
-
-            } else if (store_type === "T1") {
-
-                // ✅ T1 ยังไม่ execute ตอนนี้
-                // แค่ mark ว่า batch นี้ valid
-                r = new ApiResponse<any>().setComplete(
-                    "T1 order queued for execution",
-                    {}
-                );
-
-            } else {
-                throw new Error(
-                    `Unknown store_type: ${store_type} (order_id: ${order_id})`
-                );
-            }
-
-            // -------- check result --------
-            if (!r.isCompleted) {
-                throw new Error(
-                    `Execution failed for ${order_id}: ${r.message}`
-                );
-            }
-
-            // -------- update execution_group_id --------
-            await queryRunner.manager.update(
-                Orders,
-                { order_id },
-                { execution_group_id }
-            );
-
-            resultList.push({
-                order_id,
-                type,
-                store_type,
-                execution_group_id
-            });
+      /* ---------- T1M ---------- */
+      if (store_type === 'T1M') {
+        if (type === 'USAGE' || type === 'RECEIPT') {
+          r = await this.t1mOrders.executionInbT1m(
+            order_id,
+            executor.username,
+            manager
+          );
+        } else {
+          throw new Error(`Unknown T1M type: ${type}`);
         }
+      }
 
-        // ---------- COMMIT TRANSACTION ----------
-        await queryRunner.commitTransaction();
-
-    } catch (e: any) {
-
-        // ✅ rollback เฉพาะตอน transaction ยัง active
-        if (queryRunner.isTransactionActive) {
-            await queryRunner.rollbackTransaction();
-        }
-
-        const op = "OrchestratedTaskService.createAndOpenBatch";
-        return res.setError(
-            `Error in ${op}: ${e.message}`,
-            op,
-            e,
-            reqUser,
-            true
+      /* ---------- T1 ---------- */
+      else if (store_type === 'T1') {
+        await ordersRepo.update(
+          { order_id },
+          {
+            executed_by_user_id: executor.user_id,
+            status: StatusOrders.QUEUE,
+            execution_group_id: executionGroupId
+          }
         );
 
-    } finally {
-        await queryRunner.release();
+        r = new ApiResponse<any>().setComplete('T1 order queued', {});
+      }
+
+      else {
+        throw new Error(`Unknown store_type: ${store_type}`);
+      }
+
+      if (!r.isCompleted) {
+        throw new Error(r.message);
+      }
+
+      resultList.push({
+        order_id,
+        store_type,
+        type
+      });
     }
 
-    // =================================================
-    // 🚀 AFTER COMMIT (NO TRANSACTION)
-    // =================================================
+    // 🔥 trigger scheduler ครั้งเดียว
+    await this.callNextQueueT1(queryRunner.manager);
 
-    if (!execution_group_id) {
-        return res.setError(
-            'Execution group not created',
-            'createAndOpenBatch',
-            null,
-            reqUser,
-            true
-        );
-    }
-
-    try {
-        await this.t1Orders.executeGroupAutoService(execution_group_id);
-    } catch (e: any) {
-        // ❗ ไม่ rollback แล้ว แค่ log
-        console.error(
-            `executeGroupAutoService failed for group ${execution_group_id}`,
-            e
-        );
-    }
+    await queryRunner.commitTransaction();
 
     return res.setComplete(
-        "Confirm to Execution successfully",
-        {
-            execution_group_id,
-            items: resultList
-        }
+      'Confirm to Execution successfully',
+      { items: resultList }
     );
+
+  } catch (e: any) {
+
+    if (queryRunner.isTransactionActive) {
+      await queryRunner.rollbackTransaction();
+    }
+
+    return res.setError(
+      `createAndOpenBatch failed: ${e.message}`,
+      'createAndOpenBatch',
+      e,
+      String(userId),
+      true
+    );
+
+  } finally {
+    await queryRunner.release();
+  }
 }
 
 
@@ -728,82 +812,94 @@ async handleOrderItemWRS(
         });
 
         //-----------------------------------
-        // 3) UPDATE INVENTORY
+        // 3) UPDATE INVENTORY (CRITICAL SECTION)
         //-----------------------------------
         const invService = new InventoryService();
 
-        switch (order.type) {
-            case TypeInfm.RECEIPT:
-                await invService.receipt(useManager, order);
-                break;
+        try {
+            switch (order.type) {
+                case TypeInfm.RECEIPT:
+                    await invService.receipt(useManager, order);
+                    break;
 
-            case TypeInfm.USAGE:
-                await invService.usage(useManager, order);
-                break;
+                case TypeInfm.USAGE:
+                    await invService.usage(useManager, order);
+                    break;
 
-            case TypeInfm.TRANSFER:
-                await invService.transfer(useManager, order);
-                break;
+                case TypeInfm.TRANSFER:
+                    await invService.transfer(useManager, order);
+                    break;
 
-            default:
-                throw new Error(`Unsupported order type: ${order.type}`);
+                default:
+                    throw new Error(`Unsupported order type: ${order.type}`);
+            }
+        } catch (invError) {
+            throw new Error(
+                `Inventory update failed for order ${order.order_id}: ${invError}`
+            );
         }
 
         //-----------------------------------
         // 4) RESET COUNTER + WRS
         //-----------------------------------
+        //-----------------------------------
+        // 4.1) RESET COUNTER
+        //-----------------------------------
         const counter = await counterRepo.findOne({
-    where: {
-        current_order_id: order.order_id
-    }
-});
+            where: [
+                { current_order_id: order.order_id }
+            ]
+        });
 
-if (counter) {
-    await counterRepo.update(
-        { counter_id: counter.counter_id },
-        {
-            status: "EMPTY",
-             execution_group_id: () => 'NULL',   // ⭐ FIX
-            current_order_id: () => 'NULL',     // ⭐ FIX
-            light_color_hex: () => 'NULL',
-            current_wrs_id: () => 'NULL',
-            light_mode: "OFF",
-            last_event_at: new Date()
+        if (counter) {
+
+            await counterRepo.update(
+                { counter_id: counter.counter_id },
+                {
+                    status: "EMPTY",
+
+                    // 🔥 ต้องใช้ NULL เท่านั้นถึงจะล้างค่าใน DB
+                    current_order_id: () => 'NULL',
+                    light_color_hex: () => 'NULL',
+                    current_wrs_id: () => 'NULL',
+                    light_mode: "OFF",
+                    last_event_at: new Date()
+                }
+            );
+
+            // reset hardware / runtime
+            await runtimeService.reset(Number(counter.counter_id));
+
+            // broadcast ให้ frontend
+            broadcast(String(counter.counter_id), {
+                counter_id: counter.counter_id,
+                actualQty: 0
+            });
         }
-    );
-}
 
+            //-----------------------------------
+            // 4.2) RESET WRS
+            //-----------------------------------
+            const wrs = await wrsRepo.findOne({
+                where: { current_order_id: order.order_id },
+                lock: { mode: "pessimistic_write" }
+            });
 
-        const wrs = await wrsRepo.findOne({
-    where: {
-        current_order_id: order.order_id
-    }
-});
+            if (wrs) {
+                wrs.wrs_status = "IDLE";
+                wrs.is_available = true;
+                wrs.current_order_id = null;
+                wrs.target_counter_id = null;
+                wrs.last_heartbeat = new Date();
 
-if (wrs) {
-    await wrsRepo.update(
-        { wrs_id: wrs.wrs_id },
-        {
-            wrs_status: "IDLE",
-            is_available: true,
-            current_order_id: () => 'NULL',
-            target_counter_id: () => 'NULL',
-            last_heartbeat: new Date()
-        }
-    );
-}
+                await wrsRepo.save(wrs);
+            }
 
+             //-----------------------------------
+            // 5) CALL NEXT QUEUE (ใหม่)
+            //-----------------------------------
+            await this.callNextQueueT1(useManager);
 
-        //-----------------------------------
-        // 5) CALL NEXT QUEUE (T1)
-        //-----------------------------------
-        if (!order.execution_group_id) {
-    return response.setIncomplete('Order is not in execution group');
-}
-
-const executionGroupId = order.execution_group_id; // type = string
-
-        await this.callNextQueueT1(executionGroupId, useManager);
 
         if (!manager && queryRunner) {
             await queryRunner.commitTransaction();
@@ -835,106 +931,82 @@ const executionGroupId = order.execution_group_id; // type = string
     }
 }
 
-private mapColorToHex(color: string): string {
-    const map: Record<string, string> = {
-        RED: '#FF0000',
-        BLUE: '#0000FF',
-        GREEN: '#00FF00',
-        YELLOW: '#FFFF00',
-        PURPLE: '#800080',
-        CYAN: '#00FFFF'
-    };
-    return map[color] || '#FFFFFF';
-}
+// async callNextQueueT1(manager: EntityManager) {
 
-private async pickAvailableColor(
-    manager: EntityManager
-): Promise<string | null> {
+//     const ordersRepo = manager.getRepository(Orders);
+//     const counterRepo = manager.getRepository(Counter);
 
-    const executionGroupRepo = manager.getRepository(ExecutionGroup);
+//     const counter = await counterRepo.findOne({
+//     where: { status: 'EMPTY' },
+//     order: { last_event_at: 'ASC' } // ว่างนานสุด
+//     });
 
-    // สีที่ถูกใช้โดย group ที่ RUNNING
-    const usedColors = (
-        await executionGroupRepo.find({
-            where: { status: 'RUNNING' }
-        })
-    )
-        .map(g => g.counter_color)
-        .filter((c): c is string => !!c);
+//     if (!counter) return;
 
-    // เลือกสีที่ยังไม่ถูกใช้
-    const availableColor = COUNTER_COLORS.find(
-        color => !usedColors.includes(color)
+//     const nextOrder = await ordersRepo.findOne({
+//         where: {
+//         store_type: 'T1',
+//         status: StatusOrders.QUEUE
+//         },
+//         order: {
+//         priority: 'DESC',
+//         requested_at: 'ASC'
+//         }
+//     });
+//     if (!nextOrder) return;
+
+//     await this.t1Orders.executeT1Order(
+//         nextOrder.order_id,
+//         manager
+//     );
+// }
+
+async callNextQueueT1(manager: EntityManager) {
+
+  const ordersRepo = manager.getRepository(Orders);
+  const counterRepo = manager.getRepository(Counter);
+
+  while (true) {
+
+    /* 1️⃣ หา counter ที่ว่าง */
+    const counter = await counterRepo.findOne({
+      where: { status: 'EMPTY' },
+      order: { last_event_at: 'ASC' } // ว่างนานสุด
+    });
+
+    if (!counter) {
+      break; // ❌ ไม่มี counter ว่าง → จบ loop
+    }
+
+    /* 2️⃣ หา order ถัดไป */
+    const nextOrder = await ordersRepo.findOne({
+      where: {
+        store_type: 'T1',
+        status: StatusOrders.QUEUE
+      },
+      order: {
+        priority: 'DESC',
+        requested_at: 'ASC'
+      }
+    });
+
+    if (!nextOrder) {
+      break; // ❌ ไม่มี order → จบ loop
+    }
+
+    /* 3️⃣ Execute */
+     const result = await this.t1Orders.executeT1Order(
+      nextOrder.order_id,
+      manager
     );
 
-    return availableColor ?? null;
+    // 🔥 logic หยุด / ไปต่อ
+    if (result === 'NO_COUNTER') break;
+    if (result === 'NO_AMR') break;
+
+    // ⚠️ อย่า return → ให้ loop ต่อ
+  }
 }
-
-async callNextQueueT1(execution_group_id: string, manager: EntityManager) {
-    const ordersRepo = manager.getRepository(Orders);
-    const groupRepo = manager.getRepository(ExecutionGroup);
-    const counterRepo = manager.getRepository(Counter);
-
-    const counter = await counterRepo.findOne({
-        where: { status: 'EMPTY' }
-    });
-    if (!counter) return;
-
-    const order = await ordersRepo.findOne({
-        where: {
-            execution_group_id,
-            store_type: 'T1',
-            status: StatusOrders.QUEUE
-        },
-        order: {
-            priority: 'DESC',
-            requested_at: 'ASC'
-        }
-    });
-    if (!order) return;
-
-    const group = await groupRepo.findOne({ where: { execution_group_id } });
-    if (!group) return;
-
-    if (group.status !== 'RUNNING') {
-        group.status = 'RUNNING';
-        group.started_at = new Date();
-
-        if (!group.counter_color) {
-            const color = await this.pickAvailableColor(manager);
-            if (!color) {
-                // ❗ ไม่มีสี → ยังไม่ start
-                return;
-            }
-            group.counter_color = color;
-        }
-
-        await groupRepo.save(group);
-    }
-
-    // assign
-    order.status = StatusOrders.PROCESSING;
-    order.started_at = new Date();
-    await ordersRepo.save(order);
-
-    counter.status = 'WAITING_AMR';
-    counter.execution_group_id = execution_group_id;
-
-    if (group.status === 'RUNNING') {
-        // ใน RUNNING → ต้องมีสี
-        if (!group.counter_color) {
-            throw new Error('RUNNING group must have counter_color');
-        }
-
-        counter.light_color_hex = this.mapColorToHex(group.counter_color);
-    }
-
-
-    counter.current_order_id = order.order_id;
-    await counterRepo.save(counter);
-}
-
-
 
 
 

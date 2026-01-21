@@ -60,7 +60,7 @@ export class CounterService {
 
             // ✅ filter user เฉพาะกรณี REQUESTER (ส่ง userId มา)
             if (userId) {
-                qb.andWhere('order.user_id = :userId', { userId });
+                qb.andWhere('order.executed_by_user_id = :userId', { userId });
             }
 
             const rawData = await qb.getRawMany();
@@ -119,7 +119,7 @@ export class CounterService {
 
             // ✅ filter เฉพาะ REQUESTER
             if (userId) {
-                qb.andWhere('order.user_id = :userId', { userId });
+                qb.andWhere('order.executed_by_user_id = :userId', { userId });
             }
 
             const rawData = await qb

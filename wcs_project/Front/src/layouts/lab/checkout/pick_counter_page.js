@@ -5,11 +5,12 @@ import CounterAPI from "api/CounterAPI";
 import MDBox from "components/MDBox";
 import DisplayLayout from "../../../utils/DisplayLayout";
 import CounterStandbyScreen from "../components/counter_standby_screen";
-
+import ScanQtyDialog from "../transactions/scan_qty_form";
 const PickCounterPage = () => {
   const { counterId } = useParams();
   const [counter, setCounter] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
     const fetchCounter = async () => {
@@ -35,45 +36,59 @@ const PickCounterPage = () => {
     fetchCounter();
   }, [counterId]);
 
-  //ทำ sse
+  /* =========================
+   * SSE (auto reconnect)
+   * ========================= */
   useEffect(() => {
     if (!counterId) return;
 
-    console.log("Connecting SSE to counter:", counterId);
+    const API_BASE =
+      process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
 
-    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
+    let es = null;
+    let retryTimer;
 
-    const es = new EventSource(
-      `${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}`
-    );
+    const connectSSE = () => {
+      console.log("🔌 Connecting SSE:", counterId);
 
-    es.onopen = () => {
-      console.log("✅ SSE connected");
+      es = new EventSource(
+        `${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}`
+      );
+
+      es.onopen = () => {
+        console.log("✅ SSE connected");
+      };
+
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (typeof data.actualQty !== "number") return;
+
+          setCounter((prev) =>
+            prev
+              ? { ...prev, actual_qty: data.actualQty }
+              : prev
+          );
+          
+        } catch (err) {
+          console.error("❌ SSE parse error", err);
+        }
+      };
+
+      es.onerror = () => {
+        console.warn("⚠️ SSE disconnected, retrying...");
+        es?.close();
+
+        retryTimer = setTimeout(connectSSE, 3000);
+      };
     };
 
-    es.onmessage = (e) => {
-      console.log("📡 SSE message:", e.data);
-
-      const data = JSON.parse(e.data);
-
-      setCounter((prev) => {
-        if (!prev) return prev;
-
-        return {
-          ...prev,
-          actual_qty: data.actualQty, // 👈 ตรง backend
-        };
-      });
-    };
-
-    es.onerror = (err) => {
-      console.error("❌ SSE error", err);
-      es.close();
-    };
+    connectSSE();
 
     return () => {
+      clearTimeout(retryTimer);
+      es?.close();
       console.log("🔌 SSE closed");
-      es.close();
     };
   }, [counterId]);
 
@@ -149,6 +164,16 @@ const PickCounterPage = () => {
             />
           )}
         </ScaledWrapper>
+        {/* 🔥 Dialog อยู่นี่ */}
+      <ScanQtyDialog
+        open={scanOpen}                 // ใครจะเปิด คนนั้นคุม
+        order={counter}
+        actualQty={counter.actual_qty}
+        onClose={() => setScanOpen(false)}
+        onSubmit={(orderId, qty) =>
+          CounterAPI.confirmOrder(orderId, qty)
+        }
+      />
       </MDBox>
     </DisplayLayout>
   );

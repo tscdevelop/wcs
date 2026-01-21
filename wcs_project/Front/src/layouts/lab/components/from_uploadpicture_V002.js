@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import { Box, Grid, Dialog, DialogContent } from "@mui/material";
 //import styled from "@emotion/styled";
 import MDButton from "components/MDButton";
-import uploadpicImage from "./test-pic/uploadpic.png";
+import uploadpicImage from "./test-pic/uploadpic2.png";
 
 //const CustomInput = styled("input")({
 //  display: "none",

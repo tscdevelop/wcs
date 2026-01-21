@@ -26,23 +26,23 @@ export const AppDataSource = new DataSource({
     connectTimeout: 30000,
 });
 
-// ✅ ตรวจสอบก่อน `initialize`
-// if (!AppDataSource.isInitialized) {
-//   AppDataSource.initialize()
-//     .then(() => {
-//       console.log("✅ Data Source has been initialized!");
-//     })
-//     .catch((err: any) => {
-//       console.error("❌ Error during Data Source initialization:", err);
-//     });
-// } else {
-//   console.log("⚠️ Data Source is already initialized. Skipping initialization.");
-// }
+//✅ ตรวจสอบก่อน `initialize`
+if (!AppDataSource.isInitialized) {
+  AppDataSource.initialize()
+    .then(() => {
+      console.log("✅ Data Source has been initialized!");
+    })
+    .catch((err: any) => {
+      console.error("❌ Error during Data Source initialization:", err);
+    });
+} else {
+  console.log("⚠️ Data Source is already initialized. Skipping initialization.");
+}
 
-AppDataSource.initialize()
-  .then(() => {
-    console.log("Data Source has been initialized!");
-  })
-  .catch((err : any) => {
-    console.error("Error during Data Source initialization:", err);
-  });
+// AppDataSource.initialize()
+//   .then(() => {
+//     console.log("Data Source has been initialized!");
+//   })
+//   .catch((err : any) => {
+//     console.error("Error during Data Source initialization:", err);
+//   });

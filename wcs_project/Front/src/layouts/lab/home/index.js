@@ -5,12 +5,17 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Cog from "../../../assets/images/Icon_cog.png";
 import PickHome from "./index_sub";
+import PutHome from "./index_sub_put";
+import InventoryHome from "./index_sub_inv";
+
 import { GlobalVar } from "common/GlobalVar";
 
 const HomePage = () => {
   const navigate = useNavigate();
 
   const [openPickHome, setOpenPickHome] = useState(false);
+  const [openPutHome, setOpenPutHome] = useState(false);
+  const [openInvHome, setOpenInvHome] = useState(false);
 
   // รายการ Role ที่ไม่ต้องการให้แสดงเมนู
   const hiddenRoles = ["REQUESTER", "STORE"];
@@ -32,6 +37,9 @@ const HomePage = () => {
     { title: "Status-req", path: "/status-requester" },
     { title: "Status", path: "/status" },
     { title: "Check Out", path: "/checkout-t1" },
+    { title: "Put", path: "/put/execute" },
+    // ✅ แสดงเฉพาะ WCS
+    ...(storeType === "WCS" ? [{ title: "Inventory", path: "/inventory" }] : []),
   ];
 
   //menu_route
@@ -44,12 +52,13 @@ const HomePage = () => {
   //menu_route
   const Store = [
     { title: "Pick", path: "/pick" },
-    { title: "Put", path: "" },
+    { title: "Put", path: "/put" },
     { title: "Return", path: "" },
     { title: "Transfer", path: "" },
     { title: "Status", path: "/status" },
     { title: "Check Out", path: "/checkout-t1" },
-    { title: "Inventory", path: "/administrator/inventory-balance" },
+    // ✅ แสดงเฉพาะ WCS
+    ...(storeType === "WCS" ? [{ title: "Inventory", path: "/inventory" }] : []),
   ];
 
   // 🧠 Logic เพื่อเลือกเมนูตาม Role
@@ -99,6 +108,10 @@ const HomePage = () => {
       <Box>
         {openPickHome ? (
           <PickHome />
+        ) : openPutHome ? (
+          <PutHome />
+        ) : openInvHome ? (
+          <InventoryHome />
         ) : (
           <>
             {/* ===== Header Home ===== */}
@@ -117,7 +130,7 @@ const HomePage = () => {
                 />
               </Box>
             </Box>
-            
+
             {/* ===== Menu Home ===== */}
             <Box mt={1}>
               <Grid container spacing={4}>
@@ -125,8 +138,12 @@ const HomePage = () => {
                   <Grid item xs={12} sm={6} md={3} key={index}>
                     <Card
                       onClick={() => {
-                        if (item.title === "Pick"  && userRole === "STORE") {
+                        if (item.title === "Pick" && userRole === "STORE") {
                           setOpenPickHome(true); // 👈 สำคัญ
+                        } else if (item.title === "Put" && userRole === "STORE") {
+                          setOpenPutHome(true); // 👈 สำคัญ
+                        } else if (item.title === "Inventory" && storeType === "WCS") {
+                          setOpenInvHome(true); // 👈 สำคัญ
                         } else {
                           navigate(item.path);
                         }

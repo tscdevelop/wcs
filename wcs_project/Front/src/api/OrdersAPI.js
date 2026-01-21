@@ -68,6 +68,26 @@ class OrdersAPI {
         }
     }
 
+    static async OrdersReceiptAll(params) {
+        try {
+            const token = GlobalVar.getToken();
+            const endpoint = "/api/orders/get-receipt-all";
+
+            const response = await ApiProvider.getData(
+                endpoint,
+                params || {}, // 👈 ส่ง query params (ถ้าไม่ส่ง = ทั้งหมด)
+                token
+            );
+
+            //console.log("API Response:", response);
+            return response;
+
+        } catch (error) {
+            console.error("Error search orders:", error.message || error);
+            throw new Error(`Error: ${error.message}`);
+        }
+    }
+
     static async OrdersStatusAll(params) {
         try {
             const token = GlobalVar.getToken();

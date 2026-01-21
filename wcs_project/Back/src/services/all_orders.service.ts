@@ -126,6 +126,118 @@ export class AllOrdersService {
         }
     }
 
+    async getReceiptAll(
+        options?: {
+            isExecution?: boolean;   // ✅ true = status Waiting / false = all status except FINISHED/COMPLETED
+            store_type?: string;
+            mc_code?: string;
+        },
+        manager?: EntityManager
+        ): Promise<ApiResponse<any | null>> {
+    
+        const response = new ApiResponse<any | null>();
+        const operation = 'AllOrdersService.getReceiptAll';
+
+        try {
+            const repository = manager
+                ? manager.getRepository(Orders)
+                : this.ordersRepository;
+
+            const query = repository
+                .createQueryBuilder('order')
+                .leftJoin('orders_receipt', 'receipt', 'receipt.order_id = order.order_id')
+                .leftJoin('m_stock_items', 'stock', 'stock.item_id = order.item_id')
+                .leftJoin('m_location', 'loc', 'loc.loc_id = order.loc_id')
+                .select([
+                    'order.order_id AS order_id',
+                    'order.mc_code AS mc_code',
+                    'order.type AS type',
+                    'order.spr_no AS spr_no',
+                    'order.status AS status',
+                    'receipt.receipt_id AS receipt_id',
+                    'receipt.po_num AS po_num',
+                    'receipt.object_id AS object_id',
+                    'receipt.contract_num AS contract_num',
+                    'stock.item_id AS item_id',
+                    'stock.stock_item AS stock_item',
+                    'stock.item_desc AS item_desc',
+                    'loc.loc_id AS loc_id',
+                    'loc.loc AS loc',
+                    'loc.box_loc AS box_loc',
+                    'order.store_type AS store_type',
+                    'order.cond AS cond',
+                    'order.plan_qty AS plan_qty',
+                    'order.actual_qty AS actual_qty',
+                    'order.requested_by AS requested_by',
+                    "DATE_FORMAT(order.requested_at, '%d/%m/%Y') AS requested_at",
+                ])
+                // 🔒 base condition
+                .where('order.type = :type', { type: 'RECEIPT' })
+                .orderBy('order.requested_at', 'ASC')
+                .cache(false);
+
+            // 🔥 true = status Waiting / false = all status except FINISHED/COMPLETED / undefined = all status
+            if (options?.isExecution === true) {
+                    // เฉพาะ WAITING
+                    query.andWhere('order.status = :waitingStatus', {
+                        waitingStatus: StatusOrders.WAITING,
+                    });
+                } else if (options?.isExecution === false) {
+                    // ทุกสถานะ ยกเว้น WAITING และ FINISHED/COMPLETED
+                    query.andWhere('order.status NOT IN (:...excludedStatuses)', {
+                        excludedStatuses: [
+                            StatusOrders.WAITING,
+                            StatusOrders.FINISHED,
+                            StatusOrders.COMPLETED
+                        ],
+                    });
+                }
+                // undefined → ไม่ใส่ where (ได้ทุกสถานะ)
+
+            // 🔎 filter store_type
+            if (options?.store_type) {
+                query.andWhere('order.store_type = :store_type', {
+                    store_type: options.store_type,
+                });
+            }
+
+            // 🔎 filter mc_code
+            if (options?.mc_code) {
+                query.andWhere('order.mc_code = :mc_code', {
+                    mc_code: options.mc_code,
+                });
+            }
+
+            const rawData = await query.getRawMany();
+
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('field.receipt'));
+            }
+
+            // ✅ normalize ค่าเหมือนเดิม
+            const cleanedData = rawData.map((item: any) => ({
+                ...item,
+                actual_qty:
+                    item.actual_qty != null && !isNaN(Number(item.actual_qty))
+                        ? Number(item.actual_qty)
+                        : 0,
+            }));
+
+            return response.setComplete(lang.msgFound('field.receipt'), cleanedData);
+
+        } catch (error: any) {
+            console.error(`Error in ${operation}:`, error);
+
+            if (error instanceof QueryFailedError) {
+                return response.setIncomplete(
+                    lang.msgErrorFunction(operation, error.message)
+                );
+            }
+
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        }
+    }
+
     async getStatusAll(
         options?: {
             isExecution?: boolean;   

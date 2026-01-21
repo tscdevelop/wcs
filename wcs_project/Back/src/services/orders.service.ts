@@ -96,7 +96,7 @@ export class OrdersService {
                 type: data.type?.toUpperCase() as any,
                 requested_at: new Date(),
                 requested_by: reqUsername,
-                user_id: user_id,
+                created_by_user_id: user_id,
                 store_type: storeType
             };
 
@@ -227,7 +227,7 @@ export class OrdersService {
                 ...data,
                 updated_at: new Date(),
                 requested_by: reqUsername,
-                user_id: user_id,
+                created_by_user_id: user_id,
                 store_type: storeType
             };
 

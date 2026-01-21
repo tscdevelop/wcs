@@ -17,10 +17,6 @@ export class Counter {
     @Column({ type: 'varchar', length: 20, nullable: true })
     group_color?: string;
 
-    /** execution_group ที่กำลังใช้งาน */
-    @Column({ type: 'bigint', unsigned: true, nullable: true })
-    execution_group_id?: string;
-
     @Column({ type: 'varchar', length: 7, nullable: true })
     light_color_hex?: string;
 

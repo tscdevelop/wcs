@@ -154,7 +154,7 @@ export default function ReusableDataTable({
             {actionsList.includes("edit") && (
               <Tooltip title="Edit">
                 <span>
-                  <IconButton size="small" onClick={() => onEdit?.(row)}>
+                  <IconButton size="small" color="success" onClick={() => onEdit?.(row)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </span>
@@ -163,7 +163,7 @@ export default function ReusableDataTable({
             {actionsList.includes("delete") && (
               <Tooltip title="Delete">
                 <span>
-                  <IconButton size="small" onClick={() => onDelete?.(row)}>
+                  <IconButton size="small" color="error" onClick={() => onDelete?.(row)}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </span>
