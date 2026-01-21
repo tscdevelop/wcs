@@ -54,6 +54,12 @@ import { T1OrdersService } from './services/order_wrs.service';
 
 const app = express();
 
+/* 🔥 DEBUG MIDDLEWARE (ต้องอยู่บนสุด) */
+app.use((req, _res, next) => {
+  console.log("[REQ]", req.method, req.originalUrl);
+  next();
+});
+
 // const server = http.createServer(app);
 
 // ตั้งค่า i18next
@@ -108,7 +114,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
-  origin: 'https://wcs-front.vercel.app',
+  origin: 'https://wcs-gold-two.vercel.app',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   credentials: true,
   optionsSuccessStatus: 200
