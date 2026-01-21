@@ -89,7 +89,8 @@ export function broadcast(counterId: string, payload: any) {
   if (!set) return;
 
   const data = `data: ${JSON.stringify(payload)}\n\n`;
-
+  console.log("[SSE broadcast]", counterId, payload);
+  
   set.forEach(res => {
     try {
       res.write(data);
