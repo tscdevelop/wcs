@@ -182,7 +182,10 @@
         "checkout_t1": "Check Out",
         "put": "Put",
         "put_execute": "Execute",
-        "put_create": "Create"
+        "put_create": "Create",
+        "return": "Return",
+        "return_execute": "Execute",
+        "return_create": "Create"
     },
     "role": {
         "role_title_1": "เพิ่มสิทธิ์การใช้งาน",

@@ -12,6 +12,8 @@ import { StockItems } from "../entities/m_stock_items.entity";
 import { InventoryTrx } from "../entities/inventory_transaction.entity";
 import { TypeInfm } from "../common/global.enum";
 import { Locations } from "../entities/m_location.entity";
+import { OrdersUsage } from "../entities/order_usage.entity";
+import { OrdersReturn } from "../entities/order_return.entity";
 
 export class InventoryService {
     private inventoryRepo: Repository<Inventory>;
@@ -19,53 +21,6 @@ export class InventoryService {
     constructor(){
         this.inventoryRepo = AppDataSource.getRepository(Inventory);
     }
-
-    //---------------------------------------
-    // 1) RECEIPT → เพิ่ม stock พร้อมราคาใหม่
-    //---------------------------------------
-    // async receipt(manager: EntityManager, order: Orders) {
-    //     const invRepo = manager.getRepository(Inventory);
-    //     const receiptRepo = manager.getRepository(OrdersReceipt);
-
-    //     // ดึงราคา unit cost จาก table orders_receipt (สำคัญ)
-    //     const r = await receiptRepo.findOne({
-    //         where: { order_id: order.order_id }
-    //     });
-
-    //     if (!r) {
-    //         throw new Error(`OrdersReceipt not found for order ${order.order_id}`);
-    //     }
-
-    //     const unitCost = r.unit_cost_handled; // ⭐ ราคาจริงจากการรับเข้า receipt
-
-    //     // หาว่ามี record แบบเดียวกันไหม
-    //     const existing = await invRepo.findOne({
-    //         where: {
-    //             item_id: order.item_id,
-    //             loc_id: order.loc_id,
-    //             unit_cost_inv: unitCost
-    //         }
-    //     });
-
-    //     if (existing) {
-    //         existing.inv_qty += order.actual_qty!;
-    //         existing.total_cost_inv = existing.unit_cost_inv * existing.inv_qty;  // ⭐ เพิ่มผลรวม
-    //         existing.updated_at = new Date();
-    //         return await invRepo.save(existing);
-    //     }
-
-    //     // ถ้าไม่มี → สร้างใหม่
-    //     const newInv = invRepo.create({
-    //         item_id: order.item_id,
-    //         loc_id: order.loc_id,
-    //         unit_cost_inv: unitCost,
-    //         inv_qty: order.actual_qty,
-    //         total_cost_inv: unitCost * (order.actual_qty ?? 0),
-    //         updated_at: new Date()
-    //     });
-
-    //     return await invRepo.save(newInv);
-    // }
 
 //---------------------------------------
 // 1) RECEIPT → เพิ่ม stock พร้อมราคาใหม่
@@ -161,63 +116,6 @@ async receipt(manager: EntityManager, order: Orders) {
     return savedInv;
 }
 
-    //---------------------------------------
-    // 2) USAGE → ตัด stock แบบ FIFO เพราะไม่มีราคาใน order
-    //---------------------------------------
-    // async usage(manager: EntityManager, order: Orders) {
-    //     const invRepo = manager.getRepository(Inventory);
-    //     const stockItemRepo = manager.getRepository(StockItems); // ⭐ เพิ่ม
-
-    //     // ----------------------------
-    //     // 1) หา stock_item จาก item_id
-    //     // ----------------------------
-    //     const stockItem = await stockItemRepo.findOne({
-    //         where: { item_id: order.item_id },
-    //         select: ['stock_item'] // เอาเฉพาะที่ใช้
-    //     });
-
-    //     const stockItemCode = stockItem?.stock_item ?? order.item_id;
-
-    //     // ----------------------------
-    //     // 2) ดึง inventory FIFO
-    //     // ----------------------------
-    //     const invList = await invRepo.find({
-    //         where: {
-    //             item_id: order.item_id,
-    //             loc_id: order.loc_id
-    //         },
-    //         order: { unit_cost_inv: 'ASC' }
-    //     });
-
-    //     let qtyToRemove = order.actual_qty ?? 0;
-
-    //     for (const inv of invList) {
-    //         if (qtyToRemove <= 0) break;
-
-    //         if (inv.inv_qty >= qtyToRemove) {
-    //             inv.inv_qty -= qtyToRemove;
-    //             inv.total_cost_inv = inv.unit_cost_inv * inv.inv_qty;
-    //             qtyToRemove = 0;
-    //         } else {
-    //             qtyToRemove -= inv.inv_qty;
-    //             inv.inv_qty = 0;
-    //             inv.total_cost_inv = 0;
-    //         }
-
-    //         inv.updated_at = new Date();
-    //         await invRepo.save(inv);
-    //     }
-
-    //     // ----------------------------
-    //     // 3) Stock ไม่พอ → throw error
-    //     // ----------------------------
-    //     if (qtyToRemove > 0) {
-    //         throw new Error(`Not enough stock for item ${stockItemCode}`);
-    //     }
-
-    //     return true;
-    // }
-
 //---------------------------------------
 // 2) USAGE → ตัด stock แบบ FIFO (ไม่มีราคาใน order)
 //---------------------------------------
@@ -257,7 +155,7 @@ async usage(manager: EntityManager, order: Orders) {
         .setLock("pessimistic_write")
         .where("inv.item_id = :item_id", { item_id: order.item_id })
         .andWhere("inv.loc_id = :loc_id", { loc_id: order.loc_id })
-        .orderBy("inv.unit_cost_inv", "ASC")
+        .orderBy("inv.created_at", "ASC")
         .getMany();
 
     if (invList.length === 0) {
@@ -321,90 +219,152 @@ async usage(manager: EntityManager, order: Orders) {
     return true;
 }
 
+//---------------------------------------
+// 3) RETURN → เพิ่ม stock (เหมือน receipt แต่ผูกกับ usage)
+//---------------------------------------
+async return(manager: EntityManager, order: Orders) {
+    const invRepo = manager.getRepository(Inventory);
+    const trxRepo = manager.getRepository(InventoryTrx);
+    const returnRepo = manager.getRepository(OrdersReturn);
+    const itemRepo = manager.getRepository(StockItems);
+    const locRepo = manager.getRepository(Locations);
+
+    if (!order.actual_qty || order.actual_qty <= 0) {
+        throw new Error(`Invalid actual_qty for return order ${order.order_id}`);
+    }
+
+    // ------------------------------------------------
+    // 1) load orders_return (must exist)
+    // ------------------------------------------------
+    const orderReturn = await returnRepo.findOne({
+        where: { order_id: order.order_id }
+    });
+
+    if (!orderReturn) {
+        throw new Error(
+            `orders_return not found for order ${order.order_id}`
+        );
+    }
+
+    // ------------------------------------------------
+    // 2) load usage transaction (source of truth)
+    // ------------------------------------------------
+    const usageTrx = await trxRepo.findOne({
+        where: {
+            trx_id: orderReturn.usage_trx_id,
+            order_type: TypeInfm.USAGE
+        },
+        lock: { mode: 'pessimistic_read' }
+    });
+
+    if (!usageTrx) {
+        throw new Error(
+            `Usage transaction ${orderReturn.usage_trx_id} not found`
+        );
+    }
+
+// ------------------------------------------------
+// 3) prevent over-return (NEW LOGIC)
+// ------------------------------------------------
+const returnedSum = await trxRepo
+    .createQueryBuilder('trx')
+    .select('COALESCE(SUM(trx.qty),0)', 'sum')
+    .where('trx.order_type = :type', { type: TypeInfm.RETURN })
+    .andWhere('trx.trx_ref_id = :usageTrxId', {
+        usageTrxId: usageTrx.trx_id,
+    })
+    .getRawOne();
+
+const returnedQty = Number(returnedSum.sum); // qty เป็น +
+const usedQty = Math.abs(usageTrx.qty);
+
+const availableQty = usedQty - returnedQty;
+
+if (order.actual_qty > availableQty) {
+    throw new Error(
+        `Return qty exceeds available (${availableQty})`
+    );
+}
 
 
-    //---------------------------------------
-    // 3) TRANSFER → ตัดจาก loc A (FIFO) + เพิ่มใน loc B ตามราคาเดิมของแต่ละ batch
-    //---------------------------------------
-    // async transfer(manager: EntityManager, order: Orders) {
-    //     const invRepo = manager.getRepository(Inventory);
-    //     const transferRepo = manager.getRepository(OrdersTransfer);
+    // ------------------------------------------------
+    // 4) load inventory (lock inv เดิม)
+    // ------------------------------------------------
+    const inv = await invRepo.findOne({
+        where: { inv_id: orderReturn.inv_id },
+        lock: { mode: 'pessimistic_write' }
+    });
 
-    //     const t = await transferRepo.findOne({
-    //         where: { order_id: order.order_id }
-    //     });
+    if (!inv) {
+        throw new Error(
+            `Inventory ${orderReturn.inv_id} not found`
+        );
+    }
 
-    //     if (!t) {
-    //         throw new Error(`OrdersTransfer not found for order ${order.order_id}`);
-    //     }
+    // ------------------------------------------------
+    // 5) update inventory
+    // ------------------------------------------------
+const returnQty = Number(order.actual_qty);
 
-    //     const fromLoc = t.from_loc_id;      // ใช้ order.from_loc_id = ต้นทาง(orders_transfer)
-    //     const toLoc = order.loc_id;          // ใช้ order.loc_id = ปลายทาง(orders)
-    //     const qtyToMoveTotal = order.actual_qty ?? 0;
+// update inventory
+inv.inv_qty += returnQty;
+inv.total_cost_inv = Number(
+    (inv.total_cost_inv + (returnQty * usageTrx.unit_cost)).toFixed(2)
+);
+inv.unit_cost_inv = Number(
+    (inv.total_cost_inv / inv.inv_qty).toFixed(4)
+);
 
-    //     if (qtyToMoveTotal <= 0) {
-    //         throw new Error("actual_qty must be > 0");
-    //     }
 
-    //     const sourceList = await invRepo.find({
-    //         where: {
-    //             item_id: order.item_id,
-    //             loc_id: fromLoc
-    //         },
-    //         order: { unit_cost_inv: "ASC" }
-    //     });
+    inv.updated_at = new Date();
 
-    //     if (sourceList.length === 0) {
-    //         throw new Error(`No inventory found at from_loc_id ${fromLoc}`);
-    //     }
+    const savedInv = await invRepo.save(inv);
 
-    //     let qtyToMove = qtyToMoveTotal;
+    // ------------------------------------------------
+    // 6) load display info (for trx log)
+    // ------------------------------------------------
+    const item = await itemRepo.findOne({
+        where: { item_id: usageTrx.item_id },
+        select: ['stock_item']
+    });
 
-    //     for (const src of sourceList) {
-    //         if (qtyToMove <= 0) break;
+    const loc = await locRepo.findOne({
+        where: { loc_id: usageTrx.loc_id }
+    });
 
-    //         const moveQty = Math.min(src.inv_qty, qtyToMove);
-    //         qtyToMove -= moveQty;
-    //         src.inv_qty -= moveQty;
-    //         src.total_cost_inv = src.unit_cost_inv * src.inv_qty; // ⭐ เพิ่ม
-    //         src.updated_at = new Date();
-    //         await invRepo.save(src);
+    // ------------------------------------------------
+    // 7) insert inventory_trx (RETURN)
+    // ------------------------------------------------
+    const trx = trxRepo.create({
+        inv_id: savedInv.inv_id,
+        order_id: order.order_id,
+        order_type: TypeInfm.RETURN,
 
-    //         // ใส่เข้า loc ปลายทาง
-    //         const dest = await invRepo.findOne({
-    //             where: {
-    //                 item_id: order.item_id,
-    //                 loc_id: toLoc,
-    //                 unit_cost_inv: src.unit_cost_inv
-    //             }
-    //         });
+        trx_ref_id: usageTrx.trx_id,
 
-    //         if (dest) {
-    //             dest.inv_qty += moveQty;
-    //             dest.total_cost_inv = dest.unit_cost_inv * dest.inv_qty; // ⭐ เพิ่ม
-    //             dest.updated_at = new Date();
-    //             await invRepo.save(dest);
-    //         } else {
-    //             await invRepo.save(invRepo.create({
-    //                 item_id: order.item_id,
-    //                 loc_id: toLoc,
-    //                 unit_cost_inv: src.unit_cost_inv,
-    //                 inv_qty: moveQty,
-    //                 total_cost_inv: src.unit_cost_inv * moveQty,  // ⭐ เพิ่ม
-    //                 updated_at: new Date()
-    //             }));
-    //         }
-    //     }
+        item_id: usageTrx.item_id,
+        stock_item: item?.stock_item ?? null,
 
-    //     if (qtyToMove > 0) {
-    //         throw new Error(`Not enough stock to transfer`);
-    //     }
+        loc_id: usageTrx.loc_id,
+        loc: loc?.loc ?? null,
+        box_loc: loc?.box_loc ?? null,
 
-    //     return true;
-    // }
+        qty: order.actual_qty,
+        unit_cost: usageTrx.unit_cost,
+        total_cost: Number(
+            (order.actual_qty * usageTrx.unit_cost).toFixed(2)
+        )
+    } as DeepPartial<InventoryTrx>);
+
+    await trxRepo.save(trx);
+
+    return savedInv;
+}
+
+
 
 //---------------------------------------
-// 3) TRANSFER → ตัดจาก loc A (FIFO) + เพิ่มใน loc B ตามราคาเดิม
+// 4) TRANSFER → ตัดจาก loc A (FIFO) + เพิ่มใน loc B ตามราคาเดิม
 //---------------------------------------
 async transfer(manager: EntityManager, order: Orders) {
     const invRepo = manager.getRepository(Inventory);
@@ -448,7 +408,7 @@ async transfer(manager: EntityManager, order: Orders) {
         .setLock("pessimistic_write")
         .where("inv.item_id = :item_id", { item_id: order.item_id })
         .andWhere("inv.loc_id = :loc_id", { loc_id: fromLoc })
-        .orderBy("inv.unit_cost_inv", "ASC")
+        .orderBy("inv.created_at", "ASC")
         .getMany();
 
     if (sourceList.length === 0) {

@@ -41,7 +41,6 @@ const OrderStatusPage = () => {
     unit_cost: "",  
     total_cost: "",
     actual_qty: "",  
-    cap_new_qty: "",
     recond_qty: "",  
     date: "",  
     status: "",
@@ -113,8 +112,6 @@ const OrderStatusPage = () => {
         String(item.unit_cost ?? "").includes(searchOrders.unit_cost) &&
         String(item.total_cost ?? "").includes(searchOrders.total_cost) &&
         String(item.actual_qty ?? "").includes(searchOrders.actual_qty) &&
-        String(item.capital_qty || item.new_qty || "").includes(searchOrders.cap_new_qty) &&
-        String(item.recond_qty ?? "").includes(searchOrders.recond_qty) &&
         (item.requested_at || "").includes(searchOrders.date) &&
         (
           filterStatusOrder === "" ||
@@ -591,53 +588,8 @@ const OrderStatusPage = () => {
                 />
               </Grid>
 
-              {/* CAPITAL/NEW Quantity */}
-              <Grid item xs={12} md={1.71}>
-                <MDTypography variant="caption" fontWeight="bold">
-                  CAPITAL/NEW Quantity
-                </MDTypography>
-
-                <MDInput
-                  //type="number"
-                  placeholder="Select Range"
-                  sx={{ height: "45px" }}
-                  value={searchOrders.cap_new_qty ?? ""}
-                  inputProps={{
-                    min: 1,
-                    step: 1,
-                  }}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    // กรณีลบค่าออก (clear)
-                    if (value === "") {
-                      setSearchOrders({ ...searchOrders, cap_new_qty: "" });
-                      return;
-                    }
-
-                    const num = Number(value);
-
-                    // ❌ ไม่รับ 0 หรือติดลบ
-                    if (num <= 0) return;
-
-                    setSearchOrders({
-                      ...searchOrders,
-                      cap_new_qty: num,
-                    });
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                  fullWidth
-                />
-              </Grid>
-
               {/* RECOND Quantity */}
-              <Grid item xs={12} md={1.71}>
+              {/* <Grid item xs={12} md={1.71}>
                 <MDTypography variant="caption" fontWeight="bold">RECOND Quantity</MDTypography>
                 <MDInput
                   placeholder="Select Range"
@@ -656,7 +608,7 @@ const OrderStatusPage = () => {
                   }}
                   fullWidth
                 />
-              </Grid>
+              </Grid> */}
 
               {/* Date */}
               <Grid item xs={12} md={1.71}>

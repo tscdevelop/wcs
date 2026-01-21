@@ -75,6 +75,15 @@ export class InventoryTrx {
     })
     total_cost: number;
     
+    /** ไอดี trx_id อ้างอิงต้นทางที่ใช้ (Fk) */
+    @Column({
+        type: 'bigint',
+        unsigned: true,
+        nullable: true,   // ⭐ สำคัญมาก
+    })
+    trx_ref_id?: string | null;
+
+
     /** created_at */
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Created Date' })
     created_at!: Date;

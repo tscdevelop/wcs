@@ -79,6 +79,41 @@ export const getReceiptAll = async (req: Request, res: Response) => {
     }
 };
 
+export const getReturnAll = async (req: Request, res: Response) => {
+    const operation = 'OrderController.getReturnAll';
+
+    const reqUsername = RequestUtils.getUsernameToken(req, res);
+    if (!reqUsername) return;
+
+    try {
+        // 🔹 รับค่าจาก query
+        const {
+            isExecution,
+            store_type,
+            mc_code,
+        } = req.query;
+
+        const response = await allOrdersService.getReturnAll({
+            // ✅ แปลง string → boolean
+            isExecution: isExecution === 'true',
+            store_type: store_type as string | undefined,
+            mc_code: mc_code as string | undefined,
+        });
+
+        return ResponseUtils.handleResponse(res, response);
+    } catch (error: any) {
+        console.error(`Error during ${operation}:`, error);
+        return ResponseUtils.handleErrorGet(
+            res,
+            operation,
+            error.message,
+            'item.order',
+            true,
+            reqUsername
+        );
+    }
+};
+
 export const getStatusAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getStatusAll';
 

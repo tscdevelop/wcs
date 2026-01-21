@@ -6,7 +6,7 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 @Entity({ name: 'orders_transfer' })
 export class OrdersTransfer {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order task' })
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order transfer' })
     transfer_id!: string;
 
     /** FK เชื่อมกับ Orders */
