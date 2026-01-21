@@ -29,11 +29,11 @@ export const connectSSE = async (req: Request, res: Response) => {
         counter_id: counterId,
         actualQty: runtime?.actual_qty ?? 0
     })}\n\n`);
-    res.flush?.();
+    // res.flush?.();
 
     const heartbeat = setInterval(() => {
         res.write(": ping\n\n");
-        res.flush?.();
+        //res.flush?.();
     }, 15000);
 
     req.on("close", () => {
