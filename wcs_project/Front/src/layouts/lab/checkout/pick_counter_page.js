@@ -40,57 +40,70 @@ const PickCounterPage = () => {
    * SSE (auto reconnect)
    * ========================= */
   useEffect(() => {
-    if (!counterId) return;
+  if (!counterId) return;
 
-    const API_BASE =
-      process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
+  const API_BASE =
+    process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
 
-    let es = null;
-    let retryTimer;
+  let es = null;
+let retryTimer = null;
 
-    const connectSSE = () => {
-      console.log("🔌 Connecting SSE:", counterId);
 
-      es = new EventSource(
-        `${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}`
-      );
+  const connectSSE = () => {
+    console.log("🔌 [SSE] Connecting...", {
+      url: ${API_BASE}/api/sse/${counterId}
+    });
 
-      es.onopen = () => {
-        console.log("✅ SSE connected");
-      };
+    es = new EventSource(
+      ${API_BASE}/api/sse/${counterId}?key=${process.env.REACT_APP_WCS_SCREEN_KEY}
+    );
 
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (typeof data.actualQty !== "number") return;
+    es.onopen = () => {
+      console.log("✅ [SSE] Connected");
+    };
 
-          setCounter((prev) =>
-            prev
-              ? { ...prev, actual_qty: data.actualQty }
-              : prev
-          );
-          
-        } catch (err) {
-          console.error("❌ SSE parse error", err);
+    es.onmessage = (e) => {
+      console.log("📩 [SSE] Raw message:", e.data); // 🔥 สำคัญมาก
+
+      try {
+        const data = JSON.parse(e.data);
+        console.log("📦 [SSE] Parsed data:", data);
+
+        if (typeof data.actualQty !== "number") {
+          console.warn("⚠️ [SSE] actualQty is not number", data);
+          return;
         }
-      };
 
-      es.onerror = () => {
-        console.warn("⚠️ SSE disconnected, retrying...");
-        es?.close();
+        setCounter((prev) => {
+          console.log("🔄 [SSE] Update counter from", prev?.actual_qty, "→", data.actualQty);
 
-        retryTimer = setTimeout(connectSSE, 3000);
-      };
+          return prev
+            ? { ...prev, actual_qty: data.actualQty }
+            : prev;
+        });
+
+      } catch (err) {
+        console.error("❌ [SSE] JSON parse error", err, e.data);
+      }
     };
 
-    connectSSE();
-
-    return () => {
-      clearTimeout(retryTimer);
+    es.onerror = (err) => {
+      console.error("🚨 [SSE] Error event:", err);
+      console.warn("⚠️ [SSE] Disconnected, retrying in 3s...");
       es?.close();
-      console.log("🔌 SSE closed");
+
+      retryTimer = setTimeout(connectSSE, 3000);
     };
-  }, [counterId]);
+  };
+
+  connectSSE();
+
+  return () => {
+    clearTimeout(retryTimer);
+    es?.close();
+    console.log("🔌 [SSE] Closed");
+  };
+}, [counterId]);
 
   function ScaledWrapper({ children }) {
     const BASE_W = 1920;
