@@ -54,6 +54,12 @@ import { T1OrdersService } from './services/order_wrs.service';
 
 const app = express();
 
+/* 🔥 DEBUG MIDDLEWARE (ต้องอยู่บนสุด) */
+app.use((req, _res, next) => {
+  console.log("[REQ]", req.method, req.originalUrl);
+  next();
+});
+
 // const server = http.createServer(app);
 
 // ตั้งค่า i18next
