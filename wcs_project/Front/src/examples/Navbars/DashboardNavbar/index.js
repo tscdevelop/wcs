@@ -461,7 +461,12 @@ function DashboardNavbar({ absolute, light, isMini }) {
         </IconButton> */}
               {/* ปุ่มเมนูภาษา */}
               {!hiddenRoles.includes(userRole) && (
-                <>
+                <Box
+                  sx={{
+                    display: "none",        // ❌ ไม่แสดง
+                    pointerEvents: "none",  // ❌ กดไม่ได้ (กันพลาด)
+                  }}
+                >
                   <IconButton
                     size="small"
                     color="inherit"
@@ -478,8 +483,9 @@ function DashboardNavbar({ absolute, light, isMini }) {
                     {langCurrent === "th" ? "ไทย" : "EN"}
                   </IconButton>
                   {renderLanguageMenu()}
-                </>
+                </Box>
               )}
+
 
               {/* ปุ่มแสดงโปรไฟล์ */}
               {/* <IconButton onClick={handleClick} sx={navbarIconButton} size="small" disableRipple>

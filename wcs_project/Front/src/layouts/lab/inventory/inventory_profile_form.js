@@ -7,7 +7,7 @@ import MDButton from "components/MDButton";
 import UploadPic from "../components/from_uploadpicture_V002";
 import BaseClass from "common/baseClass";
 
-export default function StockItemsFormDialog({
+export default function ItemsFormDialog({
     open,
     mode = "create",
     initialData = null,
@@ -100,7 +100,15 @@ export default function StockItemsFormDialog({
     };
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+        <Dialog 
+        open={open} 
+        onClose={onClose} 
+        PaperProps={{
+            sx: {
+            borderRadius: 5, // 👈 ปรับความโค้งตรงนี้
+            },
+        }}
+        fullWidth maxWidth="md">
         <DialogTitle>{title}</DialogTitle>
         <DialogContent dividers>
             <Grid container spacing={2}>
@@ -121,8 +129,20 @@ export default function StockItemsFormDialog({
                         value={form[field]}
                         onChange={handleChange(field)}
                         error={!!errors[field]}
-                        sx={{ backgroundColor: "#fff" }}
+                        multiline={field === "item_desc"}
+                        rows={field === "item_desc" ? 4 : 1}
+                        placeholder={
+                            field === "stock_item"
+                            ? "Enter stock item ID"
+                            : field === "item_name"
+                            ? "Enter stock item name"
+                            : "Enter stock item Description"
+                        }
+                        sx={{
+                            backgroundColor: "#fff",
+                        }}
                     />
+
                     {errors[field] && (
                         <MDTypography variant="caption" color="error">
                         {errors[field]}
@@ -147,25 +167,34 @@ export default function StockItemsFormDialog({
                 }
                 resetImage={false}
                 disabled={false} // ปรับตาม status ถ้ามี
-                label="stock item photo"
+                label="click to upload photo"
                 />
             </Grid>
             </Grid>
         </DialogContent>
 
-        <DialogActions>
-            <MDButton variant="outlined" onClick={onClose} disabled={submitting}>
-            Cancel
+        <DialogActions sx={{ justifyContent: "right", gap: 2}}>
+            <MDButton variant="contained"
+                color="secondary"
+                sx={{ color: "#fff" }} 
+                onClick={onClose} 
+                disabled={submitting}>
+                Cancel
             </MDButton>
-            <MDButton onClick={handleSubmit} color="dark" disabled={submitting}>
-            {submitting ? "Saving..." : isEdit ? "Update" : "Save"}
+            <MDButton 
+                onClick={handleSubmit} 
+                variant="contained"
+                color="success"
+                sx={{ color: "#fff" }} 
+                disabled={submitting}>
+                {submitting ? "Saving..." : isEdit ? "Update" : "Create"}
             </MDButton>
         </DialogActions>
         </Dialog>
     );
 }
 
-StockItemsFormDialog.propTypes = {
+ItemsFormDialog.propTypes = {
     open: PropTypes.bool.isRequired,
     mode: PropTypes.oneOf(["create", "edit"]),
     initialData: PropTypes.object,

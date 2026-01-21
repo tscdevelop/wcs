@@ -19,6 +19,8 @@ const CheckOutTPage = () => {
   const [counters, setCounters] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [actualQty, setActualQty] = useState(0);
+
   const [alert, setAlert] = useState({
     show: false,
     type: "success",
@@ -118,7 +120,18 @@ const CheckOutTPage = () => {
     {
       field: "counter_id",
       label: "Counter",
-      render: (row) => <span style={{ color: row.counter_color || "#000" }}>{row.counter_id}</span>,
+      minWidth: 120, // ⭐ สำคัญ
+      renderCell: (value, row) => (
+        <span
+          style={{
+            color: row.counter_color || "#000",
+            fontWeight: 600,
+            whiteSpace: "nowrap", // ⭐ กันขึ้นบรรทัดใหม่
+          }}
+        >
+          Counter {value}
+        </span>
+      ),
     },
     { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];
@@ -228,6 +241,7 @@ const CheckOutTPage = () => {
                   confirmSkuDisabled={(row) => row.status !== "PROCESSING"}
                   onConfirmSku={(row) => {
                     setSelectedOrder(row);
+                    setActualQty(row.actual_qty || 0);
                     setScanDialogOpen(true);
                   }}
                 />
@@ -242,6 +256,8 @@ const CheckOutTPage = () => {
         <ScanQtyDialog
           open={scanDialogOpen}
           order={selectedOrder}
+          actualQty={actualQty}
+          onQtyChange={setActualQty}
           onClose={() => setScanDialogOpen(false)}
           onSubmit={async (order_id, actual_qty) => {
             try {

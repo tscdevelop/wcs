@@ -24,15 +24,15 @@ export const getOrderAllByUser = async (req: Request, res: Response) => {
     try {
         let userId: number | undefined = undefined;
 
-        // // ✅ ถ้าเป็น REQUESTER → filter ตาม user_id
-        // if (reqRole === 'REQUESTER') {
-        //     userId = reqUserId;
-        // }
-
-         // ✅ REQUESTER และ STORE → filter ตาม user_id
-        if (reqRole === 'REQUESTER' || reqRole === 'STORE') {
+        // ✅ ถ้าเป็น REQUESTER → filter ตาม user_id
+        if (reqRole === 'REQUESTER') {
             userId = reqUserId;
         }
+
+        //  // ✅ REQUESTER และ STORE → filter ตาม user_id
+        // if (reqRole === 'REQUESTER' || reqRole === 'STORE') {
+        //     userId = reqUserId;
+        // }
 
         // role อื่น → userId = undefined (ดึงทั้งหมด)
         const response = await counterService.getOrderAllByUser(userId);
@@ -68,15 +68,15 @@ export const getCounterAllByUser = async (req: Request, res: Response) => {
     try {
         let userId: number | undefined = undefined;
 
-        // // ✅ ถ้าเป็น REQUESTER → filter ตาม user_id
-        // if (reqRole === 'REQUESTER') {
-        //     userId = reqUserId;
-        // }
-
-         // ✅ REQUESTER และ STORE → filter ตาม user_id
-        if (reqRole === 'REQUESTER' || reqRole === 'STORE') {
+        // ✅ ถ้าเป็น REQUESTER → filter ตาม user_id
+        if (reqRole === 'REQUESTER') {
             userId = reqUserId;
         }
+
+        //  // ✅ REQUESTER และ STORE → filter ตาม user_id
+        // if (reqRole === 'REQUESTER' || reqRole === 'STORE') {
+        //     userId = reqUserId;
+        // }
 
         // role อื่น → userId = undefined (ดึงทั้งหมด)
         const response = await counterService.getCounterAllByUser(userId);

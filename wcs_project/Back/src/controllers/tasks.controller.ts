@@ -7,41 +7,101 @@ import { CreateTaskBatchDto, OrchestratedTaskService } from '../services/tasks.s
 import { ApiResponse } from '../models/api-response.model';
 
 export function buildTasksController(orchestrator: OrchestratedTaskService) {
-    const create = async (req: Request, res: Response) => {
-        const operation = 'TasksController.create';
-        const reqUsername = RequestUtils.getUsernameToken(req, res);
-        if (!reqUsername)
-            return ResponseUtils.handleBadRequest(res, 'Username required');
+    // const create = async (req: Request, res: Response) => {
+    //     const operation = 'TasksController.create';
+    //     const reqUsername = RequestUtils.getUsernameToken(req, res);
+    //     if (!reqUsername)
+    //         return ResponseUtils.handleBadRequest(res, 'Username required');
 
-        try {
-            const body = req.body as CreateTaskBatchDto;
+    //     try {
+    //         const body = req.body as CreateTaskBatchDto;
 
-            // ตรวจสอบ body
-            if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
-                return ResponseUtils.handleBadRequest(res, 'items array is required');
-            }
+    //         // ตรวจสอบ body
+    //         if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    //             return ResponseUtils.handleBadRequest(res, 'items array is required');
+    //         }
 
-            // เรียก batch service
-            const response = await orchestrator.createAndOpenBatch(body, reqUsername);
+    //         // เรียก batch service
+    //         const response = await orchestrator.createAndOpenBatch(body, reqUsername);
 
-            const status = response.isCompleted
-                ? HttpStatus.CREATED
-                : HttpStatus.BAD_REQUEST;
+    //         const status = response.isCompleted
+    //             ? HttpStatus.CREATED
+    //             : HttpStatus.BAD_REQUEST;
 
-            return ResponseUtils.handleCustomResponse(res, response, status);
-        } catch (error: any) {
-            console.error(`Error during ${operation}:`, error);
+    //         return ResponseUtils.handleCustomResponse(res, response, status);
+    //     } catch (error: any) {
+    //         console.error(`Error during ${operation}:`, error);
 
-            return ResponseUtils.handleErrorCreate(
-                res,
-                operation,
-                error.message,
-                'item.execution',
-                true,
-                reqUsername
-            );
-        }
-    };
+    //         return ResponseUtils.handleErrorCreate(
+    //             res,
+    //             operation,
+    //             error.message,
+    //             'item.execution',
+    //             true,
+    //             reqUsername
+    //         );
+    //     }
+    // };
+
+const create = async (req: Request, res: Response) => {
+  const operation = 'TasksController.create';
+
+const reqUserId = RequestUtils.getUserIdToken(req, res);
+const reqUsername = RequestUtils.getUsernameToken(req, res);
+
+if (!reqUserId || !reqUsername) {
+  return ResponseUtils.handleBadRequest(res, 'User required');
+}
+
+
+  try {
+    const body = req.body as CreateTaskBatchDto;
+
+    // 1️⃣ validate body
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return ResponseUtils.handleBadRequest(
+        res,
+        'items array is required'
+      );
+    }
+
+    // 2️⃣ แปลง items → orderIds
+    const orderIds = body.items
+      .map(i => i.order_id)
+      .filter((id): id is string => Boolean(id));
+
+    if (orderIds.length === 0) {
+      return ResponseUtils.handleBadRequest(
+        res,
+        'order_id is required in items'
+      );
+    }
+
+    // 3️⃣ เรียก service (ใหม่)
+    const response = await orchestrator.createAndOpenBatch(
+      orderIds,
+      reqUserId
+    );
+
+    const status = response.isCompleted
+      ? HttpStatus.CREATED
+      : HttpStatus.BAD_REQUEST;
+
+    return ResponseUtils.handleCustomResponse(res, response, status);
+
+  } catch (error: any) {
+    console.error(`Error during ${operation}:`, error);
+
+    return ResponseUtils.handleErrorCreate(
+      res,
+      operation,
+      error.message,
+      'item.execution',
+      true,
+      reqUsername
+    );
+  }
+};
 
     const changeToWaitingBatch = async (req: Request, res: Response) => {
         const operation = 'TasksController.changeToWaitingBatch';
