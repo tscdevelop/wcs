@@ -16,10 +16,12 @@ import { OrdersReceipt } from '../entities/order_receipt.entity';
 import { OrdersTransfer } from '../entities/order_transfer.entity';
 import { Locations } from '../entities/m_location.entity';
 import { s_user } from '../entities/s_user.entity';
+import { OrdersReturn } from '../entities/order_return.entity';
 
 interface CreateOrderInput extends Partial<Orders> {
     usage?: Partial<OrdersUsage>;
     receipt?: Partial<OrdersReceipt>;
+    return?: Partial<OrdersReturn>;
     transfer?: Partial<OrdersTransfer>;
 }
 
@@ -131,6 +133,17 @@ export class OrdersService {
                 });
 
                 await rcptRepo.save(receiptEntity);
+            }
+
+            else if (type === TypeInfm.RETURN) {
+                const returnRepo = useManager.getRepository(OrdersReturn);
+
+                const returnEntity = returnRepo.create({
+                    ...data.return,              // ต้องส่งจาก frontend: data.return = {...}
+                    order_id: savedData.order_id
+                });
+
+                await returnRepo.save(returnEntity);
             }
 
             else if (type === TypeInfm.TRANSFER) {
@@ -259,6 +272,16 @@ export class OrdersService {
                 }
             }
 
+            else if (type === TypeInfm.RETURN && data.return) {
+                const returnRepo = useManager.getRepository(OrdersReturn);
+                const existingReturn = await returnRepo.findOne({ where: { order_id } });
+
+                if (existingReturn) {
+                    returnRepo.merge(existingReturn, data.return);
+                    await returnRepo.save(existingReturn);
+                }
+            }
+
             else if (type === TypeInfm.TRANSFER && data.transfer) {
                 const transferRepo = useManager.getRepository(OrdersTransfer);
                 const existingTransfer = await transferRepo.findOne({ where: { order_id } });
@@ -335,6 +358,11 @@ export class OrdersService {
             else if (existing.type === TypeInfm.RECEIPT) {
                 const rcptRepo = useManager.getRepository(OrdersReceipt);
                 await rcptRepo.delete({ order_id: existing.order_id });
+            }
+
+            else if (existing.type === TypeInfm.RETURN) {
+                const returnRepo = useManager.getRepository(OrdersReturn);
+                await returnRepo.delete({ order_id: existing.order_id });
             }
 
             else if (existing.type === TypeInfm.TRANSFER) {

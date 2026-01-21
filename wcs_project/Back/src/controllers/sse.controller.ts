@@ -22,36 +22,24 @@ export const connectSSE = async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no");
 
-  res.flushHeaders();
+    const heartbeat = setInterval(() => {
+        res.write(": ping\n\n");
+    }, 15000);
 
-  // 🔥 MUST send immediately
-  res.write(": init\n\n");
-  res.socket?.write('');
+    try {
+        const runtime = await runtimeService.get(Number(counterId));
+        res.write(`data: ${JSON.stringify({
+        counter_id: counterId,
+        actualQty: runtime?.actual_qty ?? 0
+        })}\n\n`);
+    } catch (e) {
+        console.error("[SSE] init send error", e);
+    }
 
-  addClient(counterId, res);
-  console.log("[SSE] addClient", counterId);
-
-  const heartbeat = setInterval(() => {
-    res.write(": ping\n\n");
-    res.socket?.write('');
-  }, 15000);
-
-  try {
-    const runtime = await runtimeService.get(Number(counterId));
-    res.write(`data: ${JSON.stringify({
-      counter_id: counterId,
-      actualQty: runtime?.actual_qty ?? 0
-    })}\n\n`);
-    res.socket?.write('');
-  } catch (e) {
-    console.error("[SSE] init send error", e);
-  }
-
-  req.on("close", () => {
-    console.log("[SSE] client closed", counterId);
-    clearInterval(heartbeat);
-    removeClient(counterId, res);
-  });
+    req.on("close", () => {
+        clearInterval(heartbeat);
+        removeClient(counterId, res);
+    });
 };
 
 

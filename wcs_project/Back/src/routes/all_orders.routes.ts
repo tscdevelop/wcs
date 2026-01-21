@@ -103,6 +103,51 @@ router.get(
 
 /**
  * @swagger
+ * /api/orders/get-return-all:
+ *   get:
+ *     summary: ดึงข้อมูลรายการ order return filter status / store_type / mc_code
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/lng'
+ *       - in: query
+ *         name: isExecution
+ *         schema:
+ *           type: boolean
+ *         required: false
+ *         description: |
+ *           ถ้าเป็น true จะ filter status เฉพาะ WAITING | false จะ filter status ทุกสถานะ ยกเว้น WAITING และ FINISHED/COMPLETED | ไม่ใส่ = ทุกสถานะ
+ *       - in: query
+ *         name: store_type
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: filter ตาม store_type (ถ้าไม่ส่งจะดึงทั้งหมด)
+ *       - in: query
+ *         name: mc_code
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: filter ตาม mc_code (ถ้าไม่ส่งจะดึงทั้งหมด)
+ *     responses:
+ *       200:
+ *         description: พบข้อมูลรายการ order return
+ *       400:
+ *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *       404:
+ *         description: ไม่พบข้อมูลรายการ order return ที่ร้องขอ
+ *       500:
+ *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ */
+router.get(
+    '/get-return-all',
+    authenticateToken,
+    allOrderController.getReturnAll
+);
+
+/**
+ * @swagger
  * /api/orders/get-status-all:
  *   get:
  *     summary: ดึงข้อมูลรายการ order status filter status / store_type / mc_code / type
@@ -135,7 +180,7 @@ router.get(
  *         schema:
  *           type: string
  *         required: false
- *         description: filter ตาม type (ถ้าไม่ส่งจะดึงทั้งหมด) | RECEIPT | USAGE | TRANSFER
+ *         description: filter ตาม type (ถ้าไม่ส่งจะดึงทั้งหมด) | RECEIPT | USAGE | TRANSFER | RETURN
  *     responses:
  *       200:
  *         description: พบข้อมูลรายการ order status

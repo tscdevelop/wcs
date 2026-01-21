@@ -26,7 +26,8 @@ export enum ScanStatus {
 export enum TypeInfm {
     USAGE = 'USAGE',
     RECEIPT = 'RECEIPT',
-    TRANSFER = 'TRANSFER'
+    TRANSFER = 'TRANSFER',
+    RETURN = 'RETURN'
 }
 
 export enum Mode {

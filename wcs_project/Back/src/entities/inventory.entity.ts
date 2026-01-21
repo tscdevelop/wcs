@@ -59,6 +59,14 @@ export class Inventory {
     @Column({ nullable: false, default: true })
     is_active: boolean;
 
+    /** created_at */
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+        comment: 'Inventory created at (first receipt time)'
+    })
+    created_at!: Date;
+
     /** updated_at */
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Requested at' })
     updated_at!: Date;

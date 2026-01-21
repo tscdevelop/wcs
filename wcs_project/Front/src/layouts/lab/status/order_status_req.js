@@ -36,7 +36,6 @@ const OrderStatusReqPage = () => {
     unit_cost: "",  
     total_cost: "",
     actual_qty: "",  
-    cap_new_qty: "",
     recond_qty: "",  
     date: "",  
     status: "",
@@ -102,8 +101,6 @@ const OrderStatusReqPage = () => {
         String(item.unit_cost ?? "").includes(searchOrders.unit_cost) &&
         String(item.total_cost ?? "").includes(searchOrders.total_cost) &&
         String(item.actual_qty ?? "").includes(searchOrders.actual_qty) &&
-        String(item.capital_qty || item.new_qty || "").includes(searchOrders.cap_new_qty) &&
-        String(item.recond_qty ?? "").includes(searchOrders.recond_qty) &&
         (item.requested_at || "").includes(searchOrders.date) &&
         (
           filterStatusOrder === "" ||
@@ -180,7 +177,7 @@ const OrderStatusReqPage = () => {
             <Box sx={{ flexGrow: 1 }} mb={3}>
             <Grid container spacing={2} sx={{ mb: 0.5 }}>
               {/* Maintenance Contract */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Maintenance Contract</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -202,7 +199,7 @@ const OrderStatusReqPage = () => {
               </Grid>
               
               {/* SPR No. */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">SPR No.</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -224,7 +221,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Work Order */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Work Order</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -246,7 +243,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Usage No. */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Usage No.</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -268,7 +265,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Usage Line */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Usage Line</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -291,7 +288,7 @@ const OrderStatusReqPage = () => {
             </Grid>
             <Grid container spacing={2} sx={{ mb: 0.5 }}>
               {/* Stock Item ID */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Stock Item ID</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -313,7 +310,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Stock Item Description */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Stock Item Description</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -335,7 +332,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Condition */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Condition</MDTypography>
                 <FormControl fullWidth>
                   <StyledSelect
@@ -357,7 +354,7 @@ const OrderStatusReqPage = () => {
               </Grid>
               
               {/* From Location */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">From Location</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -379,7 +376,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* From Box Location */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">From Box Location</MDTypography>
                 <MDInput
                   placeholder="Text Field"
@@ -402,7 +399,7 @@ const OrderStatusReqPage = () => {
             </Grid>
             <Grid container spacing={2}>
               {/* Unit Cost */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Unit Cost</MDTypography>
                 <MDInput
                   placeholder="Select Range"
@@ -424,7 +421,7 @@ const OrderStatusReqPage = () => {
               </Grid>
               
               {/* Total Cost */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Total Cost</MDTypography>
                 <MDInput
                   placeholder="Select Range"
@@ -446,7 +443,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Scanned Quantity */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Scanned Quantity</MDTypography>
                 <MDInput
                   placeholder="Select Range"
@@ -467,53 +464,8 @@ const OrderStatusReqPage = () => {
                 />
               </Grid>
 
-              {/* CAPITAL/NEW Quantity */}
-              <Grid item xs={12} md={1.71}>
-                <MDTypography variant="caption" fontWeight="bold">
-                  CAPITAL/NEW Quantity
-                </MDTypography>
-
-                <MDInput
-                  //type="number"
-                  placeholder="Select Range"
-                  sx={{ height: "45px" }}
-                  value={searchOrders.cap_new_qty ?? ""}
-                  inputProps={{
-                    min: 1,
-                    step: 1,
-                  }}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    // กรณีลบค่าออก (clear)
-                    if (value === "") {
-                      setSearchOrders({ ...searchOrders, cap_new_qty: "" });
-                      return;
-                    }
-
-                    const num = Number(value);
-
-                    // ❌ ไม่รับ 0 หรือติดลบ
-                    if (num <= 0) return;
-
-                    setSearchOrders({
-                      ...searchOrders,
-                      cap_new_qty: num,
-                    });
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                  fullWidth
-                />
-              </Grid>
-
               {/* RECOND Quantity */}
-              <Grid item xs={12} md={1.71}>
+              {/* <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">RECOND Quantity</MDTypography>
                 <MDInput
                   placeholder="Select Range"
@@ -532,10 +484,10 @@ const OrderStatusReqPage = () => {
                   }}
                   fullWidth
                 />
-              </Grid>
+              </Grid> */}
 
               {/* Date */}
-              <Grid item xs={12} md={1.71}>
+              <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Date</MDTypography>
                 <MDInput
                   placeholder="Calendar"
@@ -556,7 +508,7 @@ const OrderStatusReqPage = () => {
               </Grid>
 
               {/* Order Status */}
-                <Grid item xs={12} md={1.71}>
+                <Grid item xs={12} md={2.4}>
                 <MDTypography variant="caption" fontWeight="bold">Order Status</MDTypography>
                     <FormControl fullWidth>
                     <StyledSelect
