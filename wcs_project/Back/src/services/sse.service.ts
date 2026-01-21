@@ -93,7 +93,7 @@ export function broadcast(counterId: string, payload: any) {
   set.forEach(res => {
     try {
       res.write(data);
-      res.flush?.();
+      //res.flush?.();
     } catch {
       set.delete(res); // 🔥 clean dead client
     }
