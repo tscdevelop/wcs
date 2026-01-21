@@ -20,6 +20,7 @@ export const connectSSE = async (req: Request, res: Response) => {
     res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
+    res.write(": init\n\n");
 
     addClient(counterId, res);
 
