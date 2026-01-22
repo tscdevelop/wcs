@@ -51,7 +51,7 @@ let retryTimer = null;
 
 
   const connectSSE = () => {
-    console.log("🔌 [SSE] Connecting...", {
+    console.log("🔌SSE Connecting...", {
       url: ${API_BASE}/api/sse/${counterId}
     });
 
