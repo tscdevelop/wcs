@@ -12,6 +12,7 @@ import { Counter } from "../entities/counter.entity";
 const counterRepo = AppDataSource.getRepository(Counter);
 const runtimeService = new CounterRuntimeService();
 
+//แก้ไข counter string to number
 export const connectSSE = async (req: Request, res: Response) => {
     const counterId = Number(req.params.counterId);
 
