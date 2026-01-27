@@ -18,6 +18,7 @@ export default function CounterScreen({
   imageUrl,
   slots = 6,
 }) {
+  console.log("[CounterScreen] render pickedQty =", pickedQty);
   const counterColor = counter?.color || "#ff0000";
 
   //Item Info

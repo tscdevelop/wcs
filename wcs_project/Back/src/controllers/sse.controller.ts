@@ -13,15 +13,14 @@ const counterRepo = AppDataSource.getRepository(Counter);
 const runtimeService = new CounterRuntimeService();
 
 export const connectSSE = async (req: Request, res: Response) => {
-    const counterId = Number(req.params.counterId);
+  const { counterId } = req.params;
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
-    res.flushHeaders();
+  console.log("[SSE] connect start", counterId);
 
-    addClient(counterId, res); // ✅ number
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
 
     const heartbeat = setInterval(() => {
         res.write(": ping\n\n");
