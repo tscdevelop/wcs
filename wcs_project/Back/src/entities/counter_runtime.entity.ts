@@ -4,11 +4,11 @@ import { Entity, PrimaryColumn, Column, UpdateDateColumn } from 'typeorm';
 @Entity({ name: 'counter_runtime' })
 export class CounterRuntime {
     
-    @PrimaryColumn()
+    @PrimaryColumn({ type: 'int', unsigned: true })
     counter_id!: number;
 
-    @Column()
-    order_id!: number;
+    @Column({ type: "int", nullable: true })
+    order_id: number | null;
 
     @Column({ default: 0 })
     actual_qty!: number;

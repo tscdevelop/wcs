@@ -112,7 +112,7 @@ const UsageHistory = () => {
           mc_code: data.mc_code ?? "",
           work_order: data.work_order ?? "",
           usage_num: data.usage_num ?? "",
-          line: data.line ?? "",
+          usage_line: data.usage_line ?? "",
           plan_qty: data.plan_qty ?? 0,
           usage_type: data.usage_type ?? "",
           cond: data.cond ?? "",
@@ -120,7 +120,6 @@ const UsageHistory = () => {
           is_confirm: data.is_confirm ?? false,
           item_id: data.item_id ?? "",
           stock_item: data.stock_item ?? "",
-          item_name: data.item_name ?? "",
           loc_id: data.loc_id ?? "",
           loc: data.loc ?? "",
           box_loc: data.box_loc ?? ""
@@ -153,7 +152,7 @@ const UsageHistory = () => {
       usage: {
         work_order: payload.work_order,
         usage_num: payload.usage_num,
-        line: payload.line,
+        usage_line: payload.usage_line,
         usage_type: payload.usage_type,
         split: payload.split
       }
@@ -240,9 +239,8 @@ const UsageHistory = () => {
     { field: "requested_by", label: "User" },
     { field: "work_order", label: "Work Order" },
     { field: "usage_num", label: "Usage" },
-    { field: "line", label: "Line" },
+    { field: "usage_line", label: "Line" },
     { field: "stock_item", label: "Stock Item ID" },
-    { field: "item_name", label: "Stock Item Name" },
     { field: "loc", label: "Source Location" },
     { field: "box_loc", label: "Source Box Location" },
     { field: "usage_type", label: "Usage Type" },

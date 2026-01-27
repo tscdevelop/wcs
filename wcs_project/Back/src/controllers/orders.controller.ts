@@ -5,7 +5,7 @@ import * as lang from '../utils/LangHelper'; // ใช้ helper function
 import { DataSanitizer } from '../utils/DataSanitizer'; // นำเข้า DataSanitizer
 import RequestUtils from '../utils/RequestUtils'; // Import the utility class
 
-import { OrdersService } from '../services/orders.service';
+import { OrdersService, UpdateOrderBatchInput } from '../services/orders.service';
 import { Orders } from '../entities/orders.entity';
 
 dotenv.config();
@@ -20,25 +20,12 @@ export const create = async (req: Request, res: Response) => {
     }
 
     try {
-
-        // ดึงข้อมูล order หลักเฉพาะที่เป็นของ Orders
-        const orderData: Partial<Orders> = DataSanitizer.fromObject<Orders>(req.body, Orders);
-
-        // ดึงข้อมูล table ย่อย ตาม type
-        const receiptData = req.body.receipt ?? null;
-        const usageData   = req.body.usage ?? null;
-        const returnData   = req.body.return ?? null;
-        const transferData = req.body.transfer ?? null;
-
         const response = await ordersService.create(
-            {
-                ...orderData,
-                receipt: receiptData,
-                usage: usageData,
-                return: returnData,
-                transfer: transferData
-            },
-            reqUsername
+        {
+            type: req.body.type,
+            items: req.body.items   // ✅ ใช้ของจริง ไม่แปลงมั่ว
+        },
+        reqUsername
         );
 
         return ResponseUtils.handleCustomResponse(res, response, HttpStatus.CREATED);
@@ -46,15 +33,16 @@ export const create = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
         return ResponseUtils.handleErrorCreate(
-            res,
-            operation,
-            error.message,
-            'item.order',
-            true,
-            reqUsername
+        res,
+        operation,
+        error.message,
+        'item.order',
+        true,
+        reqUsername
         );
     }
 };
+
 
 export const updateOrder = async (req: Request, res: Response) => {
     const operation = 'OrderController.updateOrder';
@@ -64,38 +52,52 @@ export const updateOrder = async (req: Request, res: Response) => {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    const { order_id } = req.params;
-    if (!order_id) {
+    const orderId = Number(req.params.order_id);
+    if (!orderId) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
     try {
-        
-        // --- ดึงข้อมูล Orders หลัก ---
-        const orderData: Partial<Orders> = DataSanitizer.fromObject<Orders>(
-            req.body,
-            Orders
-        );
+        // --- Orders หลัก (Partial) ---
+        const orderData: Partial<Orders> =
+            DataSanitizer.fromObject<Orders>(req.body, Orders);
 
-        // --- ดึงข้อมูล table ย่อย ---
+        // --- sub-table ---
         const receiptData = req.body.receipt ?? null;
         const usageData = req.body.usage ?? null;
         const returnData = req.body.return ?? null;
         const transferData = req.body.transfer ?? null;
 
-        // รวมข้อมูลก่อนส่งเข้า service
-        const inputData = {
-            ...orderData,
-            receipt: receiptData,
-            usage: usageData,
-            return: returnData,
-            transfer: transferData,
+        // 🔑 แปลงให้ตรง UpdateOrderBatchInput
+        const inputData: UpdateOrderBatchInput = {
+            ...orderData, // 👈 field ระดับ batch (ถ้ามี)
+            items: [
+                {
+                    order_id: orderId,
+
+                    item_id: orderData.item_id,
+                    mc_code: orderData.mc_code ?? undefined,
+                    loc_id: orderData.loc_id,
+
+                    receipt: receiptData,
+                    usage: usageData,
+                    return: returnData,
+                    transfer: transferData,
+                }
+            ]
         };
 
+        const response = await ordersService.update(
+            inputData,
+            reqUsername
+        );
 
-        const response = await ordersService.updateOrder(order_id, inputData, reqUsername);
+        return ResponseUtils.handleCustomResponse(
+            res,
+            response,
+            HttpStatus.OK
+        );
 
-        return ResponseUtils.handleCustomResponse(res, response, HttpStatus.OK);
     } catch (error: any) {
         console.error(`❌ Error during ${operation}:`, error);
         return ResponseUtils.handleErrorUpdate(
@@ -109,38 +111,72 @@ export const updateOrder = async (req: Request, res: Response) => {
     }
 };
 
-
 export const del = async (req: Request, res: Response) => {
     const operation = 'OrderController.delete';
 
     // ดึง username ของผู้ทำการลบ
     const reqUsername = RequestUtils.getUsernameToken(req, res);
     if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+        return ResponseUtils.handleBadRequest(
+            res,
+            lang.msgRequiredUsername()
+        );
     }
 
-    const order_id = req.params.order_id;
-    if (!order_id) {
-        return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
+    // -----------------------------
+    // รับ order_ids จาก body
+    // -----------------------------
+    const { order_ids } = req.body;
+
+    if (!Array.isArray(order_ids) || order_ids.length === 0) {
+        return ResponseUtils.handleBadRequest(
+            res,
+            lang.msgInvalidParameter()
+        );
+    }
+
+    // แปลงเป็น number และ validate
+    const orderIds: number[] = order_ids.map(Number);
+
+    if (orderIds.some(id => isNaN(id))) {
+        return ResponseUtils.handleBadRequest(
+            res,
+            lang.msgInvalidParameter()
+        );
     }
 
     try {
-        // เรียก service delete
-        const response = await ordersService.delete(order_id, reqUsername);
+        // เรียก service delete (หลายรายการ)
+        const response = await ordersService.delete(
+            orderIds,
+            reqUsername
+        );
 
-        // ส่งผลลัพธ์กลับ client
         return ResponseUtils.handleResponse(res, response);
+
     } catch (error: any) {
+
         console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorDelete(res, operation, error.message, 'item.order', true, reqUsername);
+
+        return ResponseUtils.handleErrorDelete(
+            res,
+            operation,
+            error.message,
+            'item.order',
+            true,
+            reqUsername
+        );
     }
 };
+
 
 export const getAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
     try {
         const response = await ordersService.getAll();
@@ -155,8 +191,10 @@ export const getUsageAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getUsageAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
-
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+    
     try {
         const response = await ordersService.getUsageAll();
         return ResponseUtils.handleResponse(res, response);
@@ -198,8 +236,10 @@ export const getReceiptAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getReceiptAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
-
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+    
     try {
         const response = await ordersService.getReceiptAll();
         return ResponseUtils.handleResponse(res, response);

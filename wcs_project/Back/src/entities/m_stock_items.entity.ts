@@ -6,16 +6,12 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 @Entity({ name: 'm_stock_items' })
 export class StockItems {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Stock items' })
-    item_id!: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Stock items' })
+    item_id!: number;
 
     /** รหัส material */
     @Column({ type: 'varchar', length: 100, comment: 'Requested material(SKU)' })
     stock_item!: string;
-
-    /** ชื่อ material */
-    @Column({ type: 'varchar', length: 50, nullable: true, default: null, comment: 'ชื่อ item'})
-    item_name?: string;
 
     /** คำอธิบายสินค้า */
     @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Item description' })
@@ -26,6 +22,28 @@ export class StockItems {
 
     @Column({ length: 500, nullable: true })
     item_img_url: string;               // url เครื่องมือ
+
+    /** เก็บ group code */
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Maintenance contract' })
+    mc_code: string | null;
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Order Unit' })
+    order_unit: string | null; 
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Commodity Group' })
+    com_group: string | null; 
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Condition Enabled' })
+    cond_en: string | null; 
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Status' })
+    item_status: string | null; 
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Category Code' })
+    catg_code: string | null; 
+
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'System' })
+    system: string | null; 
 
     @Column({ nullable: false, default: true })
     is_active: boolean;

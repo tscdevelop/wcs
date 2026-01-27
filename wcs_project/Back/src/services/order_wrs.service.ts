@@ -222,7 +222,7 @@ export class T1OrdersService {
 
 
 async executeT1Order(
-  order_id: string,
+  order_id: number,
   manager?: EntityManager
 ): Promise<ExecuteResult> {
 
@@ -402,8 +402,8 @@ async executeT1Order(
 
 
 private async mockAmrPickAndPlace(
-    orderId: string,
-    wrsId: string
+    orderId: number,
+    wrsId: number
 ) {
     const delay = (ms: number) =>
         new Promise(res => setTimeout(res, ms));
@@ -482,8 +482,5 @@ private async mockAmrPickAndPlace(
 
     }, 0);
 }
-
-
-
 
 }

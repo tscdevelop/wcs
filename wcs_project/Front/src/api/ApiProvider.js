@@ -120,28 +120,56 @@ class ApiProvider {
     }
   }
 
-  static async deleteData(endpoint, queryParameters = {}, token = null, language = DEFAULT_LANGUAGE) {
-    try {
-      const headers = {
-        "Accept-Language": language,
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+  // static async deleteData(endpoint, queryParameters = {}, token = null, language = DEFAULT_LANGUAGE) {
+  //   try {
+  //     const headers = {
+  //       "Accept-Language": language,
+  //     };
+  //     if (token) {
+  //       headers["Authorization"] = `Bearer ${token}`;
+  //     }
      
-      const config = {
-        params: queryParameters,
-        headers: headers
-      };
-      const response = await this.axiosInstance.delete(endpoint, config);
-      if (response.status >= 400) {
-        return response.data; // ส่งกลับเฉพาะข้อมูล data ในกรณีที่เป็น status code 400
-      }
-      return response.data;
-    } catch (error) {
-      throw new Error(`Error: ${error.message}`);
-    }
+  //     const config = {
+  //       params: queryParameters,
+  //       headers: headers
+  //     };
+  //     const response = await this.axiosInstance.delete(endpoint, config);
+  //     if (response.status >= 400) {
+  //       return response.data; // ส่งกลับเฉพาะข้อมูล data ในกรณีที่เป็น status code 400
+  //     }
+  //     return response.data;
+  //   } catch (error) {
+  //     throw new Error(`Error: ${error.message}`);
+  //   }
+  // }
+
+  static async deleteData(
+  endpoint,
+  payload = {},
+  token = null,
+  language = DEFAULT_LANGUAGE,
+  options = { useBody: false }
+) {
+  const headers = {
+    "Accept-Language": language,
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
+
+  const config = { headers };
+
+  if (options.useBody) {
+    config.data = payload;   // ส่ง body
+  } else {
+    config.params = payload; // ส่ง query
+  }
+
+  const response = await this.axiosInstance.delete(endpoint, config);
+  return response.data;
+}
+
 
   static async uploadFile(endpoint, file, token = null, language = DEFAULT_LANGUAGE) {
     try {

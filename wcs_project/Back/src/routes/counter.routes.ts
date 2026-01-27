@@ -74,7 +74,7 @@ router.get('/get-all-by-user',
  *       - in: path
  *         name: counterId
  *         schema:
- *           type: string
+ *           type: number
  *         required: true
  *         description: ไอดีรายการ counter
  *     responses:
@@ -102,7 +102,7 @@ router.get('/get-by-id/:counterId'
  *       - in: path
  *         name: counterId
  *         schema:
- *           type: string
+ *           type: number
  *         required: true
  *         description: ไอดีรายการ counter
  *     responses:

@@ -187,8 +187,7 @@ const handleDeleteTask = async () => {
   const columnsWaiting = [
     { field: "type", label: "Transaction Type" },
     { field: "requested_at", label: "Date" },
-    { field: "stock_item", label: "Stock Item ID" },
-    { field: "item_name", label: "Stock Item Name" },
+    { field: "stock_item", label: "Stock Item Number" },
     { field: "item_desc", label: "Stock Item Description" },
     { field: "loc", label: "Location" },
     { field: "box_loc", label: "Box Location" },

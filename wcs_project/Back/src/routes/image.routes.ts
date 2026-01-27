@@ -29,7 +29,7 @@ const router = Router();
  *         name: subfolder
  *         required: true
  *         schema:
- *           type: string
+ *           type: number
  *         description: ชื่อของ subfolder ที่มีรูปภาพ
  *         example: "1"
  *       - in: path

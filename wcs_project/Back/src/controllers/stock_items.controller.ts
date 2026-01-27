@@ -52,10 +52,12 @@ export const update = async (req: Request, res: Response) => {
     }
 
     // รับ item_id จากพารามิเตอร์
-    const item_id = req.params.item_id;
-    if (!item_id) {
+    const item_id_str = req.params.item_id;
+    const item_id = Number(item_id_str);
+    if (isNaN(item_id)) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
+
 
     try {
         // ทำ sanitize ข้อมูลจาก body
@@ -84,8 +86,9 @@ export const del = async (req: Request, res: Response) => {
         return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
     }
 
-    const item_id = req.params.item_id;
-    if (!item_id) {
+    const item_id_str = req.params.item_id;
+    const item_id = Number(item_id_str);
+    if (isNaN(item_id)) {
         return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
     }
 
@@ -105,7 +108,9 @@ export const getAll = async (req: Request, res: Response) => {
     const operation = 'StockItemController.getAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
     try {
         const response = await stockItemService.getAll();
@@ -141,44 +146,5 @@ export const getById = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);
         return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.items', true, reqUsername);
-    }
-};
-
-
-export const searchItemInventory = async (req: Request, res: Response) => {
-    const operation = 'StockItemController.searchItemInventory';
-
-    const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
-
-    const { stock_item, item_name } = req.query;
-
-    try {
-        const response = await stockItemService.searchItemInventory(
-            stock_item as string,
-            item_name as string,
-        );
-        return ResponseUtils.handleResponse(res, response);
-    } catch (error: any) {
-        return ResponseUtils.handleErrorSearch(res, operation, error.message, 'item.items', true, reqUsername);
-    }
-};
-
-export const searchItem = async (req: Request, res: Response) => {
-    const operation = 'StockItemController.searchItem';
-
-    const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
-
-    const { stock_item, item_name } = req.query;
-
-    try {
-        const response = await stockItemService.searchItem(
-            stock_item as string,
-            item_name as string,
-        );
-        return ResponseUtils.handleResponse(res, response);
-    } catch (error: any) {
-        return ResponseUtils.handleErrorSearch(res, operation, error.message, 'item.items', true, reqUsername);
     }
 };
