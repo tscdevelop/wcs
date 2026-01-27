@@ -32,6 +32,10 @@ const router = Router();
  *                 type: string
  *                 description: Stock Item ID
  *                 example: "BHS-CRI-02034"
+ *               item_name:
+ *                 type: string
+ *                 description: Stock Item Name
+ *                 example: "Stock name"
  *               item_desc:
  *                 type: string
  *                 description: Item description
@@ -67,7 +71,7 @@ router.post('/create'
  *       - in: path
  *         name: item_id
  *         schema:
- *           type: number
+ *           type: string
  *         required: true
  *         description: ไอดีรายการ stock items 
  *     requestBody:
@@ -81,6 +85,10 @@ router.post('/create'
  *                 type: string
  *                 description: Stock Item ID
  *                 example: "BHS-CRI-02034"
+ *               item_name:
+ *                 type: string
+ *                 description: Stock Item Name
+ *                 example: "Stock name"
  *               item_desc:
  *                 type: string
  *                 description: Item description
@@ -117,7 +125,7 @@ router.put('/update/:item_id'
  *         name: item_id
  *         required: true
  *         schema:
- *           type: number
+ *           type: string
  *         description: ไอดีรายการ stock items ที่ต้องการลบ
  *     responses:
  *       200:
@@ -170,7 +178,7 @@ router.get('/get-all'
  *       - in: path
  *         name: item_id
  *         schema:
- *           type: number
+ *           type: string
  *         required: true
  *         description: ไอดีรายการ stock items
  *     responses:
@@ -186,5 +194,74 @@ router.get('/get-all'
 router.get('/get-by-id/:item_id'
     , authenticateToken
     , stockItemController.getById);
+
+    /**
+ * @swagger
+ * /api/stock-items/search-item-inventory:
+ *   get:
+ *     summary: ค้นหาข้อมูล stock items ใน inventory ด้วย stock item id และ item name
+ *     tags: [StockItems]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/lng'
+ *       - in: query
+ *         name: stock_item
+ *         schema:
+ *           type: string
+ *         description: stock item id
+ *       - in: query
+ *         name: item_name
+ *         schema:
+ *           type: string
+ *         description: stock item name
+ *     responses:
+ *       200:
+ *         description: พบข้อมูลรายการ stock items
+ *       400:
+ *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *       404:
+ *         description: ไม่พบข้อมูลรายการที่ร้องขอ
+ *       500:
+ *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ */
+router.get('/search-item-inventory'
+    , authenticateToken
+    , stockItemController.searchItemInventory);
+
+        /**
+ * @swagger
+ * /api/stock-items/search-item:
+ *   get:
+ *     summary: ค้นหาข้อมูล stock items ด้วย stock item id และ item name
+ *     tags: [StockItems]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/lng'
+ *       - in: query
+ *         name: stock_item
+ *         schema:
+ *           type: string
+ *         description: stock item id
+ *       - in: query
+ *         name: item_name
+ *         schema:
+ *           type: string
+ *         description: stock item name
+ *     responses:
+ *       200:
+ *         description: พบข้อมูลรายการ stock items
+ *       400:
+ *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
+ *       404:
+ *         description: ไม่พบข้อมูลรายการที่ร้องขอ
+ *       500:
+ *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
+ */
+router.get('/search-item'
+    , authenticateToken
+    , stockItemController.searchItem);
+
 
 export default router;

@@ -7,31 +7,31 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 export class InventoryTrx {
 
     /** ไอดี inventory (PK) */
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Inventory Transaction ID' })
-    trx_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Inventory Transaction ID' })
+    trx_id!: string;
 
     /** ไอดี inventory (Fk) */
-    @Column({ type: 'int', unsigned: true })
-    inv_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    inv_id!: string;
 
     /** ไอดี order (Fk) */
-    @Column({ type: 'int', unsigned: true })
-    order_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    order_id!: string;
 
     /** ประเภท transaction*/
     @Column({ type: 'varchar', length: 30, nullable: true, comment: 'RECEIPT | USAGE | TRANSFER' })
     order_type: string;
 
     /** ไอดี stock item (Fk) */
-    @Column({ type: 'int', unsigned: true })
-    item_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    item_id!: string;
 
     @Column({ type: 'varchar', length: 100, nullable: true, comment: 'Requested material(SKU)' })
     stock_item: string;
 
     /** ไอดี location และ box (FK) */
-    @Column({ type: 'int', unsigned: true })
-    loc_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    loc_id!: string;
 
     /** location */
     @Column({ type: 'varchar', length: 100, nullable: true, default: null, comment: 'location' })
@@ -74,6 +74,15 @@ export class InventoryTrx {
         },
     })
     total_cost: number;
+    
+    /** ไอดี trx_id อ้างอิงต้นทางที่ใช้ (Fk) */
+    @Column({
+        type: 'bigint',
+        unsigned: true,
+        nullable: true,   // ⭐ สำคัญมาก
+    })
+    trx_ref_id?: string | null;
+
 
     /** created_at */
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Created Date' })

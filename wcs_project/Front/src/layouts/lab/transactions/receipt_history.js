@@ -110,7 +110,7 @@ const ReceiptHistory = () => {
           type: data.type ?? "",
           status: data.status ?? "",
           mc_code: data.mc_code ?? "",
-          cap_qty: data.cap_qty ?? "",
+          cat_qty: data.cat_qty ?? "",
           recond_qty: data.recond_qty ?? "",
           unit_cost_handled: data.unit_cost_handled ?? "",
           total_cost_handled: data.total_cost_handled ?? "",
@@ -122,6 +122,7 @@ const ReceiptHistory = () => {
           is_confirm: data.is_confirm ?? false,
           item_id: data.item_id ?? "",
           stock_item: data.stock_item ?? "",
+          item_name: data.item_name ?? "",
           loc_id: data.loc_id ?? "",
           loc: data.loc ?? "",
           box_loc: data.box_loc ?? ""
@@ -151,7 +152,7 @@ const ReceiptHistory = () => {
         cond: payload.cond,
         plan_qty: payload.plan_qty,
         receipt: {
-          cap_qty: payload.cap_qty,
+          cat_qty: payload.cat_qty,
           recond_qty: payload.recond_qty,
           unit_cost_handled: payload.unit_cost_handled,
           contract_num: payload.contract_num,
@@ -238,9 +239,10 @@ const ReceiptHistory = () => {
   const columns = [
     { field: "requested_at", label: "Date" },
     { field: "stock_item", label: "Stock Item ID" },
+    { field: "item_name", label: "Stock Item Name" },
     { field: "loc", label: "Destination Location" },
     { field: "box_loc", label: "Destination Box Location" },
-    { field: "cap_qty", label: "CAT Quantity" },
+    { field: "cat_qty", label: "CAT Quantity" },
     { field: "recond_qty", label: "RECOND Quantity" },
     { field: "cond", label: "Condition" },
     { field: "unit_cost_handled", label: "Unit Cost" },

@@ -7,14 +7,14 @@ import { ControlSource } from '../common/global.enum';
 @Entity({ name: 'wrs_log' })
 export class WrsLog {
 
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
-    log_wrs_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+    log_wrs_id!: string;
 
-    @Column({ type: 'int', unsigned: true })
-    wrs_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    wrs_id!: string;
 
-    @Column({ type: 'int', unsigned: true, nullable: true })
-    order_id?: number;
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    order_id?: string;
 
     /** เช่น Idle → Delivering */
     @Column({ type: 'varchar', length: 30 })

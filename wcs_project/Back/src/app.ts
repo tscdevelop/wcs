@@ -21,7 +21,7 @@ import registerRouter from './routes/register';
 import userRouter from './routes/user.routes';
 import roleRouter from './routes/role.routes';
 import menuRouter from './routes/menu.routes';
-import dropdown from './routes/dropdown.routes';
+import dropdown from './routes/drodown.routes';
 import images2Router from './routes/image.routes';
 import aisleRouter from './routes/aisle.routes';
 import mrsRouter from './routes/mrs.routes';
@@ -32,7 +32,6 @@ import inventoryRouter from './routes/inventory.routes';
 import allOrdersRouter from './routes/all_orders.routes';
 import counterRouter from './routes/counter.routes';
 import sseRouters from "./routes/sse.routes";
-import importRouters from "./routes/import_excel.routes";
 
 import swaggerApp from './swagger'; // นำเข้า swagger
 
@@ -151,7 +150,6 @@ app.use('/api/stock-items', stockItemRouter);
 app.use('/api/locations', locationRouter);
 app.use('/api/inventory', inventoryRouter);
 app.use('/api/counter', counterRouter);
-app.use('/api/import', importRouters);
 
 app.use('/api/orders', allOrdersRouter);
 

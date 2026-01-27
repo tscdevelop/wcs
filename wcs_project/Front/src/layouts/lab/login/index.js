@@ -49,14 +49,14 @@ function LabLogin() {
 
           navigate("/home");
         } else {
-          setErrorMessage("Login Failed: Incomplete Information");
+          setErrorMessage("ล็อกอินไม่สำเร็จ: ข้อมูลไม่ครบถ้วน");
         }
         //console.log("UserID:", data.user_id);
       } else {
-        setErrorMessage("Login Failed: Invalid Username or Password");
+        setErrorMessage("ล็อกอินไม่สำเร็จ");
       }
     } catch (err) {
-      setErrorMessage("An error occurred during login.");
+      setErrorMessage("เกิดข้อผิดพลาดระหว่างการล็อกอิน");
       console.error(err);
     }
   };

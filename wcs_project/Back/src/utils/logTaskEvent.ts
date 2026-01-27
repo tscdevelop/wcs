@@ -26,6 +26,7 @@ export class OrdersLogService {
             where: { item_id: order.item_id }
         });
         const stockItem = stock?.stock_item;
+        const itemName = stock?.item_name ?? null;
         const itemDesc = stock?.item_desc ?? null;
 
         //find data from loc_id
@@ -42,10 +43,11 @@ export class OrdersLogService {
             (resolvedSource === TaskSource.API ? null : (resolvedSource as string));
 
         await repo.insert({
-            order_id: order.order_id,
+            order_id: String(order.order_id),
             type: order.type as any,
             item_id: order.item_id,
             stock_item: stockItem ?? '',
+            item_name: itemName ?? null,
             item_desc: itemDesc ?? null,
             loc_id: order.loc_id,
             loc: location ?? null,

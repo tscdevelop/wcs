@@ -130,6 +130,7 @@ export class MRSService {
                     'order.type AS type',
                     'stock.item_id AS item_id',
                     'stock.stock_item AS stock_item',
+                    'stock.item_name AS item_name',
                     'stock.item_desc AS item_desc',
                     'loc.loc AS loc',
                     'loc.box_loc AS box_loc',

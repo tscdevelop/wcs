@@ -22,23 +22,16 @@ export class StockItemService {
         this.itemsRepository = AppDataSource.getRepository(StockItems);
     }
 
-    async create(
-        data: Partial<StockItems>,
-        files: { [key: string]: Express.Multer.File[] },
-        reqUsername: string,
-        manager?: EntityManager
-        ): Promise<ApiResponse<any>> {
-
+    async create(data: Partial<StockItems>, files: { [key: string]: Express.Multer.File[] }, reqUsername: string, manager?: EntityManager): Promise<ApiResponse<any>> {
         const response = new ApiResponse<StockItems>();
+        let itemData = new StockItems();
         const operation = 'StockItemService.create';
 
         const queryRunner = manager ? null : AppDataSource.createQueryRunner();
-        const useManager = manager ?? queryRunner?.manager;
+        const useManager = manager || queryRunner?.manager;
 
         if (!useManager) {
-            return response.setIncomplete(
-            lang.msg('validation.no_entityManager_or_queryRunner_available')
-            );
+            return response.setIncomplete(lang.msg('validation.no_entityManager_or_queryRunner_available'));
         }
 
         if (!manager && queryRunner) {
@@ -47,94 +40,84 @@ export class StockItemService {
         }
 
         try {
+
             const repository = useManager.getRepository(StockItems);
 
-            // ✅ validation (ก่อนทำอะไรกับ transaction)
             if (validate.isNullOrEmpty(data.stock_item)) {
-            throw new Error(lang.msgRequired('stock_item.stock_item'));
+                return response.setIncomplete(lang.msgRequired('stock_item.stock_item'));
+            }
+            if (validate.isNullOrEmpty(data.item_name)) {
+                return response.setIncomplete(lang.msgRequired('stock_item.item_name'));
             }
 
-            // ✅ check duplicate
-            const existing = await repository.findOne({
-            where: [
-                { stock_item: data.stock_item }
-            ],
-            });
-
-            if (existing) {
-            throw new Error(lang.msgAlreadyExists('stock_item.stock_item'));
+            // ตรวจสอบว่า stock_item มีอยู่ในฐานข้อมูลหรือไม่
+            const existingID = await repository.findOne({ where: { stock_item: data.stock_item } });
+            if (existingID) {
+                return response.setIncomplete(lang.msgAlreadyExists('stock_item.stock_item'));
             }
 
-            // ✅ สร้าง object ใหม่ (ไม่ mutate data)
-            const itemData = repository.create({
-            ...data,
-            is_active: data.is_active ?? true,
-            requested_at: new Date(),
-            requested_by: reqUsername,
-            });
+            // ตรวจสอบว่า item_name มีอยู่ในฐานข้อมูลหรือไม่
+            const existingName = await repository.findOne({ where: { item_name: data.item_name } });
+            if (existingName) {
+                return response.setIncomplete(lang.msgAlreadyExists('stock_item.item_name'));
+            }
 
-            // ✅ save
-            const savedData = await repository.save(itemData);
+            // assign ข้อมูลเข้าไปใน itemData
+            Object.assign(itemData, data);
+            itemData.is_active = data.is_active ?? true,
+            itemData.requested_at = new Date();
+            itemData.requested_by = reqUsername;
 
-            // ✅ handle file upload
-            if (files && savedData?.item_id) {
-            const subfolder = String(savedData.item_id);
+            // ลบฟิลด์ที่เกี่ยวข้องกับการอัปโหลดไฟล์ออก
+            delete data.item_img;
+            delete data.item_img_url;
 
-            const updateUploadData = await handleFileUploads(
-                files,
-                subfolder,
-                UploadDirKey.DIR_UPLOAD_ITEMS_IMAGE,
-                reqUsername,
-                ItemFileMapping
-            );
+            // สร้าง hospital ขึ้นมา
+            const hospital = repository.create(itemData);
 
-            if (Object.keys(updateUploadData).length > 0) {
-                const uploadRes = await this.updateUploadfile(
-                savedData.item_id,
-                updateUploadData,
-                useManager
-                );
+            // บันทึก hospital ลงในฐานข้อมูล
+            const savedData = await repository.save(hospital);
 
-                if (!uploadRes.isCompleted) {
-                throw new Error(uploadRes.message);
+            // Handle file uploads ถ้ามีไฟล์
+            if (files && savedData && savedData.item_id) {
+                const subfolder = savedData.item_id.toString();
+                //console.log('subfolder:', subfolder);
+
+                const updateUploadData = await handleFileUploads(files, subfolder, UploadDirKey.DIR_UPLOAD_ITEMS_IMAGE, reqUsername, ItemFileMapping);
+                //console.log('updateUploadData:', updateUploadData);
+
+                if (Object.keys(updateUploadData).length > 0) {
+                    const updateUploadResponse = await this.updateUploadfile(savedData.item_id, updateUploadData, useManager);
+                    if (!updateUploadResponse.isCompleted) {
+                        throw new Error(updateUploadResponse.message);
+                    }
+                    //console.log('updateUploadResponse:', updateUploadResponse);
                 }
             }
-            }
 
+             // Commit Transaction
             if (!manager && queryRunner) {
-            await queryRunner.commitTransaction();
+                await queryRunner.commitTransaction();
             }
 
-            return response.setComplete(
-            lang.msgSuccessAction('created', 'stock items data'),
-            savedData
-            );
+            return response.setComplete(lang.msgSuccessAction('created', 'stock items data'), savedData);
 
         } catch (error: any) {
-            if (!manager && queryRunner) {
-            await queryRunner.rollbackTransaction();
-            }
-
+            if (!manager && queryRunner) await queryRunner.rollbackTransaction();
             console.error(`Error during ${operation}:`, error);
 
             if (error instanceof QueryFailedError) {
-            return response.setIncomplete(
-                lang.msgErrorFunction(operation, error.message)
-            );
+                return response.setIncomplete(lang.msgErrorFunction(operation, error.message));
             }
 
-            return response.setIncomplete(error.message);
-
+            throw error;
         } finally {
-            if (!manager && queryRunner) {
-            await queryRunner.release();
-            }
+            if (!manager && queryRunner) await queryRunner.release();
         }
     }
 
-
     async update(
-        item_id: number,
+        item_id: string,
         data: Partial<StockItems>,
         files: { [key: string]: Express.Multer.File[] },
         reqUsername: string,
@@ -167,6 +150,9 @@ export class StockItemService {
             if (validate.isNullOrEmpty(data.stock_item)) {
                 return response.setIncomplete(lang.msgRequired('stock_item.stock_item'));
             }
+            if (validate.isNullOrEmpty(data.item_name)) {
+                return response.setIncomplete(lang.msgRequired('stock_item.item_name'));
+            }
 
             // ตรวจสอบว่า stock_item ไม่ซ้ำ
             if (data.stock_item && data.stock_item !== existingData.stock_item) {
@@ -178,16 +164,26 @@ export class StockItemService {
                 }
             }
 
+            // ตรวจสอบว่า item_name ไม่ซ้ำ
+            if (data.item_name && data.item_name !== existingData.item_name) {
+                const duplicateName = await repository.findOne({
+                    where: { item_name: data.item_name, item_id: Not(item_id) },
+                });
+                if (duplicateName) {
+                    return response.setIncomplete(lang.msgAlreadyExists('stock_item.item_name'));
+                }
+            }
+
             data.requested_at = new Date();
-            data.requested_by = reqUsername;
+            data.requested_by = reqUsername,
 
             // ลบฟิลด์ item_img และ item_img_url เพื่ออัปเดตในภายหลัง
             delete data.item_img;
             delete data.item_img_url;
         
             // อัปเดตข้อมูลโรงพยาบาล
-            await repository.update({ item_id }, data);
-            
+            await repository.update({ item_id: item_id }, data);
+        
             // ตรวจสอบว่ามีไฟล์ที่ต้องอัปโหลดหรือไม่
             if (files && Object.keys(files).length > 0) {
                 const subfolder = item_id.toString();
@@ -210,12 +206,7 @@ export class StockItemService {
             
             if (!manager && queryRunner) await queryRunner.commitTransaction();
 
-            const updated = await repository.findOne({ where: { item_id } });
-            return response.setComplete(
-                lang.msgSuccessAction('updated', 'stock items data'),
-                updated!
-            );
-            
+            return response.setComplete(lang.msgSuccessAction('updated', 'stock items data'), data);
         } catch (error: any) {
             if (!manager && queryRunner) await queryRunner.rollbackTransaction();
             console.error(`Error during ${operation}:`, error);
@@ -228,122 +219,104 @@ export class StockItemService {
         }
     }
 
-    async updateUploadfile(
-        item_id: number,
-        data: Partial<StockItems>,
-        manager?: EntityManager
-    ): Promise<ApiResponse<StockItems>> {
-
-        const response = new ApiResponse<StockItems>();
-        const operation = 'StockItemService.updateUploadfile';
-
-        const useManager = manager ?? AppDataSource.manager;
+    async updateUploadfile(item_id: string, data: Partial<StockItems>, manager?: EntityManager): Promise<ApiResponse<StockItems>> {
+        let response = new ApiResponse<StockItems>();
+        const operation = 'StockItemService.updateUploadfile'; // Define operation
 
         try {
-            const result = manager
-                ? await this.doUpdateUpload(item_id, data, useManager)
-                : await useManager.transaction((tx) =>
-                    this.doUpdateUpload(item_id, data, tx)
-                );
+            const useManager = manager || AppDataSource.manager;
+            await useManager.transaction(async (transactionManager) => {
+                const repository = transactionManager.getRepository(StockItems);
 
-            return response.setComplete(
-                lang.msgSuccessAction('updated', 'stock items data'),
-                result
-            );
+                // ตรวจสอบว่า ID มีอยู่จริง
+                const existingItem = await repository.findOne({ where: { item_id } });
+                //console.log('Existing item:', existingItem); // Log ข้อมูลเดิม
+                if (!existingItem) {
+                    return response.setIncomplete(lang.msgNotFound('item.outbtlitm'));
+                }
+
+                if (validate.isNullOrEmpty(data.update_by)) {
+                    return response.setIncomplete(lang.msgRequiredUpdateby());
+                }
+
+                // อัปเดตข้อมูลไฟล์
+                const updatedData = await repository.save({ item_id, ...data });
+                //console.log('Updated Data:', updatedData); // Log ข้อมูลหลังอัปเดต
+
+                // สร้าง response
+                response = response.setComplete(
+                    lang.msgSuccessAction('updated', 'stock items data'),
+                    updatedData
+                );
+            });
+
+            return response;
 
         } catch (error: any) {
-            if (error?.message?.startsWith('BUSINESS:')) {
-                return response.setIncomplete(error.message.replace('BUSINESS:', ''));
-            }
             throw new Error(lang.msgErrorFunction(operation, error.message));
         }
     }
-    private async doUpdateUpload(
-        item_id: number,
-        data: Partial<StockItems>,
-        manager: EntityManager
-    ): Promise<StockItems> {
 
-        const repository = manager.getRepository(StockItems);
+async delete(item_id: string, reqUsername: string, manager?: EntityManager): Promise<ApiResponse<void>> {
+    const response = new ApiResponse<void>();
+    const operation = "StockItemService.delete";
 
-        const existingItem = await repository.findOne({ where: { item_id } });
-        if (!existingItem) {
-            throw new Error('BUSINESS:' + lang.msgNotFound('item.outbtlitm'));
-        }
+    const queryRunner = manager ? null : AppDataSource.createQueryRunner();
+    const useManager = manager || queryRunner?.manager;
 
-        if (validate.isNullOrEmpty(data.update_by)) {
-            throw new Error('BUSINESS:' + lang.msgRequiredUpdateby());
-        }
-
-        return await repository.save({
-            ...existingItem,
-            ...data,
-        });
+    if (!useManager) {
+        return response.setIncomplete(lang.msg("validation.no_entityManager_or_queryRunner_available"));
     }
 
-
-    async delete(
-        item_id: number,
-        reqUsername: string,
-        manager?: EntityManager
-    ): Promise<ApiResponse<void>> {
-
-        const response = new ApiResponse<void>();
-        const operation = "StockItemService.delete";
-
-        const useManager = manager ?? AppDataSource.manager;
-
-        try {
-            if (manager) {
-                await this.doDelete(item_id, useManager);
-            } else {
-                await useManager.transaction((tx) =>
-                    this.doDelete(item_id, tx)
-                );
-            }
-
-            // ลบไฟล์หลัง commit
-            const uploadRoot = config.PathFile[UploadDirKey.DIR_UPLOAD_ITEMS_IMAGE];
-            const fullDir = path.join(process.cwd(), uploadRoot, item_id.toString());
-
-            try {
-                await fs.rm(fullDir, { recursive: true, force: true });
-            } catch (err) {
-                console.error("⚠ Could not delete directory:", err);
-            }
-
-            return response.setComplete(
-                lang.msgSuccessAction("deleted", "stock items data")
-            );
-
-        } catch (error: any) {
-            if (error?.message?.startsWith("BUSINESS:")) {
-                return response.setIncomplete(
-                    error.message.replace("BUSINESS:", "")
-                );
-            }
-
-            console.error(`Error during ${operation}:`, error);
-            throw new Error(lang.msgErrorFunction(operation, error.message));
-        }
+    if (!manager && queryRunner) {
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
     }
-    private async doDelete(
-        item_id: number,
-        manager: EntityManager
-    ): Promise<void> {
 
-        const repository = manager.getRepository(StockItems);
+    try {
+        const repository = useManager.getRepository(StockItems);
 
+        // 1️⃣ หา existing item
         const existing = await repository.findOne({ where: { item_id } });
         if (!existing) {
-            throw new Error(
-                "BUSINESS:" + lang.msgNotFound("items.item_id")
-            );
+            return response.setIncomplete(lang.msgNotFound("items.item_id"));
         }
 
-        await repository.remove(existing);
-    }
+        // 2️⃣ ดึง subfolder จาก item_id
+        const uploadRoot = config.PathFile[UploadDirKey.DIR_UPLOAD_ITEMS_IMAGE]; 
+        const fullDir = path.join(process.cwd(), uploadRoot, item_id.toString());
 
+        // 3️⃣ ลบข้อมูลใน DB ก่อน
+        await repository.remove(existing);
+
+        if (!manager && queryRunner) {
+            await queryRunner.commitTransaction();
+        }
+
+        // 4️⃣ ลบทั้งโฟลเดอร์
+        try {
+            await fs.rm(fullDir, { recursive: true, force: true });
+            //console.log("🗑 Deleted folder:", fullDir);
+        } catch (err) {
+            console.error("⚠ Could not delete directory:", err);
+        }
+
+        return response.setComplete(lang.msgSuccessAction("deleted", "stock items data"));
+
+    } catch (error: any) {
+        if (!manager && queryRunner) {
+            await queryRunner.rollbackTransaction();
+        }
+
+        console.error(`Error during ${operation}:`, error);
+        throw new Error(lang.msgErrorFunction(operation, error.message));
+
+    } finally {
+        if (!manager && queryRunner) {
+            await queryRunner.release();
+        }
+    }
+}
 
     async getAll(manager?: EntityManager): Promise<ApiResponse<any | null>> {
         const response = new ApiResponse<any | null>();
@@ -357,6 +330,7 @@ export class StockItemService {
                 .select([
                     'items.item_id AS item_id',
                     'items.stock_item AS stock_item',
+                    'items.item_name AS item_name',
                     'items.item_desc AS item_desc',
                     'items.item_img AS item_img',
                     'items.item_img_url AS item_img_url',
@@ -384,55 +358,128 @@ export class StockItemService {
         }
     }
 
-    async getById(
-        item_id: number,
-        manager?: EntityManager
-        ): Promise<ApiResponse<any | null>> {
-
+    async getById(item_id: number, manager?: EntityManager): Promise<ApiResponse<any | null>> {
         const response = new ApiResponse<any | null>();
         const operation = 'StockItemService.getById';
 
         try {
-            const repository = manager
-            ? manager.getRepository(StockItems)
-            : this.itemsRepository;
+            const repository = manager ? manager.getRepository(StockItems) : this.itemsRepository;
+    
+            const itemIdStr = String(item_id); // แปลงเป็น string
 
-            const rawData = await repository
-            .createQueryBuilder('items')
-            .select([
-                'items.item_id AS item_id',
-                'items.stock_item AS stock_item',
-                'items.item_desc AS item_desc',
-                'items.item_img AS item_img',
-                'items.item_img_url AS item_img_url',
-                "DATE_FORMAT(items.requested_at, '%d/%m/%Y') AS requested_at",
-            ])
-            .where('items.is_active = :isActive', { isActive: true })
-            .andWhere('items.item_id = :item_id', { item_id }) // ✅ number
-            .getRawOne();
+            // Query item ข้อมูลทั้งหมดในรูปแบบ raw data
+            const rawData = await repository.createQueryBuilder('items')
+                .select([
+                    'items.item_id AS item_id',
+                    'items.stock_item AS stock_item',
+                    'items.item_name AS item_name',
+                    'items.item_desc AS item_desc',
+                    'items.item_img AS item_img',
+                    'items.item_img_url AS item_img_url',
+                    "DATE_FORMAT(items.requested_at, '%d/%m/%Y') AS requested_at",
+                ])
+                .where('items.is_active = :isActive', { isActive: true })
+                .andWhere('items.item_id = :item_id', { item_id: itemIdStr })
+                .getRawOne();
 
-            // ไม่พบข้อมูล
-            if (!rawData) {
-            return response.setIncomplete(lang.msgNotFound('item.item_id'));
+            // หากไม่พบข้อมูล
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('item.item_id'));
             }
 
-            return response.setComplete(
-            lang.msgFound('item.item_id'),
-            rawData
-            );
-
+            // ส่งข้อมูลกลับในรูปแบบ response
+            return response.setComplete(lang.msgFound('item.item_id'), rawData);
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error.message);
-
             if (error instanceof QueryFailedError) {
-            return response.setIncomplete(
-                lang.msgErrorFunction(operation, error.message)
-            );
+                return response.setIncomplete(lang.msgErrorFunction(operation, error.message));
+            }
+    
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        }
+    }
+
+    //ใช้เพื่อค้นหา stock item ใน inventory ( ใช้เฉพาะ usage ) 
+    async searchItemInventory(
+        stock_item?: string,
+        item_name?: string
+    ): Promise<ApiResponse<any[]>> {
+        const response = new ApiResponse<any[]>();
+        const operation = 'StockItemService.searchItemInventory';
+
+        try {
+            const query = this.itemsRepository.createQueryBuilder('items')
+                // INNER JOIN inventory เพื่อให้เฉพาะ item ที่มี stock
+                .innerJoin('inventory', 'inv', 'inv.item_id = items.item_id')
+                .innerJoin('m_location', 'loc', 'loc.loc_id = inv.loc_id')
+                .select([
+                    'items.item_id AS item_id',
+                    'items.stock_item AS stock_item',
+                    'items.item_name AS item_name',
+                    'inv.loc_id AS loc_id',
+                    'loc.loc AS loc',
+                    'loc.box_loc AS box_loc',
+                ]);
+
+            // เพิ่มเงื่อนไขการค้นหาแบบ case-insensitive
+            if (validate.isNotNullOrEmpty(stock_item)) {
+                query.andWhere('LOWER(items.stock_item) LIKE LOWER(:stock_item)', { stock_item: `%${stock_item}%` });
             }
 
-            throw new Error(
-            lang.msgErrorFunction(operation, error.message)
-            );
+            if (validate.isNotNullOrEmpty(item_name)) {
+                query.andWhere('LOWER(items.item_name) LIKE LOWER(:item_name)', { item_name: `%${item_name}%` });
+            }
+
+            const items: Partial<any>[] = await query.getRawMany();
+
+            if (!Array.isArray(items) || items.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('stock item'));
+            }
+
+            return response.setComplete(lang.msgFound('stock item'), items);
+
+        } catch (error: any) {
+            console.error(`Error in ${operation}:`, error);
+            throw new Error(lang.msgErrorFunction(operation, error.message));
+        }
+    }
+
+    //ใช้กับ receipt เอาไว้หาว่ามี ชื่อ stock อะไรบ้าง
+    async searchItem(
+        stock_item?: string,
+        item_name?: string
+    ): Promise<ApiResponse<any[]>> {
+        const response = new ApiResponse<any[]>();
+        const operation = 'StockItemService.searchItem';
+
+        try {
+            const query = this.itemsRepository.createQueryBuilder('items')
+                .select([
+                    'items.item_id AS item_id',
+                    'items.stock_item AS stock_item',
+                    'items.item_name AS item_name',
+                ]);
+
+            // เพิ่มเงื่อนไขการค้นหาแบบ case-insensitive
+            if (validate.isNotNullOrEmpty(stock_item)) {
+                query.andWhere('LOWER(items.stock_item) LIKE LOWER(:stock_item)', { stock_item: `%${stock_item}%` });
+            }
+
+            if (validate.isNotNullOrEmpty(item_name)) {
+                query.andWhere('LOWER(items.item_name) LIKE LOWER(:item_name)', { item_name: `%${item_name}%` });
+            }
+
+            const items: Partial<any>[] = await query.getRawMany();
+
+            if (!Array.isArray(items) || items.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('stock item'));
+            }
+
+            return response.setComplete(lang.msgFound('stock item'), items);
+
+        } catch (error: any) {
+            console.error(`Error in ${operation}:`, error);
+            throw new Error(lang.msgErrorFunction(operation, error.message));
         }
     }
 

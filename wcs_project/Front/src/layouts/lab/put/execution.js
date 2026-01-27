@@ -2,12 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Grid, Card, IconButton, InputAdornment, FormControl } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+//import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
@@ -16,8 +12,6 @@ import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import OrdersAPI from "api/OrdersAPI";
 import ExecutionAPI from "api/TaskAPI";
-import WaitingAPI from "api/WaitingAPI";
-import ImportFileAPI from "api/ImportAPI";
 import SweetAlertComponent from "../components/sweetAlert";
 import { useNavigate } from "react-router-dom";
 import MDButton from "components/MDButton";
@@ -27,7 +21,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import { GlobalVar } from "common/GlobalVar";
 import { normalizeStatus } from "common/utils/statusUtils";
 import StatusBadge from "../components/statusBadge";
-import ButtonComponent from "../components/ButtonComponent";
 
 //store
 const PutExecutionPage = () => {
@@ -37,35 +30,26 @@ const PutExecutionPage = () => {
     const [filteredWaiting, setFilteredWaiting] = useState([]);
     const [filteredExecution, setFilteredExecution] = useState([]);
 
-    // นำเข้า useState หากยังไม่ได้ import
-    const [selectedFile, setSelectedFile] = useState(null);
-    // state สำหรับ key ของ input element เพื่อบังคับ re-mount
-    const [fileInputKey, setFileInputKey] = useState(Date.now());
-
     const [searchWaiting, setSearchWaiting] = useState({
         date: "", 
-        mc_code: "",
+        spr_no: "", 
+        //work_order: "",
         po_num: "", 
+        object_id: "",
         stock_item: "", 
         item_desc: "",
         cond: "", 
-        loc: "",
-        box_loc: "",
-        unit_cost_handled: "",
-        total_cost_handled: "",
     });
     const [searchExecution, setSearchExecution] = useState({
         date: "", 
-        mc_code: "",
+        spr_no: "", 
+        //work_order: "",
         po_num: "", 
+        object_id: "",
+        status: "",
         stock_item: "", 
         item_desc: "",
         cond: "",
-        loc: "",
-        box_loc: "",
-        unit_cost_handled: "",
-        total_cost_handled: "",
-        status: "",
     });
 
     const [selectedWaitingIds, setSelectedWaitingIds] = useState([]);
@@ -140,40 +124,21 @@ const PutExecutionPage = () => {
         fetchDataExecuteAll();
     }, []);
 
-    //ฟังก์ชัน พิมพ์เล็ก / ใหญ่ , รองรับ number, null, undefined , trim
-    const includesIgnoreCase = (value, search) => {
-        if (!search) return true; // ถ้าไม่ได้พิมพ์อะไร = ผ่าน
-        return String(value ?? "")
-            .toLowerCase()
-            .trim()
-            .includes(String(search).toLowerCase().trim());
-    };
-
     // --------------------------------------------------
     // FILTER WAITING LIST
     // --------------------------------------------------
     useEffect(() => {
         const filtered = waitingList.filter(
-            (item) =>
-                includesIgnoreCase(item.requested_at, searchWaiting.date) &&
-                includesIgnoreCase(item.po_num, searchWaiting.po_num) &&
-                includesIgnoreCase(item.mc_code, searchWaiting.mc_code) &&
-                includesIgnoreCase(item.stock_item, searchWaiting.stock_item) &&
-                includesIgnoreCase(item.item_desc, searchWaiting.item_desc) &&
-                includesIgnoreCase(item.loc, searchWaiting.loc) &&
-                includesIgnoreCase(item.box_loc, searchWaiting.box_loc) &&
-                includesIgnoreCase(
-                    item.unit_cost_handled,
-                    searchWaiting.unit_cost_handled
-                ) &&
-                includesIgnoreCase(
-                    item.total_cost_handled,
-                    searchWaiting.total_cost_handled
-                ) &&
-                (filterConditionWaiting === "" ||
-                    item.cond === filterConditionWaiting)
+        (item) =>
+            (item.requested_at || "").includes(searchWaiting.date) &&
+            //(item.work_order || "").includes(searchWaiting.work_order) &&
+            (item.spr_no || "").includes(searchWaiting.spr_no) &&
+            (item.po_num || "").includes(searchWaiting.po_num) &&
+            (item.object_id || "").includes(searchWaiting.object_id) &&
+            (item.stock_item || "").includes(searchWaiting.stock_item) &&
+            (item.item_desc || "").includes(searchWaiting.item_desc) &&
+            (filterConditionWaiting === "" || item.cond === filterConditionWaiting)
         );
-
         setFilteredWaiting(filtered);
     }, [waitingList, searchWaiting, filterConditionWaiting]);
 
@@ -182,37 +147,22 @@ const PutExecutionPage = () => {
     // --------------------------------------------------
     useEffect(() => {
         const filtered = executionList.filter(
-            (item) =>
-                includesIgnoreCase(item.requested_at, searchExecution.date) &&
-                includesIgnoreCase(item.po_num, searchExecution.po_num) &&
-                includesIgnoreCase(item.mc_code, searchExecution.mc_code) &&
-                (
-                    filterStatusExecution === "" ||
-                    normalizeStatus(item.status) === filterStatusExecution
-                ) &&
-                includesIgnoreCase(item.stock_item, searchExecution.stock_item) &&
-                includesIgnoreCase(item.item_desc, searchExecution.item_desc) &&
-                includesIgnoreCase(item.loc, searchExecution.loc) &&
-                includesIgnoreCase(item.box_loc, searchExecution.box_loc) &&
-                includesIgnoreCase(
-                    item.unit_cost_handled,
-                    searchExecution.unit_cost_handled
-                ) &&
-                includesIgnoreCase(
-                    item.total_cost_handled,
-                    searchExecution.total_cost_handled
-                ) &&
-                (filterConditionExecution === "" ||
-                    item.cond === filterConditionExecution)
+        (item) =>
+            (item.requested_at || "").includes(searchExecution.date) &&
+            //(item.work_order || "").includes(searchExecution.work_order) &&
+            (item.spr_no || "").includes(searchExecution.spr_no) &&
+            (item.po_num || "").includes(searchExecution.po_num) &&
+            (item.object_id || "").includes(searchExecution.object_id) &&
+            (
+                filterStatusExecution === "" ||
+                normalizeStatus(item.status) === filterStatusExecution
+            ) &&
+            (item.stock_item || "").includes(searchExecution.stock_item) &&
+            (item.item_desc || "").includes(searchExecution.item_desc) &&
+            (filterConditionExecution === "" || item.cond === filterConditionExecution)
         );
-
         setFilteredExecution(filtered);
-    }, [
-        executionList,
-        searchExecution,
-        filterStatusExecution,
-        filterConditionExecution
-    ]);
+    }, [executionList, searchExecution, filterStatusExecution, filterConditionExecution]);
 
     // --------------------------------------------------
     // MOVE TO EXECUTION -> Go TO PENDING
@@ -234,7 +184,7 @@ const PutExecutionPage = () => {
             show: true,
             type: "success",
             title: "Success",
-            message: "Moved to Execution List",
+            message: "Moved to Execution",
         });
         } catch (err) {
         console.error(err);
@@ -267,7 +217,7 @@ const PutExecutionPage = () => {
             show: true,
             type: "success",
             title: "Success",
-            message: "Moved back to Waiting List",
+            message: "Moved back to Waiting",
         });
         } catch (err) {
         console.error(err);
@@ -376,137 +326,35 @@ const PutExecutionPage = () => {
         }
     };
 
-        // --------------------------------------------------
-        // IMPORT FILE
-        // --------------------------------------------------
-        // ปรับปรุง handleImportFile ให้เก็บไฟล์ที่เลือกไว้ใน state
-        const handleImportFile = (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-            setAlert({
-                show: true,
-                type: "error",
-                title: "Error",
-                message: "Please select the file before uploading.",
-            });
-            return;
-            }
-        
-            setSelectedFile(file);
-        };
-    
-        // ฟังก์ชันสำหรับส่งไฟล์ที่เลือกไปยัง API
-        const handleSubmitImport = async () => {
-            if (!selectedFile) return;
-            try {
-            const response = await ImportFileAPI.importReceiptFile(selectedFile);
-            if (response.isCompleted) {
-                setAlert({
-                show: true,
-                type: "success",
-                title: "Success",
-                message: response.message,
-                });
-                await fetchDataWaitingAll();
-                // เคลียร์ไฟล์ที่เลือก และอัปเดต key เพื่อให้ input re-mount ใหม่
-                setSelectedFile(null);
-                setFileInputKey(Date.now());
-            } else {
-                setAlert({
-                show: true,
-                type: "error",
-                title: "Upload failed",
-                message: response.message,
-                });
-            }
-            } catch (error) {
-            console.error("Error uploading file:", error);
-            }
-        };
-    
-        // ฟังก์ชันสำหรับลบไฟล์ที่เลือก (และรีเซ็ต input)
-        const handleClearFile = () => {
-            setSelectedFile(null);
-            setFileInputKey(Date.now());
-        };
-    
-        
-       const getWaitingOrderIds = () => {
-        return waitingList
-            .filter(r => r.status === "WAITING")
-            .map(r => r.order_id);
-    };
-    
-    const handleDeleteAll = async () => {
-        const waitingIds = getWaitingOrderIds();
-        if (waitingIds.length === 0) return;
-    
-        try {
-            // ✅ payload ให้ตรงกับ backend
-            const payload = {
-                order_ids: waitingIds,
-            };
-    console.log("payload",payload);
-            await WaitingAPI.deleteWaiting(payload);
-    
-            await Promise.all([
-                fetchDataWaitingAll(),
-                fetchDataExecuteAll(),
-            ]);
-    
-            setSelectedWaitingIds([]);
-    
-            setAlert({
-                show: true,
-                type: "success",
-                title: "Success",
-                message: "Clear waiting list success",
-            });
-    
-        } catch (err) {
-             console.error("FULL ERROR:", err);
-        console.error("RESPONSE:", err.response);
-        console.error("DATA:", err.response?.data);
-    
-            setAlert({
-                show: true,
-                type: "error",
-                title: "Error",
-                message: err.response?.data?.message || "Something went wrong",
-            });
-        }
-    };
-    
     // --------------------------------------------------
     // TABLE COLUMNS
     // --------------------------------------------------
     const columnsWaiting = [
         { field: "mc_code", label: "Maintenance Contract" },
+        { field: "type", label: "Transaction Type" },
+        { field: "spr_no", label: "SPR No." },
+        //{ field: "work_order", label: "Work Order" },
         { field: "po_num", label: "PO No." },
         { field: "object_id", label: "OBJECT ID" },
         { field: "requested_at", label: "Date" },
-        { field: "stock_item", label: "Stock Item Number" },
+        { field: "stock_item", label: "Stock Item ID" },
         { field: "item_desc", label: "Stock Item Description" },
         { field: "cond", label: "Condition" },
-        { field: "loc", label: "To Location" },
-        { field: "box_loc", label: "To BIN" },
-        { field: "unit_cost_handled", label: "Unit Cost" },
-        { field: "total_cost_handled", label: "Total Cost" },
         { field: "plan_qty", label: "Required Quantity" },
     ];
 
     const columnsExecute = [
         { field: "mc_code", label: "Maintenance Contract" },
+        { field: "type", label: "Transaction Type" },
+        { field: "spr_no", label: "SPR No." },
+        //{ field: "work_order", label: "Work Order" },
         { field: "po_num", label: "PO No." },
         { field: "object_id", label: "OBJECT ID" },
         { field: "requested_at", label: "Date" },
-        { field: "stock_item", label: "Stock Item Number" },
+        { field: "stock_item", label: "Stock Item ID" },
         { field: "item_desc", label: "Stock Item Description" },
         { field: "cond", label: "Condition" },
-        { field: "loc", label: "To Location" },
-        { field: "box_loc", label: "To BIN" },
-        { field: "unit_cost_handled", label: "Unit Cost" },
-        { field: "total_cost_handled", label: "Total Cost" },
+        { field: "actual_qty", label: "Scanned Quantity" },
         { field: "plan_qty", label: "Required Quantity" },
         {
             field: "status",
@@ -575,62 +423,7 @@ const PutExecutionPage = () => {
                 </MDButton>
             </MDBox>
             </MDBox>
-            
-<MDBox 
-            p={2}
-            display="flex"
-            alignItems="stretch"
-            >
-                <Grid mr={2}>
-                 <MDButton
-                variant="contained"
-                color="secondary"
-                onClick={handleDeleteAll}
-                >
-                Delete All
-                </MDButton>
-              </Grid>
 
-              <Grid item xs={12}>
-                <Grid container alignItems="center" justifyContent="flex-end" spacing={2}>
-                  {/* ปุ่มนำเข้าไฟล์เป็นตัวแรก */}
-                  <Grid item>
-                    <MDBox mb={0}>
-                      <MDInput
-                        key={fileInputKey}
-                        type="file"
-                        accept=".xlsx"
-                        style={{ display: "none" }}
-                        id="import-file"
-                        onChange={handleImportFile}
-                      />
-                      <label htmlFor="import-file">
-                        <MDButton variant="contained" component="span" color="warning">
-                          IMPORT
-                        </MDButton>
-                      </label>
-                    </MDBox>
-                  </Grid>
-
-                  {/* เมื่อมีไฟล์แล้วจึงแสดง ชื่อไฟล์ → ปุ่มลบไฟล์ → ปุ่มยืนยัน ถัดไปทางขวา */}
-                  {selectedFile && (
-                    <>
-                      <Grid item>
-                        <MDTypography variant="body2">{selectedFile.name}</MDTypography>
-                      </Grid>
-
-                      <Grid item>
-                        <ButtonComponent onClick={handleClearFile} type="iconDelete" />
-                      </Grid>
-
-                      <Grid item>
-                        <ButtonComponent type="Confirm" onClick={handleSubmitImport} />
-                      </Grid>
-                    </>
-                  )}
-                </Grid>
-              </Grid>
-            </MDBox>
 
         <MDBox mt={1}>
             <Grid container spacing={1.5}>
@@ -649,32 +442,69 @@ const PutExecutionPage = () => {
                     {/* Date */}
                     <Grid item xs={12} md={4}>
                     <MDTypography variant="h6">Date</MDTypography>
-
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                        inputFormat="DD/MM/YYYY"   // ✅ รูปแบบ 24/01/2026
-                        value={
-                            searchWaiting.date
-                            ? dayjs(searchWaiting.date, "DD/MM/YYYY")
-                            : null
+                    <MDInput
+                        placeholder="dd/mm/yyyy"
+                        value={searchWaiting.date}
+                        onChange={(e) =>
+                        setSearchWaiting({ ...searchWaiting, date: e.target.value })
                         }
-                        onChange={(newValue) => {
-                            setSearchWaiting({
-                            ...searchWaiting,
-                            date: newValue ? newValue.format("DD/MM/YYYY") : "",
-                            });
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                            <CalendarMonthIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
                         }}
-                        renderInput={(params) => (
-                            <MDInput
-                            {...params}
-                            placeholder="Select date"
-                            fullWidth
-                            sx={{ height: "45px" }}
-                            />
-                        )}
-                        />
-                    </LocalizationProvider>
+                        fullWidth
+                        sx={{ height: "45px" }}
+                    />
                     </Grid>
+
+                    {/* Work Order */}
+                    {/* <Grid item xs={12} md={4}>
+                    <MDTypography variant="h6">Work Order</MDTypography>
+                    <MDInput
+                        placeholder="Text Field"
+                        sx={{ height: "45px" }}
+                        value={searchWaiting.work_order}
+                        onChange={(e) =>
+                        setSearchWaiting({ ...searchWaiting, work_order: e.target.value })
+                        }
+                        displayEmpty
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                        }}
+                        fullWidth
+                    />
+                    </Grid> */}
+
+                    {/* SPR No. */}
+                    <Grid item xs={12} md={4}>
+                    <MDTypography variant="h6">SPR No.</MDTypography>
+                    <MDInput
+                        placeholder="Text Field"
+                        sx={{ height: "45px" }}
+                        value={searchWaiting.spr_no}
+                        onChange={(e) =>
+                        setSearchWaiting({ ...searchWaiting, spr_no: e.target.value })
+                        }
+                        displayEmpty
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                        }}
+                        fullWidth
+                    />
+                    </Grid>
+
+                    <Grid item xs={12} md={4}></Grid>
 
                     {/* PO No. */}
                     <Grid item xs={12} md={4}>
@@ -698,15 +528,15 @@ const PutExecutionPage = () => {
                     />
                     </Grid>
 
-                    {/* Maintenance Contract */}
+                    {/* OBJECT ID */}
                     <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Maintenance Contract</MDTypography>
+                    <MDTypography variant="h6">OBJECT ID</MDTypography>
                     <MDInput
                         placeholder="Text Field"
                         sx={{ height: "45px" }}
-                        value={searchWaiting.mc_code}
+                        value={searchWaiting.object_id}
                         onChange={(e) =>
-                        setSearchWaiting({ ...searchWaiting, mc_code: e.target.value })
+                        setSearchWaiting({ ...searchWaiting, object_id: e.target.value })
                         }
                         displayEmpty
                         InputProps={{
@@ -719,7 +549,9 @@ const PutExecutionPage = () => {
                         fullWidth
                     />
                     </Grid>
-                    
+
+                    <Grid item xs={12} md={4}></Grid>
+
                     {/* Stock Item No. */}
                     <Grid item xs={12} md={4}>
                     <MDTypography variant="h6">Stock Item No.</MDTypography>
@@ -764,94 +596,6 @@ const PutExecutionPage = () => {
                     />
                     </Grid>
 
-                    {/* To Location */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">To Location</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchWaiting.loc}
-                        onChange={(e) =>
-                        setSearchWaiting({ ...searchWaiting, loc: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* Unit Cost */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Unit Cost</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchWaiting.unit_cost_handled}
-                        onChange={(e) =>
-                        setSearchWaiting({ ...searchWaiting, unit_cost_handled: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* Total Cost */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Total Cost</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchWaiting.total_cost_handled}
-                        onChange={(e) =>
-                        setSearchWaiting({ ...searchWaiting, total_cost_handled: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* To BIN */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">To BIN</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchWaiting.box_loc}
-                        onChange={(e) =>
-                        setSearchWaiting({ ...searchWaiting, box_loc: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
                     {/* Condition */}
                     <Grid item xs={12} md={4}>
                     <MDTypography variant="h6">Condition</MDTypography>
@@ -872,8 +616,6 @@ const PutExecutionPage = () => {
                         </StyledSelect>
                     </FormControl>
                     </Grid>
-
-
                 </Grid>
 
                 {/* Table */}
@@ -881,7 +623,6 @@ const PutExecutionPage = () => {
                     <ReusableDataTable
                     columns={columnsWaiting}
                     rows={filteredWaiting}
-                    disableHorizontalScroll
                     idField="order_id"
                     enableSelection={true}              // ⭐ เปิด checkbox
                     selectedRows={selectedWaitingIds}   // ⭐ รายการที่เลือก
@@ -909,7 +650,13 @@ const PutExecutionPage = () => {
                 {/* + Button */}
                 <IconButton
                 color="primary"
-                onClick={handleMoveToExecution}
+                onClick={() => {
+                    setConfirmMessage(
+                    "Are you sure you want to move this Waiting to Execution?"
+                    );
+                    setConfirmAction(() => handleMoveToExecution);
+                    setConfirmAlert(true);
+                }}
                 disabled={selectedWaitingIds.length === 0 || loading}
 
                 sx={{ p: 0.3 }}
@@ -920,7 +667,13 @@ const PutExecutionPage = () => {
                 {/* - Button */}
                 <IconButton
                 color="error"
-                onClick={handleDeleteTask}
+                onClick={() => {
+                    setConfirmMessage(
+                    "Are you sure you want to move this Execution to Waiting?"
+                    );
+                    setConfirmAction(() => handleDeleteTask);
+                    setConfirmAlert(true);
+                }}
                 disabled={selectedExecutionIds.length === 0 || loading}
                 sx={{ p: 0.3 }}
                 >
@@ -939,38 +692,73 @@ const PutExecutionPage = () => {
 
                 {/* Filters */}
                 <Grid container spacing={2} mb={2}>
-{/* 
-                    <Grid item xs={12} md={4}></Grid> */}
 
                     {/* Date */}
                     <Grid item xs={12} md={4}>
                     <MDTypography variant="h6">Date</MDTypography>
-
-                    <LocalizationProvider dateAdapter={AdapterDayjs}>
-                        <DatePicker
-                        inputFormat="DD/MM/YYYY"   // ✅ รูปแบบ 24/01/2026
-                        value={
-                            searchExecution.date
-                            ? dayjs(searchExecution.date, "DD/MM/YYYY")
-                            : null
+                    <MDInput
+                        placeholder="Calendar"
+                        value={searchExecution.date}
+                        onChange={(e) =>
+                        setSearchExecution({ ...searchExecution, date: e.target.value })
                         }
-                        onChange={(newValue) => {
-                            setSearchExecution({
-                            ...searchExecution,
-                            date: newValue ? newValue.format("DD/MM/YYYY") : "",
-                            });
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                            <CalendarMonthIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
                         }}
-                        renderInput={(params) => (
-                            <MDInput
-                            {...params}
-                            placeholder="Select date"
-                            fullWidth
-                            sx={{ height: "45px" }}
-                            />
-                        )}
-                        />
-                    </LocalizationProvider>
+                        fullWidth
+                        sx={{ height: "45px" }}
+                    />
                     </Grid>
+
+                    {/* Work Order */}
+                    {/* <Grid item xs={12} md={4}>
+                    <MDTypography variant="h6">Work Order</MDTypography>
+                    <MDInput
+                        placeholder="Text Field"
+                        sx={{ height: "45px" }}
+                        value={searchExecution.work_order}
+                        onChange={(e) =>
+                        setSearchExecution({ ...searchExecution, work_order: e.target.value })
+                        }
+                        displayEmpty
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                        }}
+                        fullWidth
+                    />
+                    </Grid> */}
+
+                    {/* SPR No. */}
+                    <Grid item xs={12} md={4}>
+                    <MDTypography variant="h6">SPR No.</MDTypography>
+                    <MDInput
+                        placeholder="Text Field"
+                        sx={{ height: "45px" }}
+                        value={searchExecution.spr_no}
+                        onChange={(e) =>
+                        setSearchExecution({ ...searchExecution, spr_no: e.target.value })
+                        }
+                        displayEmpty
+                        InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                        }}
+                        fullWidth
+                    />
+                    </Grid>
+
+                    <Grid item xs={12} md={4}></Grid>
 
                     {/* PO No. */}
                     <Grid item xs={12} md={4}>
@@ -994,15 +782,15 @@ const PutExecutionPage = () => {
                     />
                     </Grid>
 
-                    {/* Maintenance Contract */}
+                    {/* OBJECT ID */}
                     <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Maintenance Contract</MDTypography>
+                    <MDTypography variant="h6">OBJECT ID</MDTypography>
                     <MDInput
                         placeholder="Text Field"
                         sx={{ height: "45px" }}
-                        value={searchExecution.mc_code}
+                        value={searchExecution.object_id}
                         onChange={(e) =>
-                        setSearchExecution({ ...searchExecution, mc_code: e.target.value })
+                        setSearchExecution({ ...searchExecution, object_id: e.target.value })
                         }
                         displayEmpty
                         InputProps={{
@@ -1014,6 +802,28 @@ const PutExecutionPage = () => {
                         }}
                         fullWidth
                     />
+                    </Grid>
+
+                    {/* Order Status */}
+                    <Grid item xs={12} md={4}>
+                    <MDTypography variant="h6">Order Status</MDTypography>
+                        <FormControl fullWidth>
+                        <StyledSelect
+                            sx={{ height: "45px" }}
+                            name="filterStatusExecution"
+                            value={filterStatusExecution}
+                            onChange={(e) => setFilterStatusExecution(e.target.value)}
+                            displayEmpty
+                        >
+                            <StyledMenuItem value="">Pull Down List</StyledMenuItem>
+
+                            {OrderStatusNoFinish.map((t) => (
+                            <StyledMenuItem key={t.value} value={t.value}>
+                                {t.text}
+                            </StyledMenuItem>
+                            ))}
+                        </StyledSelect>
+                        </FormControl>
                     </Grid>
 
                     {/* Stock Item No. */}
@@ -1060,94 +870,6 @@ const PutExecutionPage = () => {
                     />
                     </Grid>
 
-                    {/* To Location */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">To Location</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchExecution.loc}
-                        onChange={(e) =>
-                        setSearchExecution({ ...searchExecution, loc: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* Unit Cost */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Unit Cost</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchExecution.unit_cost_handled}
-                        onChange={(e) =>
-                        setSearchExecution({ ...searchExecution, unit_cost_handled: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* Total Cost */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Total Cost</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchExecution.total_cost_handled}
-                        onChange={(e) =>
-                        setSearchExecution({ ...searchExecution, total_cost_handled: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
-                    {/* To BIN */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">To BIN</MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchExecution.box_loc}
-                        onChange={(e) =>
-                        setSearchExecution({ ...searchExecution, box_loc: e.target.value })
-                        }
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
-
                     {/* Condition */}
                     <Grid item xs={12} md={4}>
                     <MDTypography variant="h6">Condition</MDTypography>
@@ -1169,29 +891,6 @@ const PutExecutionPage = () => {
                         </StyledSelect>
                         </FormControl>
                     </Grid>
-
-                    {/* Order Status */}
-                    <Grid item xs={12} md={4}>
-                    <MDTypography variant="h6">Order Status</MDTypography>
-                        <FormControl fullWidth>
-                        <StyledSelect
-                            sx={{ height: "45px" }}
-                            name="filterStatusExecution"
-                            value={filterStatusExecution}
-                            onChange={(e) => setFilterStatusExecution(e.target.value)}
-                            displayEmpty
-                        >
-                            <StyledMenuItem value="">Pull Down List</StyledMenuItem>
-
-                            {OrderStatusNoFinish.map((t) => (
-                            <StyledMenuItem key={t.value} value={t.value}>
-                                {t.text}
-                            </StyledMenuItem>
-                            ))}
-                        </StyledSelect>
-                        </FormControl>
-                    </Grid>
-
                 </Grid>
 
                 {/* Table */}
@@ -1199,7 +898,6 @@ const PutExecutionPage = () => {
                     <ReusableDataTable
                     columns={columnsExecute}
                     rows={filteredExecution}
-                    disableHorizontalScroll
                     idField="order_id"
                     enableSelection={true}              // ⭐ เปิด checkbox
                     selectedRows={selectedExecutionIds}   // ⭐ รายการที่เลือก

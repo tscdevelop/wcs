@@ -100,8 +100,7 @@ export enum StatusOrders {
     AISLE_OPEN = 'AISLE_OPEN', 
     COMPLETED = 'COMPLETED', //scan quantity matching CAPITAL/NEW quantity(required quantity)
     FINISHED = 'FINISHED', //scan quantity not matching CAPITAL/NEW quantity(required quantity)
-    DELETE = 'DELETE',
-    
+
     ERROR = 'ERROR',
 
     FAILED = 'FAILED',

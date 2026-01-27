@@ -15,30 +15,10 @@ export const getAll = async (req: Request, res: Response) => {
     const operation = 'InventoryController.getAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     try {
         const response = await inventoryService.getAll();
-        return ResponseUtils.handleResponse(res, response);
-    } catch (error: any) {
-        console.error(`Error during ${operation}:`, error);
-        return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.inventory', true, reqUsername);
-    }
-};
-
-
-export const getByLoc = async (req: Request, res: Response) => {
-    const operation = 'InventoryController.getByLoc';
-
-    const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
-
-    try {
-        const response = await inventoryService.getByLoc();
         return ResponseUtils.handleResponse(res, response);
     } catch (error: any) {
         console.error(`Error during ${operation}:`, error);

@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import ResponseUtils from '../utils/ResponseUtils';
+import ResponseUtils, { HttpStatus } from '../utils/ResponseUtils';
 import * as lang from '../utils/LangHelper';
 import RequestUtils from '../utils/RequestUtils';
+import { DataSanitizer } from '../utils/DataSanitizer';
+import { ApiResponse } from '../models/api-response.model';
 import { MenuService } from '../services/menu.service';
+import { MenuModel } from '../models/menu.model';
 
 dotenv.config();
 
@@ -14,9 +17,7 @@ export const getMenuAll = async (req: Request, res: Response) => {
     const operation = 'MenuController.getMenuAll';
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     try {
         // เรียกใช้ service สำหรับดึงข้อมูล เมนู

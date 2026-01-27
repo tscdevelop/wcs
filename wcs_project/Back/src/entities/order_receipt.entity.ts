@@ -6,12 +6,20 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 @Entity({ name: 'orders_receipt' })
 export class OrdersReceipt {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Primary key of order receipt' })
-    receipt_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order receipt' })
+    receipt_id!: string;
 
     /** FK เชื่อมกับ Orders */
-    @Column({ type: 'int', unsigned: true })
-    order_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    order_id!: string;
+
+    /** จำนวน cat */
+    @Column({ type: 'int', nullable: true, default: null, comment: 'Cat Quantity' })
+    cat_qty?: number;
+
+    /** จำนวน recond */
+    @Column({ type: 'int', nullable: true, default: null, comment: 'Recond Quantity' })
+    recond_qty?: number;
 
     /** ราคาต่อหน่วย (Unit Cost) */
     @Column({

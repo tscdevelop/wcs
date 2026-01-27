@@ -18,6 +18,7 @@ export default function ItemsFormDialog({
 
     const [form, setForm] = useState({
         stock_item: "",
+        item_name: "",
         item_desc: "",
         item_img: "",
         item_img_url: "",
@@ -32,6 +33,7 @@ export default function ItemsFormDialog({
         if (isEdit && initialData) {
             setForm({
             stock_item: initialData.stock_item ?? "",
+            item_name: initialData.item_name ?? "",
             item_desc: initialData.item_desc ?? "",
             item_img: initialData.item_img ?? "",
             item_img_url: initialData.item_img_url ?? "",
@@ -39,6 +41,7 @@ export default function ItemsFormDialog({
         } else {
             setForm({
             stock_item: "",
+            item_name: "",
             item_desc: "",
             item_img: "",
             item_img_url: "",
@@ -68,6 +71,7 @@ export default function ItemsFormDialog({
     const validateAll = () => {
         const next = {};
         if (!form.stock_item?.trim()) next.stock_item = "Stock item is required.";
+        if (!form.item_name?.trim()) next.item_name = "Stock item name is required.";
         setErrors(next);
         return Object.keys(next).length === 0;
     };
@@ -80,6 +84,7 @@ export default function ItemsFormDialog({
 
         const formData = new FormData();
         formData.append("stock_item", form.stock_item);
+        formData.append("item_name", form.item_name);
         formData.append("item_desc", form.item_desc);
 
         // ถ้ามีรูป → append
@@ -107,14 +112,16 @@ export default function ItemsFormDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogContent dividers>
             <Grid container spacing={2}>
-            {/* Left side: stock_item, item_desc */}
+            {/* Left side: stock_item, item_name, item_desc */}
             <Grid item xs={12} lg={6}>
                 <Grid container spacing={2}>
-                {["stock_item", "item_desc"].map((field) => (
+                {["stock_item", "item_name", "item_desc"].map((field) => (
                     <Grid item xs={12} key={field}>
                     <MDTypography variant="body01" mb={0.5} display="block">
                         {field === "stock_item"
-                        ? "Stock Item Number"
+                        ? "Stock Item ID"
+                        : field === "item_name"
+                        ? "Stock Item Name"
                         : "Stock Item Description"}
                     </MDTypography>
                     <MDInput
@@ -126,7 +133,9 @@ export default function ItemsFormDialog({
                         rows={field === "item_desc" ? 4 : 1}
                         placeholder={
                             field === "stock_item"
-                            ? "Enter Stock Item Number"
+                            ? "Enter stock item ID"
+                            : field === "item_name"
+                            ? "Enter stock item name"
                             : "Enter stock item Description"
                         }
                         sx={{

@@ -27,20 +27,18 @@ export const connectSSE = async (req: Request, res: Response) => {
     }, 15000);
 
     try {
-        const runtime = await runtimeService.get(counterId);
-        res.write(
-        `data: ${JSON.stringify({
-            counter_id: counterId,
-            actualQty: runtime?.actual_qty ?? 0,
-        })}\n\n`
-        );
+        const runtime = await runtimeService.get(Number(counterId));
+        res.write(`data: ${JSON.stringify({
+        counter_id: counterId,
+        actualQty: runtime?.actual_qty ?? 0
+        })}\n\n`);
     } catch (e) {
         console.error("[SSE] init send error", e);
     }
 
     req.on("close", () => {
         clearInterval(heartbeat);
-        removeClient(counterId, res); // ✅ number
+        removeClient(counterId, res);
     });
 };
 
@@ -48,9 +46,11 @@ export const connectSSE = async (req: Request, res: Response) => {
 export const scanItem = async (req: Request, res: Response) => {
     const counterId = Number(req.params.counterId);
 
+    // 👉 หา order_id จาก counter
     const counter = await counterRepo.findOne({
-        where: { counter_id: counterId }, // ✅ number
+        where: { counter_id: String(counterId) }
     });
+
 
     if (!counter?.current_order_id) {
         return res.status(400).json({ error: "No active order" });
@@ -58,28 +58,26 @@ export const scanItem = async (req: Request, res: Response) => {
 
     const runtime = await runtimeService.increment(
         counterId,
-        counter.current_order_id
+        Number(counter.current_order_id)
     );
 
-    broadcast(counterId, {
+    broadcast(String(counterId), {
         counter_id: counterId,
-        actualQty: runtime?.actual_qty ?? 0,
+        actualQty: runtime?.actual_qty ?? 0
     });
 
-    res.json({
-        ok: true,
-        actualQty: runtime?.actual_qty,
-    });
+    res.json({ ok: true, actualQty: runtime?.actual_qty });
 };
+
 
 export const resetCounter = async (req: Request, res: Response) => {
     const counterId = Number(req.params.counterId);
 
     await runtimeService.reset(counterId);
 
-    broadcast(counterId, {
+    broadcast(String(counterId), {
         counter_id: counterId,
-        actualQty: 0,
+        actualQty: 0
     });
 
     res.json({

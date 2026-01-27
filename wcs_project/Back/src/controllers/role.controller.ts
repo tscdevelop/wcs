@@ -21,9 +21,7 @@ export const create = async (req: Request, res: Response) => {
 
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     try {
         //const { role_code, role_name, role_decription, role_is_active } = req.body;
@@ -51,9 +49,7 @@ export const create = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
     const operation = 'RoleController.update';
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     const { role_code } = req.params; // รับ role_code จาก URL
 
@@ -84,9 +80,7 @@ export const update = async (req: Request, res: Response) => {
 export const del = async (req: Request, res: Response) => {
     const operation = 'RoleController.delete';
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     const { role_code } = req.params; // รับ role_code จาก URL
 
@@ -110,9 +104,7 @@ export const checkCodeExists = async (req: Request, res: Response) => {
     const operation = 'RoleController.checkCodeExists';
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     // ดึง role_code ที่ต้องการตรวจสอบจาก query parameters
     const { role_code } = req.query;
@@ -133,9 +125,7 @@ export const search = async (req: Request, res: Response) => {
     const operation = 'RoleController.search';
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     // ดึงค่าที่ใช้ในการค้นหาจาก query parameters
     const { role_code, name } = req.query;
@@ -155,9 +145,7 @@ export const getByRoleCode = async (req: Request, res: Response) => {
     const operation = 'RoleController.getByRoleCode';
     // รับ username จาก token ที่แนบมากับ request
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     // ดึง role_code ที่ต้องการดึงข้อมูลจาก query parameters
     const { role_code } = req.params;
@@ -178,9 +166,7 @@ export const getByRoleCode = async (req: Request, res: Response) => {
 export const getPermissionByRole = async (req: Request, res: Response) => {
     const operation = 'RoleController.getPermissionByRole';
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) {
-        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-    }
+    if (!reqUsername) return;
 
     const { role_code } = req.params;
 

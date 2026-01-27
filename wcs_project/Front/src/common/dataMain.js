@@ -162,8 +162,8 @@ export const Destination =[
 ];
 
 export const TransactionType =[ 
-  {value: "USAGE" , text: "Pick"},
-  {value: "RECEIPT" , text: "Put"},
+  {value: "USAGE" , text: "Usage"},
+  {value: "RECEIPT" , text: "Reciept"},
   {value: "TRANSFER" , text: "Transfer"},
   {value: "RETURN" , text: "Return"}
 ];
@@ -178,7 +178,7 @@ export const StoreType =[
 export const Condition =[ 
   {value: "NEW" , text: "NEW"},
   {value: "CAPITAL" , text: "CAPITAL"},
-  {value: "RECOND" , text: "RECONDITION"},
+  {value: "RECONDITION" , text: "RECONDITION"},
 ];
 
 export const OrderStatus =[ 

@@ -3,11 +3,11 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 @Entity({ name: 'counter' })
 export class Counter {
 
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
-    counter_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+    counter_id!: string;
 
-    @Column({ type: 'varchar', length: 32, nullable: true })
-    code?: string;
+    @Column({ type: 'varchar', length: 32 })
+    code!: string;
 
     /** Empty / WAITING_AMR / READY_TO_PICK / ERROR */
     @Column({ type: 'enum', enum: ['EMPTY','WAITING_AMR','READY_TO_PICK','ERROR'] })
@@ -26,11 +26,11 @@ export class Counter {
     @Column({ default: false })
     gate_open!: boolean;
 
-    @Column({ type: 'int', unsigned: true, nullable: true })
-    current_order_id?: number;
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    current_order_id?: string;
 
-    @Column({ type: 'int', unsigned: true, nullable: true })
-    current_wrs_id?: number;
+    @Column({ type: 'bigint', unsigned: true, nullable: true })
+    current_wrs_id?: string;
 
     @Column({ type: 'timestamp', nullable: true })
     last_event_at?: Date;

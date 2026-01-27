@@ -1,70 +1,106 @@
 // controllers/tasks.controller.ts
-import { Request, Response } from 'express';
+import { Request, response, Response } from 'express';
 import ResponseUtils, { HttpStatus } from '../utils/ResponseUtils';
 import RequestUtils from '../utils/RequestUtils';
 import * as lang from '../utils/LangHelper';
 import { CreateTaskBatchDto, OrchestratedTaskService } from '../services/tasks.service';
+import { ApiResponse } from '../models/api-response.model';
 
 export function buildTasksController(orchestrator: OrchestratedTaskService) {
+    // const create = async (req: Request, res: Response) => {
+    //     const operation = 'TasksController.create';
+    //     const reqUsername = RequestUtils.getUsernameToken(req, res);
+    //     if (!reqUsername)
+    //         return ResponseUtils.handleBadRequest(res, 'Username required');
+
+    //     try {
+    //         const body = req.body as CreateTaskBatchDto;
+
+    //         // ตรวจสอบ body
+    //         if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    //             return ResponseUtils.handleBadRequest(res, 'items array is required');
+    //         }
+
+    //         // เรียก batch service
+    //         const response = await orchestrator.createAndOpenBatch(body, reqUsername);
+
+    //         const status = response.isCompleted
+    //             ? HttpStatus.CREATED
+    //             : HttpStatus.BAD_REQUEST;
+
+    //         return ResponseUtils.handleCustomResponse(res, response, status);
+    //     } catch (error: any) {
+    //         console.error(`Error during ${operation}:`, error);
+
+    //         return ResponseUtils.handleErrorCreate(
+    //             res,
+    //             operation,
+    //             error.message,
+    //             'item.execution',
+    //             true,
+    //             reqUsername
+    //         );
+    //     }
+    // };
 
 const create = async (req: Request, res: Response) => {
-    const operation = 'TasksController.create';
+  const operation = 'TasksController.create';
 
-    const reqUserId = RequestUtils.getUserIdToken(req, res);
-    const reqUsername = RequestUtils.getUsernameToken(req, res);
+const reqUserId = RequestUtils.getUserIdToken(req, res);
+const reqUsername = RequestUtils.getUsernameToken(req, res);
 
-    if (!reqUserId || !reqUsername) {
-    return ResponseUtils.handleBadRequest(res, 'User required');
-    }
+if (!reqUserId || !reqUsername) {
+  return ResponseUtils.handleBadRequest(res, 'User required');
+}
 
 
-    try {
-        const body = req.body as CreateTaskBatchDto;
+  try {
+    const body = req.body as CreateTaskBatchDto;
 
-        // 1️⃣ validate body
-        if (!Array.isArray(body.items) || body.items.length === 0) {
-        return ResponseUtils.handleBadRequest(
-            res,
-            'items array is required'
-        );
-        }
-
-        // 2️⃣ แปลง items → orderIds
-        const orderIds = body.items
-        .map(i => Number(i.order_id))
-        .filter((id): id is number => !isNaN(id));
-
-        if (orderIds.length === 0) {
-            return ResponseUtils.handleBadRequest(
-                res,
-                'order_id must be number'
-            );
-        }
-
-        // 3️⃣ เรียก service (ใหม่)
-        const response = await orchestrator.createAndOpenBatch(
-        orderIds,
-        reqUserId
-        );
-
-        const status = response.isCompleted
-        ? HttpStatus.CREATED
-        : HttpStatus.BAD_REQUEST;
-
-        return ResponseUtils.handleCustomResponse(res, response, status);
-
-    } catch (error: any) {
-        console.error(`Error during ${operation}:`, error);
-
-        return ResponseUtils.handleErrorCreate(
+    // 1️⃣ validate body
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return ResponseUtils.handleBadRequest(
         res,
-        operation,
-        error.message,
-        'item.execution',
-        true,
-        reqUsername
-        );
+        'items array is required'
+      );
     }
+
+    // 2️⃣ แปลง items → orderIds
+    const orderIds = body.items
+      .map(i => i.order_id)
+      .filter((id): id is string => Boolean(id));
+
+    if (orderIds.length === 0) {
+      return ResponseUtils.handleBadRequest(
+        res,
+        'order_id is required in items'
+      );
+    }
+
+    // 3️⃣ เรียก service (ใหม่)
+    const response = await orchestrator.createAndOpenBatch(
+      orderIds,
+      reqUserId
+    );
+
+    const status = response.isCompleted
+      ? HttpStatus.CREATED
+      : HttpStatus.BAD_REQUEST;
+
+    return ResponseUtils.handleCustomResponse(res, response, status);
+
+  } catch (error: any) {
+    console.error(`Error during ${operation}:`, error);
+
+    return ResponseUtils.handleErrorCreate(
+      res,
+      operation,
+      error.message,
+      'item.execution',
+      true,
+      reqUsername
+    );
+  }
 };
 
     const changeToWaitingBatch = async (req: Request, res: Response) => {
@@ -155,8 +191,8 @@ const create = async (req: Request, res: Response) => {
             return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
         }
 
-        const order_id = Number(req.params.order_id);
-        if (isNaN(order_id)) {
+        const order_id = req.params.order_id;
+        if (!order_id) {
             return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
         }
 
@@ -166,14 +202,8 @@ const create = async (req: Request, res: Response) => {
             return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
         }
 
-        const inv_id =
-    req.body?.inv_id !== undefined
-        ? Number(req.body.inv_id)
-        : undefined;
-
-
         try {
-            const response = await orchestrator.handleOrderItemMrs(order_id, actual_qty, reqUsername, inv_id);
+            const response = await orchestrator.handleOrderItemMrs(order_id, actual_qty, reqUsername);
             return ResponseUtils.handleResponse(res, response);
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error);
@@ -196,8 +226,8 @@ const create = async (req: Request, res: Response) => {
             return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
         }
 
-        const order_id = Number(req.params.order_id);
-        if (isNaN(order_id)) {
+        const order_id = req.params.order_id;
+        if (!order_id) {
             return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
         }
 
@@ -207,12 +237,8 @@ const create = async (req: Request, res: Response) => {
             return ResponseUtils.handleBadRequest(res, lang.msgInvalidParameter());
         }
 
-        const inv_id = req.body?.inv_id !== undefined
-        ? Number(req.body.inv_id)
-        : undefined;
-
         try {
-            const response = await orchestrator.handleOrderItemWRS(order_id, actual_qty, reqUsername, inv_id);
+            const response = await orchestrator.handleOrderItemWRS(order_id, actual_qty, reqUsername);
             return ResponseUtils.handleResponse(res, response);
         } catch (error: any) {
             console.error(`Error during ${operation}:`, error);
@@ -231,10 +257,7 @@ const create = async (req: Request, res: Response) => {
         const operation = 'TasksController.getAll';
 
         const reqUsername = RequestUtils.getUsernameToken(req, res);
-        if (!reqUsername) {
-            return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
-        }
-
+        if (!reqUsername) return;
 
         try {
             const response = await orchestrator.getAll();
@@ -244,6 +267,36 @@ const create = async (req: Request, res: Response) => {
             return ResponseUtils.handleErrorGet(res, operation, error.message, 'item.execution', true, reqUsername);
         }
     };
+
+    // const getUsageAllByMcCode = async (req: Request, res: Response) => {
+    //     const operation = 'TasksController.getUsageAllByMcCode';
+
+    //     const reqUsername = RequestUtils.getUsernameToken(req, res);
+    //     if (!reqUsername) return;
+
+    //     try {
+    //         // ✅ รับ mc_code จาก query (?mc_code=MC001)
+    //         const { store_type, mc_code } = req.query;
+
+    //         const response = await orchestrator.getUsageAllByMcCode(
+    //             store_type ? String(store_type) : undefined,
+    //             mc_code ? String(mc_code) : undefined
+    //         );
+
+    //         return ResponseUtils.handleResponse(res, response);
+    //     } catch (error: any) {
+    //         console.error(`Error during ${operation}:`, error);
+    //         return ResponseUtils.handleErrorGet(
+    //         res,
+    //         operation,
+    //         error.message,
+    //         'item.execution',
+    //         true,
+    //         reqUsername
+    //         );
+    //     }
+    // };
+
 
     return { create, changeToWaitingBatch , changeToPendingBatch , handleOrderItemMrs , handleOrderItemWRS, getAll};
 }

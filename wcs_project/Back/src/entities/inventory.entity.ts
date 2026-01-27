@@ -6,20 +6,16 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 @Entity({ name: 'inventory' })
 export class Inventory {
     /** ไอดี inventory (PK) */
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Inventory ID' })
-    inv_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Inventory ID' })
+    inv_id!: string;
 
     /** ไอดี stock item (Fk) */
-    @Column({ type: 'int', unsigned: true })
-    item_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    item_id!: string;
 
     /** ไอดี location และ box (FK) */
-    @Column({ type: 'int', unsigned: true })
-    loc_id!: number;
-
-    /** ไอดี order_receipt id (FK) เพื่อ join เอา mc_code/ condition แล้วไป sum หน้า inventory*/
-    @Column({ type: 'int', unsigned: true })
-    receipt_id!: number;
+    @Column({ type: 'bigint', unsigned: true })
+    loc_id!: string;
 
         /** ราคาต่อหน่วย (Unit Cost) */
     @Column({
@@ -55,10 +51,6 @@ export class Inventory {
     @Column({ type: 'varchar', length: 20, nullable: true, default: null, comment: 'ORG ID'})
     org_id?: string;
     
-     /** Department */
-    @Column({ type: 'varchar', length: 255, nullable: true, default: null, comment: 'Department'})
-    dept?: string;
-
     /** จำนวนใน inventory */
     @Column({ type: 'int', nullable: true, default: 0, comment: 'Inventory Quantity' })
     inv_qty!: number;

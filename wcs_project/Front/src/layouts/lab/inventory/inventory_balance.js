@@ -22,6 +22,9 @@ const InventoryBalance = () => {
     const [searchItems, setSearchItems] = useState({ 
         stock_item: "",
         item_desc: "",
+        org_id: "",
+        dept: "",
+        status: "", 
         mc_code: "",
         total_inv_qty: "",
         avg_unit_cost: "",
@@ -29,9 +32,6 @@ const InventoryBalance = () => {
         cond: "",
         loc: "",
         box_loc: "",
-        item_status: "",
-        org_id: "",
-        dept: ""
     });
 
     const [filterCondition, setFilterCondition] = useState("");
@@ -64,11 +64,11 @@ const InventoryBalance = () => {
             (item.org_id || "").includes(searchItems.org_id) &&
             (item.dept || "").includes(searchItems.dept) &&
             (item.status || "").includes(searchItems.status) &&
-            (item.mc_code || "").includes(searchItems.mc_code) &&
+            // (item.mc_code || "").includes(searchItems.mc_code) &&
             String(item.total_inv_qty ?? "").includes(searchItems.total_inv_qty) &&
             (item.avg_unit_cost || "").includes(searchItems.avg_unit_cost) &&
             (item.total_cost_inv || "").includes(searchItems.total_cost_inv) &&
-            (filterCondition === "" || item.cond === filterCondition) &&
+            // (filterCondition === "" || item.cond === filterCondition) &&
             (filterLocation === "" || item.cond === filterLocation) &&
             (item.box_loc || "").includes(searchItems.box_loc)
         );
@@ -80,38 +80,17 @@ const InventoryBalance = () => {
         _rowId: `${item.item_id}-${item.loc_id}`,
     }));
 
-    // by item ที่ต้องเหมือนกันทุกประการ ถึงรวม
     const columns = [
         { field: "stock_item", label: "Stock Item No." },
         { field: "item_desc", label: "Stock Item Description" },
-        { field: "mc_code", label: "Maintenance Contract" },
+        //{ field: "mc_code", label: "Maintenance Contract" },
         { field: "total_inv_qty", label: "Inventory Quantity" },
         { field: "avg_unit_cost", label: "Average Unit Cost" },
         { field: "total_cost_inv", label: "Total Cost" },
-        { field: "cond", label: "Condition" },
-        { field: "loc", label: "From Location" },
-        { field: "box_loc", label: "From BIN" },
-        { field: "item_status", label: "Status" },
-        { field: "org_id", label: "ORG ID" },
-        { field: "dept", label: "Department" },
+        //{ field: "cond", label: "Condition" },
+        { field: "loc", label: "Store Location" },
+        { field: "box_loc", label: "Box Location" },
     ];
-
-    // // location
-    // const columnsBox = [
-    //     { field: "loc", label: "From Location" },
-    //     { field: "box_loc", label: "From BIN" },
-    // ];
-
-    // // sub list ilter by loc
-    // const columnsSub = [
-    //     { field: "stock_item", label: "Stock Item No." },
-    //     { field: "item_desc", label: "Stock Item Description" },
-    //     { field: "mc_code", label: "Maintenance Contract" },
-    //     { field: "cond", label: "Condition" },
-    //     { field: "avg_unit_cost", label: "Average Unit Cost" },
-    //     { field: "total_cost_inv", label: "Total Cost" },
-    //     { field: "total_inv_qty", label: "Inventory Quantity" },
-    // ];
 
     //แปลงชื่อคลัง
     let storeTypeTrans = "";
@@ -168,7 +147,7 @@ const InventoryBalance = () => {
         <MDBox display="flex" justifyContent="flex-end" gap={2} mb={3}>
             {/* ซ้าย : Create */}
             <MDButton variant="contained" color="info">
-            Change To From BIN View
+            Change To Box Location View
             </MDButton>
 
             {/* ขวา : Import */}
@@ -403,9 +382,9 @@ const InventoryBalance = () => {
                 </Grid>
                 </Grid>
                 <Grid container spacing={2} sx={{ mb: 0.5 }}>
-                {/* From Location */}
+                {/* Store Location */}
                 <Grid item xs={12} md={2.4}>
-                    <MDTypography variant="caption" fontWeight="bold">From Location</MDTypography>
+                    <MDTypography variant="caption" fontWeight="bold">Store Location</MDTypography>
                     <FormControl fullWidth>
                     <StyledSelect
                         sx={{ height: "45px" }}
@@ -425,9 +404,9 @@ const InventoryBalance = () => {
                     </FormControl>
                 </Grid>
 
-                {/* From BIN */}
+                {/* Box Location */}
                 <Grid item xs={12} md={2.4}>
-                    <MDTypography variant="caption" fontWeight="bold">From BIN</MDTypography>
+                    <MDTypography variant="caption" fontWeight="bold">Box Location</MDTypography>
                     <MDInput
                     placeholder="Text Field"
                     sx={{ height: "45px" }}

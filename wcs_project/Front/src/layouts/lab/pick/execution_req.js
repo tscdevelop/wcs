@@ -16,7 +16,7 @@ import SweetAlertComponent from "../components/sweetAlert";
 import { useNavigate } from "react-router-dom";
 import MDButton from "components/MDButton";
 import { StyledMenuItem, StyledSelect } from "common/Global.style";
-import { OrderStatusNoFinish } from "common/dataMain";
+import { Condition, OrderStatusNoFinish } from "common/dataMain";
 import SearchIcon from "@mui/icons-material/Search";
 import { GlobalVar } from "common/GlobalVar";
 import { normalizeStatus } from "common/utils/statusUtils";
@@ -35,19 +35,21 @@ const PickExecutionReqPage = () => {
     spr_no: "", 
     work_order: "",
     usage_num: "", 
-    usage_line: "",
+    line: "",
     stock_item: "", 
     item_desc: "",
+    cond: "", 
   });
   const [searchExecution, setSearchExecution] = useState({ 
     date: "", 
     spr_no: "", 
     work_order: "",
     usage_num: "", 
-    usage_line: "",
+    line: "",
     status: "",
     stock_item: "", 
     item_desc: "",
+    cond: "",
   });
 
   const [selectedWaitingIds, setSelectedWaitingIds] = useState([]);
@@ -68,6 +70,8 @@ const PickExecutionReqPage = () => {
   });
 
   // Filter
+  const [filterConditionWaiting, setFilterConditionWaiting] = useState("");
+  const [filterConditionExecution, setFilterConditionExecution] = useState("");
   const [filterStatusExecution, setFilterStatusExecution] = useState("");
 
   const navigate = useNavigate();
@@ -120,15 +124,6 @@ const PickExecutionReqPage = () => {
     fetchDataExecuteAll();
   }, []);
 
-  //ฟังก์ชัน พิมพ์เล็ก / ใหญ่ , รองรับ number, null, undefined , trim
-  const includesIgnoreCase = (value, search) => {
-      if (!search) return true; // ถ้าไม่ได้พิมพ์อะไร = ผ่าน
-      return String(value ?? "")
-          .toLowerCase()
-          .trim()
-          .includes(String(search).toLowerCase().trim());
-  };
-
   // --------------------------------------------------
   // FILTER WAITING LIST
   // --------------------------------------------------
@@ -139,12 +134,13 @@ const PickExecutionReqPage = () => {
         (item.work_order || "").includes(searchWaiting.work_order) &&
         (item.spr_no || "").includes(searchWaiting.spr_no) &&
         (item.usage_num || "").includes(searchWaiting.usage_num) &&
-        (item.usage_line || "").includes(searchWaiting.usage_line) &&
+        (item.line || "").includes(searchWaiting.line) &&
         (item.stock_item || "").includes(searchWaiting.stock_item) &&
-        (item.item_desc || "").includes(searchWaiting.item_desc)
+        (item.item_desc || "").includes(searchWaiting.item_desc) &&
+        (filterConditionWaiting === "" || item.cond === filterConditionWaiting)
     );
     setFilteredWaiting(filtered);
-  }, [waitingList, searchWaiting]);
+  }, [waitingList, searchWaiting, filterConditionWaiting]);
 
   // --------------------------------------------------
   // FILTER EXECUTION LIST
@@ -152,20 +148,21 @@ const PickExecutionReqPage = () => {
   useEffect(() => {
     const filtered = executionList.filter(
       (item) =>
-        includesIgnoreCase(item.requested_at, searchExecution.date) &&
-        includesIgnoreCase(item.work_order, searchExecution.work_order) &&
-        includesIgnoreCase(item.spr_no, searchExecution.spr_no) &&
-        includesIgnoreCase(item.usage_num, searchExecution.usage_num) &&
-        includesIgnoreCase(item.usage_line, searchExecution.usage_line) &&
+        (item.requested_at || "").includes(searchExecution.date) &&
+        (item.work_order || "").includes(searchExecution.work_order) &&
+        (item.spr_no || "").includes(searchExecution.spr_no) &&
+        (item.usage_num || "").includes(searchExecution.usage_num) &&
+        (item.line || "").includes(searchExecution.line) &&
         (
           filterStatusExecution === "" ||
           normalizeStatus(item.status) === filterStatusExecution
         ) &&
-        includesIgnoreCase(item.stock_item, searchExecution.stock_item) &&
-        includesIgnoreCase(item.item_desc, searchExecution.item_desc)
+        (item.stock_item || "").includes(searchExecution.stock_item) &&
+        (item.item_desc || "").includes(searchExecution.item_desc) &&
+        (filterConditionExecution === "" || item.type === filterConditionExecution)
     );
     setFilteredExecution(filtered);
-  }, [executionList, searchExecution, filterStatusExecution]);
+  }, [executionList, searchExecution, filterStatusExecution, filterConditionExecution]);
 
   // --------------------------------------------------
   // MOVE TO EXECUTION -> Go TO PENDING
@@ -334,31 +331,34 @@ const PickExecutionReqPage = () => {
   // --------------------------------------------------
   const columnsWaiting = [
     { field: "mc_code", label: "Maintenance Contract" },
+    { field: "type", label: "Transaction Type" },
     { field: "spr_no", label: "SPR No." },
     { field: "work_order", label: "Work Order" },
     { field: "usage_num", label: "Usage No." },
-    { field: "usage_line", label: "Usage Line" },
+    { field: "line", label: "Usage Line" },
     { field: "requested_at", label: "Date" },
-    { field: "stock_item", label: "Stock Item Number" },
+    { field: "stock_item", label: "Stock Item ID" },
     { field: "item_desc", label: "Stock Item Description" },
     { field: "cond", label: "Condition" },
-    // { field: "loc", label: "From Location" },
-    // { field: "box_loc", label: "From Box Location" },
+    { field: "loc", label: "From Location" },
+    { field: "box_loc", label: "From Box Location" },
     { field: "plan_qty", label: "Required Quantity" },
   ];
 
   const columnsExecute = [
     { field: "mc_code", label: "Maintenance Contract" },
+    { field: "type", label: "Transaction Type" },
     { field: "spr_no", label: "SPR No." },
     { field: "work_order", label: "Work Order" },
     { field: "usage_num", label: "Usage No." },
-    { field: "usage_line", label: "Usage Line" },
+    { field: "line", label: "Usage Line" },
     { field: "requested_at", label: "Date" },
-    { field: "stock_item", label: "Stock Item Number" },
+    { field: "stock_item", label: "Stock Item ID" },
     { field: "item_desc", label: "Stock Item Description" },
     { field: "cond", label: "Condition" },
-    // { field: "loc", label: "From Location" },
-    // { field: "box_loc", label: "From Box Location" },
+    { field: "loc", label: "From Location" },
+    { field: "box_loc", label: "From Box Location" },
+    { field: "actual_qty", label: "Scanned Quantity" },
     { field: "plan_qty", label: "Required Quantity" },
     {
       field: "status",
@@ -534,9 +534,9 @@ const PickExecutionReqPage = () => {
                   <MDInput
                     placeholder="Text Field"
                     sx={{ height: "45px" }}
-                    value={searchWaiting.usage_line}
+                    value={searchWaiting.line}
                     onChange={(e) =>
-                      setSearchWaiting({ ...searchWaiting, usage_line: e.target.value })
+                      setSearchWaiting({ ...searchWaiting, line: e.target.value })
                     }
                     displayEmpty
                     InputProps={{
@@ -596,6 +596,26 @@ const PickExecutionReqPage = () => {
                   />
                 </Grid>
 
+                {/* Condition */}
+                <Grid item xs={12} md={4}>
+                  <MDTypography variant="h6">Condition</MDTypography>
+                  <FormControl fullWidth>
+                    <StyledSelect
+                      sx={{ height: "45px" }}
+                      name="filterConditionWaiting"
+                      value={filterConditionWaiting}
+                      onChange={(e) => setFilterConditionWaiting(e.target.value)}
+                      displayEmpty
+                    >
+                      <StyledMenuItem value="">Pull Down List</StyledMenuItem>
+                      {Condition.map((t) => (
+                        <StyledMenuItem key={t.value} value={t.value}>
+                          {t.text}
+                        </StyledMenuItem>
+                      ))}
+                    </StyledSelect>
+                  </FormControl>
+                </Grid>
               </Grid>
 
               {/* Table */}
@@ -603,7 +623,6 @@ const PickExecutionReqPage = () => {
                 <ReusableDataTable
                   columns={columnsWaiting}
                   rows={filteredWaiting}
-                  disableHorizontalScroll
                   idField="order_id"
                   enableSelection={true}              // ⭐ เปิด checkbox
                   selectedRows={selectedWaitingIds}   // ⭐ รายการที่เลือก
@@ -766,9 +785,9 @@ const PickExecutionReqPage = () => {
                   <MDInput
                     placeholder="Text Field"
                     sx={{ height: "45px" }}
-                    value={searchExecution.usage_line}
+                    value={searchExecution.line}
                     onChange={(e) =>
-                      setSearchExecution({ ...searchExecution, usage_line: e.target.value })
+                      setSearchExecution({ ...searchExecution, line: e.target.value })
                     }
                     displayEmpty
                     InputProps={{
@@ -782,7 +801,27 @@ const PickExecutionReqPage = () => {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={4}></Grid>
+                {/* Order Status */}
+                <Grid item xs={12} md={4}>
+                <MDTypography variant="h6">Order Status</MDTypography>
+                    <FormControl fullWidth>
+                    <StyledSelect
+                        sx={{ height: "45px" }}
+                        name="filterStatusExecution"
+                        value={filterStatusExecution}
+                        onChange={(e) => setFilterStatusExecution(e.target.value)}
+                        displayEmpty
+                    >
+                        <StyledMenuItem value="">Pull Down List</StyledMenuItem>
+
+                        {OrderStatusNoFinish.map((t) => (
+                        <StyledMenuItem key={t.value} value={t.value}>
+                            {t.text}
+                        </StyledMenuItem>
+                        ))}
+                    </StyledSelect>
+                    </FormControl>
+                </Grid>
 
                 {/* Stock Item No. */}
                 <Grid item xs={12} md={4}>
@@ -828,28 +867,27 @@ const PickExecutionReqPage = () => {
                   />
                 </Grid>
 
-                {/* Order Status */}
+                {/* Condition */}
                 <Grid item xs={12} md={4}>
-                <MDTypography variant="h6">Order Status</MDTypography>
+                  <MDTypography variant="h6">Condition</MDTypography>
                     <FormControl fullWidth>
-                    <StyledSelect
+                      <StyledSelect
                         sx={{ height: "45px" }}
-                        name="filterStatusExecution"
-                        value={filterStatusExecution}
-                        onChange={(e) => setFilterStatusExecution(e.target.value)}
+                        name="filterConditionExecution"
+                        value={filterConditionExecution}
+                        onChange={(e) => setFilterConditionExecution(e.target.value)}
                         displayEmpty
-                    >
+                      >
                         <StyledMenuItem value="">Pull Down List</StyledMenuItem>
 
-                        {OrderStatusNoFinish.map((t) => (
-                        <StyledMenuItem key={t.value} value={t.value}>
+                        {Condition.map((t) => (
+                          <StyledMenuItem key={t.value} value={t.value}>
                             {t.text}
-                        </StyledMenuItem>
+                          </StyledMenuItem>
                         ))}
-                    </StyledSelect>
+                      </StyledSelect>
                     </FormControl>
                 </Grid>
-
               </Grid>
 
               {/* Table */}
@@ -857,7 +895,6 @@ const PickExecutionReqPage = () => {
                 <ReusableDataTable
                   columns={columnsExecute}
                   rows={filteredExecution}
-                  disableHorizontalScroll
                   idField="order_id"
                   enableSelection={true}              // ⭐ เปิด checkbox
                   selectedRows={selectedExecutionIds}   // ⭐ รายการที่เลือก

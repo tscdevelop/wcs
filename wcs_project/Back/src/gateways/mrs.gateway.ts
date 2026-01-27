@@ -5,7 +5,7 @@ export type OpenCloseAck =
     | {
         ok: true;
         status: 'accepted' | 'queued';
-        order_id: number;
+        order_id: string;
         controller_job_id: string;
         received_at: string;
         }
@@ -18,9 +18,9 @@ export type OpenCloseAck =
 
 // สัญญา Gateway (interface)
 export interface MrsGateway {
-    openAisle(cmd: { mrs_id: number; aisle_id: number; order_id: number }): Promise<OpenCloseAck>;
-    closeAisle?(cmd: { mrs_id: number; aisle_id: number; order_id: number }): Promise<OpenCloseAck>;
-    isAisleSensorClear?(aisle_id?: number): Promise<boolean>;
+    openAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck>;
+    closeAisle?(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck>;
+    isAisleSensorClear?(aisle_id?: string): Promise<boolean>;
 
     /** ✅ เพิ่มใหม่ (ใช้ใน SystemStartupService) */
     healthCheck?(): Promise<boolean>;
@@ -36,22 +36,17 @@ export interface MrsGateway {
 export class MqttMrsGateway implements MrsGateway {
     private client: MqttClient;
     private pending = new Map<
-        number,
-        {
-            resolve: (a: OpenCloseAck) => void;
-            reject: (e: any) => void;
-            timer: NodeJS.Timeout;
-        }
-        >();
-
+        string,
+        { resolve: (a: OpenCloseAck) => void; reject: (e: any) => void; timer: NodeJS.Timeout }
+    >();
 
     constructor(
         brokerUrl: string,
         clientOpts?: IClientOptions,
         private opts: { ackTimeoutMs?: number; topicPrefix?: string } = {},
         private cb?: {
-        onOpenFinished?(p: { order_id: number; duration_ms?: number }): void;
-        onCloseFinished?(p: { order_id: number; duration_ms?: number }): void;
+        onOpenFinished?(p: { order_id: string; duration_ms?: number }): void;
+        onCloseFinished?(p: { order_id: string; duration_ms?: number }): void;
         }
     ) {
         this.client = mqtt.connect(brokerUrl, clientOpts);
@@ -90,12 +85,12 @@ export class MqttMrsGateway implements MrsGateway {
     private handleEvent(msg: any) {
         if (msg?.type === 'OPEN_FINISHED')
         this.cb?.onOpenFinished?.({
-            order_id: msg.order_id,
+            order_id: String(msg.order_id),
             duration_ms: msg.duration_ms,
         });
         if (msg?.type === 'CLOSE_FINISHED')
         this.cb?.onCloseFinished?.({
-            order_id: msg.order_id,
+            order_id: String(msg.order_id),
             duration_ms: msg.duration_ms,
         });
     }
@@ -113,82 +108,72 @@ export class MqttMrsGateway implements MrsGateway {
         }
     }
 
-    async openAisle(cmd: { mrs_id: number; aisle_id: number; order_id: number }): Promise<OpenCloseAck> {
+    async openAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck> {
         return this.sendCommand('OPEN_AISLE', cmd);
     }
 
-    async closeAisle(cmd: { mrs_id: number; aisle_id: number; order_id: number }): Promise<OpenCloseAck> {
+    async closeAisle(cmd: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck> {
         return this.sendCommand('CLOSE_AISLE', cmd);
     }
 
     private sendCommand(
         type: 'OPEN_AISLE' | 'CLOSE_AISLE',
-        cmd: { mrs_id: number; aisle_id: number; order_id: number }
-        ): Promise<OpenCloseAck> {
-        const key = cmd.order_id; // ✅ number
+        cmd: { mrs_id: string; aisle_id: string; order_id: string }
+    ): Promise<OpenCloseAck> {
+        const key = String(cmd.order_id);
         const prefix = this.opts.topicPrefix ?? 'mrs';
         const topic = `${prefix}/${cmd.mrs_id}/cmd`;
-
         const payload = {
-            type,
-            aisle_id: cmd.aisle_id,
-            order_id: key,
-            ts: new Date().toISOString(),
+        type,
+        aisle_id: cmd.aisle_id,
+        order_id: key,
+        ts: new Date().toISOString(),
         };
 
         const ackTimeout = this.opts.ackTimeoutMs ?? 10000;
 
         return new Promise<OpenCloseAck>((resolve) => {
-            const timer = setTimeout(() => {
+        const timer = setTimeout(() => {
             this.pending.delete(key);
             resolve({
-                ok: false,
-                code: 'ACK_TIMEOUT',
-                message: `No ACK for ${type} within ${ackTimeout} ms`,
-                retryable: true,
+            ok: false,
+            code: 'ACK_TIMEOUT',
+            message: `No ACK for ${type} within ${ackTimeout} ms`,
+            retryable: true,
             });
-            }, ackTimeout);
+        }, ackTimeout);
 
-            this.pending.set(key, {
-            resolve,
-            reject: resolve,
-            timer,
-            });
+        this.pending.set(key, { resolve, reject: resolve, timer });
 
-            this.client.publish(topic, JSON.stringify(payload), { qos: 1 });
+        this.client.publish(topic, JSON.stringify(payload), { qos: 1 });
         });
     }
 
-
     private handleAck(msg: any) {
-        const key = Number(msg?.order_id);
-
-        if (!Number.isFinite(key) || !this.pending.has(key)) return;
+        const key = String(msg?.order_id ?? '');
+        if (!key || !this.pending.has(key)) return;
 
         const entry = this.pending.get(key)!;
         clearTimeout(entry.timer);
         this.pending.delete(key);
 
         let ack: OpenCloseAck;
-
         if (msg?.ok === true) {
-            ack = {
+        ack = {
             ok: true,
             status: (msg.status as 'accepted' | 'queued') ?? 'accepted',
-            order_id: key, // ✅ number
+            order_id: key,
             controller_job_id: String(msg.controller_job_id ?? ''),
             received_at: String(msg.ts ?? new Date().toISOString()),
-            };
+        };
         } else {
-            ack = {
+        ack = {
             ok: false,
             code: String(msg.code ?? 'UNKNOWN'),
             message: String(msg.message ?? 'Unknown error'),
             retryable: Boolean(msg.retryable),
-            };
+        };
         }
-
         entry.resolve(ack);
     }
-
 }

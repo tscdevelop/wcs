@@ -9,7 +9,7 @@ const InventoryHome = () => {
   const storeType = GlobalVar.getStoreType();
 
   const inventoryMenus = [
-    { title: "Item Master", path: "/inventory/profile" },
+    { title: "Profile", path: "/inventory/profile" },
     { title: "Balance", path: "/inventory/balance" },
   ];
 

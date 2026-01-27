@@ -14,16 +14,12 @@ import { TypeInfm } from "../common/global.enum";
 import { Locations } from "../entities/m_location.entity";
 import { OrdersUsage } from "../entities/order_usage.entity";
 import { OrdersReturn } from "../entities/order_return.entity";
-import { UsageInventory } from "../entities/order_usage_inv.entity";
-import { ReturnInventory } from "../entities/order_return_inv.entity";
 
 export class InventoryService {
     private inventoryRepo: Repository<Inventory>;
-    private locationRepo: Repository<Locations>;
 
     constructor(){
         this.inventoryRepo = AppDataSource.getRepository(Inventory);
-        this.locationRepo = AppDataSource.getRepository(Locations);
     }
 
 //---------------------------------------
@@ -36,7 +32,6 @@ async receipt(manager: EntityManager, order: Orders) {
     const itemRepo = manager.getRepository(StockItems);
     const locRepo = manager.getRepository(Locations);
 
-    // 1) load receipt
     const r = await receiptRepo.findOne({
         where: { order_id: order.order_id }
     });
@@ -51,8 +46,8 @@ async receipt(manager: EntityManager, order: Orders) {
 
     const unitCost = Number(Number(r.unit_cost_handled).toFixed(2));
 
-    // 2) load master data (for log only)
-    const item = await itemRepo.findOne({
+    // --- load master data (for log only) ---
+    const items = await itemRepo.findOne({
         where: { item_id: order.item_id },
         select: ['stock_item']
     });
@@ -62,31 +57,48 @@ async receipt(manager: EntityManager, order: Orders) {
         select: ['loc', 'box_loc']
     });
 
-    // 3️⃣ CREATE NEW INVENTORY (always)
-    const newInv = invRepo.create({
-        item_id: order.item_id,
-        loc_id: order.loc_id,
-        receipt_id: r.receipt_id,          // 🔥 key point
-        unit_cost_inv: unitCost,
-        inv_qty: order.actual_qty,
-        total_cost_inv: Number(
-            (unitCost * order.actual_qty).toFixed(2)
-        ),
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
+    // --- 1️⃣ update inventory ---
+    const existing = await invRepo.findOne({
+        where: {
+            item_id: order.item_id,
+            loc_id: order.loc_id,
+            unit_cost_inv: unitCost.toFixed(2) as any
+        }
     });
 
-    const savedInv = await invRepo.save(newInv);
+    let savedInv: Inventory;
 
-    // 4️⃣ INSERT INVENTORY TRANSACTION (LOG)
-    const trx = Object.assign(new InventoryTrx(), {
+    if (existing) {
+        existing.inv_qty += order.actual_qty;
+        existing.total_cost_inv = Number(
+            (existing.inv_qty * unitCost).toFixed(2)
+        );
+        existing.updated_at = new Date();
+
+        savedInv = await invRepo.save(existing);
+    } else {
+        const newInv = invRepo.create({
+            item_id: order.item_id,
+            loc_id: order.loc_id,
+            unit_cost_inv: unitCost,
+            inv_qty: order.actual_qty,
+            total_cost_inv: Number(
+                (unitCost * order.actual_qty).toFixed(2)
+            ),
+            updated_at: new Date()
+        });
+
+        savedInv = await invRepo.save(newInv);
+    }
+
+    // --- 2️⃣ insert inventory transaction (LOG) ---
+    const trx = trxRepo.create({
         inv_id: savedInv.inv_id,
         order_id: order.order_id,
         order_type: TypeInfm.RECEIPT,
 
         item_id: order.item_id,
-        stock_item: item?.stock_item ?? null,
+        stock_item: items?.stock_item ?? null,
 
         loc_id: order.loc_id,
         loc: loc?.loc ?? null,
@@ -95,29 +107,22 @@ async receipt(manager: EntityManager, order: Orders) {
         qty: order.actual_qty,
         unit_cost: unitCost,
         total_cost: Number(
-            (unitCost * order.actual_qty).toFixed(2)
+            (order.actual_qty * unitCost).toFixed(2)
         ),
-    });
+    } as DeepPartial<InventoryTrx>);
 
     await trxRepo.save(trx);
 
     return savedInv;
 }
 
-
 //---------------------------------------
 // 2) USAGE → ตัด stock แบบ FIFO (ไม่มีราคาใน order)
 //---------------------------------------
 
-async usage(
-    manager: EntityManager,
-    order: Orders,
-    inv_id: number
-    ) {
+async usage(manager: EntityManager, order: Orders) {
     const invRepo = manager.getRepository(Inventory);
     const trxRepo = manager.getRepository(InventoryTrx);
-    const usageRepo = manager.getRepository(OrdersUsage);
-    const usageInvRepo = manager.getRepository(UsageInventory);
     const stockItemRepo = manager.getRepository(StockItems);
     const locRepo = manager.getRepository(Locations);
 
@@ -125,114 +130,102 @@ async usage(
         throw new Error("actual_qty must be > 0");
     }
 
-    if (!inv_id) {
-        throw new Error("inv_id is required");
-    }
-
     // ----------------------------
-    // 1) load usage
-    // ----------------------------
-    const usage = await usageRepo.findOne({
-        where: { order_id: order.order_id },
-    });
-
-    if (!usage) {
-        throw new Error(`OrdersUsage not found for order ${order.order_id}`);
-    }
-
-    // ----------------------------
-    // 2) lock inventory by inv_id (from frontend)
-    // ----------------------------
-    const inv = await invRepo.findOne({
-        where: { inv_id },
-        lock: { mode: "pessimistic_write" },
-    });
-
-    if (!inv) {
-        throw new Error(`Inventory not found (inv_id=${inv_id})`);
-    }
-
-    if (inv.inv_qty < order.actual_qty) {
-        throw new Error(
-        `Not enough stock in inventory ${inv.inv_id} (available=${inv.inv_qty}, required=${order.actual_qty})`
-        );
-    }
-
-    // ----------------------------
-    // 3) load master data (for log)
+    // 1) stock item (for display / log)
     // ----------------------------
     const stockItem = await stockItemRepo.findOne({
         where: { item_id: order.item_id },
-        select: ["stock_item"],
+        select: ['stock_item']
     });
 
+    const stockItemCode = stockItem?.stock_item ?? order.item_id;
+
+    // ----------------------------
+    // 2) location info (for trx log)
+    // ----------------------------
     const loc = await locRepo.findOne({
-        where: { loc_id: inv.loc_id },
+        where: { loc_id: order.loc_id }
     });
 
     // ----------------------------
-    // 4) update inventory
+    // 3) FIFO inventory + lock
     // ----------------------------
-    inv.inv_qty -= order.actual_qty;
-    inv.total_cost_inv = Number(
-        (inv.inv_qty * inv.unit_cost_inv).toFixed(2)
-    );
-    inv.updated_at = new Date();
+    const invList = await invRepo
+        .createQueryBuilder("inv")
+        .setLock("pessimistic_write")
+        .where("inv.item_id = :item_id", { item_id: order.item_id })
+        .andWhere("inv.loc_id = :loc_id", { loc_id: order.loc_id })
+        .orderBy("inv.created_at", "ASC")
+        .getMany();
 
-    await invRepo.save(inv);
-
-    // ----------------------------
-    // 5) save usage_inventory
-    // ----------------------------
-    await usageInvRepo.save({
-        usage_id: usage.usage_id,
-        inv_id: inv.inv_id,
-        qty: order.actual_qty,
-    });
+    if (invList.length === 0) {
+        throw new Error(`No inventory found for item ${stockItemCode}`);
+    }
 
     // ----------------------------
-    // 6) insert inventory transaction (USAGE)
+    // 4) check total stock
     // ----------------------------
-    const trx = Object.assign(new InventoryTrx(), {
-        inv_id: inv.inv_id,
-        order_id: order.order_id,
-        order_type: TypeInfm.USAGE,
+    const totalStock = invList.reduce((sum, inv) => sum + inv.inv_qty, 0);
 
-        item_id: inv.item_id,
-        stock_item: stockItem?.stock_item ?? null,
+    if (totalStock < order.actual_qty) {
+        throw new Error(`Not enough stock for item ${stockItemCode}`);
+    }
 
-        loc_id: inv.loc_id,
-        loc: loc?.loc ?? null,
-        box_loc: loc?.box_loc ?? null,
+    // ----------------------------
+    // 5) FIFO consume + trx log
+    // ----------------------------
+    let qtyToRemove = order.actual_qty;
 
-        qty: -order.actual_qty,
-        unit_cost: inv.unit_cost_inv,
-        total_cost: Number(
-        (-order.actual_qty * inv.unit_cost_inv).toFixed(2)
-        ),
-    });
+    for (const inv of invList) {
+        if (qtyToRemove <= 0) break;
 
-    await trxRepo.save(trx);
+        const consumeQty = Math.min(inv.inv_qty, qtyToRemove);
+        qtyToRemove -= consumeQty;
+
+        // update inventory
+        inv.inv_qty -= consumeQty;
+        inv.total_cost_inv = Number(
+            (inv.inv_qty * inv.unit_cost_inv).toFixed(2)
+        );
+        inv.updated_at = new Date();
+
+        const savedInv = await invRepo.save(inv);
+
+        // ----------------------------
+        // insert inventory transaction (USAGE)
+        // ----------------------------
+        const trx: DeepPartial<InventoryTrx> = {
+            inv_id: savedInv.inv_id,
+            order_id: order.order_id,
+            order_type: TypeInfm.USAGE,
+
+            item_id: order.item_id,
+            stock_item: stockItem?.stock_item ?? undefined,
+
+            loc_id: order.loc_id,
+            loc: loc?.loc ?? undefined,
+            box_loc: loc?.box_loc ?? undefined,
+
+            qty: -consumeQty,
+            unit_cost: savedInv.unit_cost_inv,
+            total_cost: Number(
+                (-consumeQty * savedInv.unit_cost_inv).toFixed(2)
+            )
+        };
+
+        await trxRepo.save(trxRepo.create(trx));
+    }
 
     return true;
 }
 
-
-
 //---------------------------------------
 // 3) RETURN → เพิ่ม stock (เหมือน receipt แต่ผูกกับ usage)
 //---------------------------------------
-async return(
-    manager: EntityManager,
-    order: Orders,
-    inv_id: number
-    ) {
+async return(manager: EntityManager, order: Orders) {
     const invRepo = manager.getRepository(Inventory);
     const trxRepo = manager.getRepository(InventoryTrx);
     const returnRepo = manager.getRepository(OrdersReturn);
-    const usageRepo = manager.getRepository(OrdersUsage);
-    const usageInvRepo = manager.getRepository(UsageInventory);
-    const returnInvRepo = manager.getRepository(ReturnInventory);
     const itemRepo = manager.getRepository(StockItems);
     const locRepo = manager.getRepository(Locations);
 
@@ -240,145 +233,133 @@ async return(
         throw new Error(`Invalid actual_qty for return order ${order.order_id}`);
     }
 
-    if (!inv_id) {
-        throw new Error(`inv_id is required`);
-    }
-
     // ------------------------------------------------
-    // 1) load orders_return
+    // 1) load orders_return (must exist)
     // ------------------------------------------------
     const orderReturn = await returnRepo.findOne({
-        where: { order_id: order.order_id },
+        where: { order_id: order.order_id }
     });
 
-    if (!orderReturn || !orderReturn.usage_id) {
-        throw new Error(`orders_return not found or usage_id missing`);
+    if (!orderReturn) {
+        throw new Error(
+            `orders_return not found for order ${order.order_id}`
+        );
     }
 
     // ------------------------------------------------
-    // 2) load usage (หลัก)
+    // 2) load usage transaction (source of truth)
     // ------------------------------------------------
-    const usage = await usageRepo.findOne({
-        where: { usage_id: orderReturn.usage_id },
-    });
-
-    if (!usage) {
-        throw new Error(`orders_usage ${orderReturn.usage_id} not found`);
-    }
-
-    // ------------------------------------------------
-    // 3) หา usage_inventory จาก usage_id + inv_id
-    // ------------------------------------------------
-    const usageInv = await usageInvRepo.findOne({
+    const usageTrx = await trxRepo.findOne({
         where: {
-        usage_id: usage.usage_id,
-        inv_id: inv_id,
+            trx_id: orderReturn.usage_trx_id,
+            order_type: TypeInfm.USAGE
         },
+        lock: { mode: 'pessimistic_read' }
     });
 
-    if (!usageInv) {
+    if (!usageTrx) {
         throw new Error(
-        `usage_inventory not found (usage_id=${usage.usage_id}, inv_id=${inv_id})`
+            `Usage transaction ${orderReturn.usage_trx_id} not found`
         );
     }
 
-    // ------------------------------------------------
-    // 4) calculate already returned qty (per usage_inv)
-    // ------------------------------------------------
-    const returnedSum = await returnInvRepo
-        .createQueryBuilder('ri')
-        .select('COALESCE(SUM(ri.return_qty),0)', 'sum')
-        .where('ri.usage_inv_id = :usageInvId', {
-        usageInvId: usageInv.usage_inv_id,
-        })
-        .getRawOne();
+// ------------------------------------------------
+// 3) prevent over-return (NEW LOGIC)
+// ------------------------------------------------
+const returnedSum = await trxRepo
+    .createQueryBuilder('trx')
+    .select('COALESCE(SUM(trx.qty),0)', 'sum')
+    .where('trx.order_type = :type', { type: TypeInfm.RETURN })
+    .andWhere('trx.trx_ref_id = :usageTrxId', {
+        usageTrxId: usageTrx.trx_id,
+    })
+    .getRawOne();
 
-    const returnedQty = Number(returnedSum.sum);
-    if (usageInv.usage_qty == null) {
+const returnedQty = Number(returnedSum.sum); // qty เป็น +
+const usedQty = Math.abs(usageTrx.qty);
+
+const availableQty = usedQty - returnedQty;
+
+if (order.actual_qty > availableQty) {
     throw new Error(
-        `usage_inventory ${usageInv.usage_inv_id} has no usage_qty`
-    );
-    }
-
-    const availableQty = usageInv.usage_qty - returnedQty;
-
-    if (order.actual_qty > availableQty) {
-        throw new Error(
         `Return qty exceeds available (${availableQty})`
-        );
-    }
+    );
+}
+
 
     // ------------------------------------------------
-    // 5) lock inventory
+    // 4) load inventory (lock inv เดิม)
     // ------------------------------------------------
     const inv = await invRepo.findOne({
-        where: { inv_id },
-        lock: { mode: 'pessimistic_write' },
+        where: { inv_id: orderReturn.inv_id },
+        lock: { mode: 'pessimistic_write' }
     });
 
     if (!inv) {
-        throw new Error(`Inventory ${inv_id} not found`);
+        throw new Error(
+            `Inventory ${orderReturn.inv_id} not found`
+        );
     }
 
     // ------------------------------------------------
-    // 6) update inventory
+    // 5) update inventory
     // ------------------------------------------------
-    inv.inv_qty += order.actual_qty;
-    inv.total_cost_inv = Number(
-        (inv.inv_qty * inv.unit_cost_inv).toFixed(2)
-    );
+const returnQty = Number(order.actual_qty);
+
+// update inventory
+inv.inv_qty += returnQty;
+inv.total_cost_inv = Number(
+    (inv.total_cost_inv + (returnQty * usageTrx.unit_cost)).toFixed(2)
+);
+inv.unit_cost_inv = Number(
+    (inv.total_cost_inv / inv.inv_qty).toFixed(4)
+);
+
+
     inv.updated_at = new Date();
 
-    await invRepo.save(inv);
+    const savedInv = await invRepo.save(inv);
 
     // ------------------------------------------------
-    // 7) save return_inventory (detail)
-    // ------------------------------------------------
-    await returnInvRepo.save({
-        return_id: orderReturn.return_id,
-        usage_inv_id: usageInv.usage_inv_id,
-        return_qty: order.actual_qty,
-    });
-
-    // ------------------------------------------------
-    // 8) load display info
+    // 6) load display info (for trx log)
     // ------------------------------------------------
     const item = await itemRepo.findOne({
-        where: { item_id: inv.item_id },
-        select: ['stock_item'],
+        where: { item_id: usageTrx.item_id },
+        select: ['stock_item']
     });
 
     const loc = await locRepo.findOne({
-        where: { loc_id: inv.loc_id },
+        where: { loc_id: usageTrx.loc_id }
     });
 
     // ------------------------------------------------
-    // 9) insert inventory_trx (RETURN)
+    // 7) insert inventory_trx (RETURN)
     // ------------------------------------------------
-    const trx = Object.assign(new InventoryTrx(), {
-        inv_id: inv.inv_id,
+    const trx = trxRepo.create({
+        inv_id: savedInv.inv_id,
         order_id: order.order_id,
         order_type: TypeInfm.RETURN,
 
-        item_id: inv.item_id,
+        trx_ref_id: usageTrx.trx_id,
+
+        item_id: usageTrx.item_id,
         stock_item: item?.stock_item ?? null,
 
-        loc_id: inv.loc_id,
+        loc_id: usageTrx.loc_id,
         loc: loc?.loc ?? null,
         box_loc: loc?.box_loc ?? null,
 
         qty: order.actual_qty,
-        unit_cost: inv.unit_cost_inv,
+        unit_cost: usageTrx.unit_cost,
         total_cost: Number(
-        (order.actual_qty * inv.unit_cost_inv).toFixed(2)
-        ),
-    });
+            (order.actual_qty * usageTrx.unit_cost).toFixed(2)
+        )
+    } as DeepPartial<InventoryTrx>);
 
     await trxRepo.save(trx);
 
-    return inv;
+    return savedInv;
 }
-
 
 
 
@@ -543,8 +524,7 @@ async transfer(manager: EntityManager, order: Orders) {
 
 
 
-    // ดึงข้อมูลมาแสดงผลในหน้า inventory balance แบบ stock item view
-    // กรุ๊ปตาม item_id, loc_id, mc_code, org_id, dept, cond, item_status
+    // ดึงข้อมูลมาแสดงผลในหน้า inventory balance
     async getAll(manager?: EntityManager): Promise<ApiResponse<any | null>> {
         const response = new ApiResponse<any | null>();
         const operation = 'InventoryService.getAll';
@@ -557,26 +537,13 @@ async transfer(manager: EntityManager, order: Orders) {
                 .createQueryBuilder('inv')
                 .leftJoin('m_stock_items', 'stock', 'stock.item_id = inv.item_id')
                 .leftJoin('m_location', 'loc', 'loc.loc_id = inv.loc_id')
-                .leftJoin('orders_receipt', 'receipt', 'receipt.receipt_id = inv.receipt_id')
-                .leftJoin('orders', 'o', 'o.order_id = receipt.order_id')
                 .select([
                     'inv.item_id AS item_id',
                     'stock.stock_item AS stock_item',
                     'stock.item_desc AS item_desc',
-
                     'inv.loc_id AS loc_id',
                     'loc.loc AS loc',
                     'loc.box_loc AS box_loc',
-
-                    'stock.item_status AS item_status',
-                    'inv.org_id AS org_id',
-                    'inv.dept AS dept',
-
-                    'o.mc_code AS mc_code',
-                    'o.cond AS cond',
-
-                    // 👇 inv_id ที่ถูกนำมารวม
-                    "GROUP_CONCAT(CAST(inv.inv_id AS CHAR) SEPARATOR ',') AS inv_ids",
 
                     // 🔢 รวมจำนวน
                     'SUM(inv.inv_qty) AS total_inv_qty',
@@ -589,16 +556,12 @@ async transfer(manager: EntityManager, order: Orders) {
                 ])
                 .groupBy('inv.item_id')
                 .addGroupBy('inv.loc_id')
-                .addGroupBy('o.mc_code')
-                .addGroupBy('inv.org_id')
-                .addGroupBy('inv.dept')
-                .addGroupBy('o.cond')
-                .addGroupBy('stock.item_status')
                 .addGroupBy('stock.stock_item')
                 .addGroupBy('stock.item_desc')
                 .addGroupBy('loc.loc')
                 .addGroupBy('loc.box_loc')
                 .getRawMany();
+
 
             if (!rawData || rawData.length === 0) {
                 return response.setIncomplete(lang.msgNotFound('inventory'));
@@ -615,112 +578,6 @@ async transfer(manager: EntityManager, order: Orders) {
             throw new Error(lang.msgErrorFunction(operation, error.message));
         }
     }
-
-    // จัดกลุ่มตาม location ID ( item_id, mc_code, org_id, dept, cond, item_status )
-    async getByLoc(manager?: EntityManager): Promise<ApiResponse<any | null>> {
-    const response = new ApiResponse<any | null>();
-    const operation = 'InventoryService.getByLoc';
-
-    try {
-        const locRepo = manager
-            ? manager.getRepository(Location)
-            : this.locationRepo;
-
-        const rows = await locRepo
-            .createQueryBuilder('loc')
-            .leftJoin('inventory', 'inv', 'inv.loc_id = loc.loc_id')
-            .leftJoin('m_stock_items', 'stock', 'stock.item_id = inv.item_id')
-            .leftJoin('orders_receipt', 'receipt', 'receipt.receipt_id = inv.receipt_id')
-            .leftJoin('orders', 'o', 'o.order_id = receipt.order_id')
-            .select([
-                // 📍 location
-                'loc.loc_id AS loc_id',
-                'loc.loc AS loc',
-                'loc.box_loc AS box_loc',
-
-                // 📦 inventory group key
-                'inv.item_id AS item_id',
-                'o.mc_code AS mc_code',
-                'inv.org_id AS org_id',
-                'inv.dept AS dept',
-                'o.cond AS cond',
-                'stock.item_status AS item_status',
-
-                'stock.stock_item AS stock_item',
-                'stock.item_desc AS item_desc',
-
-                // 🔢 aggregate
-                "GROUP_CONCAT(inv.inv_id SEPARATOR ',') AS inv_ids",
-                'SUM(inv.inv_qty) AS total_inv_qty',
-                'SUM(inv.total_cost_inv) AS total_cost_inv',
-                'COALESCE(ROUND(SUM(inv.total_cost_inv) / NULLIF(SUM(inv.inv_qty),0),4),0) AS avg_unit_cost'
-            ])
-            .groupBy('loc.loc_id')
-            .addGroupBy('loc.loc')
-            .addGroupBy('loc.box_loc')
-
-            .addGroupBy('inv.item_id')
-            .addGroupBy('o.mc_code')
-            .addGroupBy('inv.org_id')
-            .addGroupBy('inv.dept')
-            .addGroupBy('o.cond')
-            .addGroupBy('stock.item_status')
-            .getRawMany();
-
-        // 🔄 จัดรูปแบบ nested
-        const result = Object.values(
-            rows.reduce((acc: any, row: any) => {
-                const locKey = row.loc_id;
-
-                if (!acc[locKey]) {
-                    acc[locKey] = {
-                        loc_id: row.loc_id,
-                        loc: row.loc,
-                        box_loc: row.box_loc,
-                        items: []
-                    };
-                }
-
-                // ⚠️ location ที่ไม่มี inventory → item_id จะเป็น null
-                if (row.item_id !== null) {
-                    acc[locKey].items.push({
-                        item_id: row.item_id,
-                        mc_code: row.mc_code,
-                        org_id: row.org_id,
-                        dept: row.dept,
-                        cond: row.cond,
-                        item_status: row.item_status,
-
-                        inv_ids: row.inv_ids
-                            ? row.inv_ids.split(',').map((id: string) => Number(id))
-                            : [],
-
-                        total_inv_qty: Number(row.total_inv_qty ?? 0),
-                        total_cost_inv: Number(row.total_cost_inv ?? 0),
-                        avg_unit_cost: Number(row.avg_unit_cost ?? 0)
-                    });
-                }
-
-                return acc;
-            }, {})
-        );
-
-        // ✅ list API → ไม่มีข้อมูล = array ว่าง
-        return response.setComplete(lang.msgFound('inventory'), result);
-
-    } catch (error: any) {
-        console.error('Error in getByLoc:', error);
-
-        if (error instanceof QueryFailedError) {
-            return response.setIncomplete(
-                lang.msgErrorFunction(operation, error.message)
-            );
-        }
-
-        throw new Error(lang.msgErrorFunction(operation, error.message));
-    }
-}
-
 
 }
 

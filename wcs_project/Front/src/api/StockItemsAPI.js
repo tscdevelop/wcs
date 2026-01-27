@@ -127,6 +127,59 @@ class StockItemsAPI {
         }
     }
 
+    static async searchItemInventory({ stock_item = "", item_name = "" }) {
+        try {
+            const token = GlobalVar.getToken();
+            const language = GlobalVar.getLanguage() || "en";
+
+            const filters = {
+            stock_item,
+            item_name,
+            lng: language,  // ส่ง lng ด้วย
+            };
+
+            const apiResponse = await ApiProvider.getData(
+            "/api/stock-items/search-item-inventory",
+            filters,  // <-- ApiProvider จะประกอบ query string ให้เอง
+            token,
+            language
+            );
+
+            //console.log("apiResponse:", apiResponse);
+            return apiResponse;
+
+        } catch (error) {
+            console.error("Error search:", error.message || error);
+            throw new Error(`Error: ${error.message}`);
+        }
+    }
+
+    static async searchItem({ stock_item = "", item_name = "" }) {
+        try {
+            const token = GlobalVar.getToken();
+            const language = GlobalVar.getLanguage() || "en";
+
+            const filters = {
+            stock_item,
+            item_name,
+            lng: language,  // ส่ง lng ด้วย
+            };
+
+            const apiResponse = await ApiProvider.getData(
+            "/api/stock-items/search-item",
+            filters,  // <-- ApiProvider จะประกอบ query string ให้เอง
+            token,
+            language
+            );
+
+            //console.log("apiResponse:", apiResponse);
+            return apiResponse;
+
+        } catch (error) {
+            console.error("Error search:", error.message || error);
+            throw new Error(`Error: ${error.message}`);
+        }
+    }
 }
 
 export default StockItemsAPI;

@@ -8,24 +8,24 @@ import { StatusMRS, ControlSource } from "../common/global.enum";
 @Entity({ name: "mrs_log" })
 export class MrsLog {
     /** รหัส log (PK) */
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Primary key of MRS log' })
-    log_mrs_id!: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of MRS log' })
+    log_mrs_id!: string;
 
     /** อ้างถึง MRS ที่ทำงาน */
-    @Column({ type: 'int', unsigned: true,  nullable: true, comment: 'MRS device id (logical FK)' })
-    mrs_id: number | null;
+    @Column({ type: 'bigint', unsigned: true, comment: 'MRS device id (logical FK)' })
+    mrs_id?: string | null;
 
     /** ประเภทการกระทำ */
     @Column({ type: 'enum', enum: StatusMRS, default: StatusMRS.IDLE })
     status!: StatusMRS
 
     /** ช่องที่เกี่ยวข้อง */
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Aisle id involved (logical FK)' })
-    aisle_id: number | null;
+    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Aisle id involved (logical FK)' })
+    aisle_id?: string | null;
 
     /** งานที่เกี่ยวข้อง */
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Task id linked to this action (logical FK)' })
-    order_id: number | null;
+    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Task id linked to this action (logical FK)' })
+    order_id?: string | null;
 
     /** ผู้ควบคุม: AUTO/Manual */
     @Column({ type: 'enum', enum:ControlSource, default: ControlSource.AUTO, comment: 'Operator mode: AUTO/MANUAL' })
@@ -40,7 +40,7 @@ export class MrsLog {
 
     /** ระยะเวลา (มิลลิวินาที) — บันทึกไว้ให้คิวรีรายงานเร็ว */
     @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Action duration in milliseconds' })
-    task_duration: number | null;
+    task_duration?: number | null;
 
     /** สรุปความเร็ว/เร่ง/ระยะที่เลื่อน (อ้างอิงจาก telemetry) */
     @Column({ type: 'decimal', precision: 8, scale: 3, nullable: true, comment: 'Average speed (m/s)' })
@@ -90,7 +90,7 @@ export class MrsLog {
     error_msg?: string;
 
     /** อ้างอิงโปรไฟล์/ชุดเทเลเมทรี (optional) */
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Control profile id used (optional)' })
+    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Control profile id used (optional)' })
     control_id?: string;
 
     /** พลังงานที่ใช้ (Wh) ถ้าเก็บได้จากระบบไฟ/แบต */
@@ -98,7 +98,7 @@ export class MrsLog {
     energy_used_wh?: string;
 
     /** อ้างอิงชุด telemetry ที่ใช้สรุป (ถ้ามีการทำ roll-up แยก) */
-    @Column({ type: 'int', unsigned: true, nullable: true, comment: 'Reference id to telemetry batch/rollup (optional)' })
+    @Column({ type: 'bigint', unsigned: true, nullable: true, comment: 'Reference id to telemetry batch/rollup (optional)' })
     telemetry_ref?: string;
 
     //เชื่อมกับคำสั่ง/ACK

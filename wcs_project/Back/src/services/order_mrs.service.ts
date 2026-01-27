@@ -109,6 +109,7 @@ export class T1MOrdersService {
 
         const itemId = stock?.item_id ?? null;
         const itemStock = stock?.stock_item ?? null;
+        const itemName = stock?.item_name ?? null;
         const itemDesc = stock?.item_desc ?? null;
 
         // โหลด location (ไม่ throw)
@@ -133,12 +134,13 @@ export class T1MOrdersService {
             (resolvedSource === TaskSource.API ? null : String(resolvedSource));
 
         await repo.insert({
-            order_id: order.order_id,
+            order_id: String(order.order_id),
             type: order.type as any,
 
             // Stock info (nullable)
             item_id: itemId,
             stock_item: itemStock,
+            item_name: itemName,
             item_desc: itemDesc,
 
             // Location info (nullable)
@@ -172,7 +174,7 @@ export class T1MOrdersService {
         mrslogRepo: Repository<MrsLog>,
         device: MRS,
         order: Orders,
-        targetAisleId: number
+        targetAisleId: string
     ) {
         // 1) Update MRS → MOVING
         await mrsRepo.update(
@@ -206,7 +208,7 @@ export class T1MOrdersService {
     // -------------------------
 
     private async getRoutingContext(
-        order_id: number,
+        order_id: string,
         em: EntityManager
     ) {
         const {
@@ -324,7 +326,7 @@ export class T1MOrdersService {
     // ฟังก์ชันหลัก executionInbT1m
     // -------------------------
     async executionInbT1m(
-        order_id: number,
+        order_id: string,
         reqUsername: string,
         manager?: EntityManager
     ): Promise<ApiResponse<any>> {
@@ -442,7 +444,7 @@ export class T1MOrdersService {
 
     // ======= onOpenFinished (แก้ไข) =======
     async onOpenFinished(
-        payload: { order_id: number; aisle_id: number; duration_ms?: number },
+        payload: { order_id: string; aisle_id: string; duration_ms?: number },
         manager?: EntityManager
     ): Promise<ApiResponse<any>> {
 
@@ -473,7 +475,7 @@ export class T1MOrdersService {
             where: { loc_id: order.loc_id }
         });
 
-        let mrsId: number | null = null;
+        let mrsId: string | null = null;
 
         if (loc) {
             const locationMrs = await locationMrsRepo.findOne({

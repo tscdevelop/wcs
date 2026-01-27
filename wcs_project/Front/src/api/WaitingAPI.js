@@ -78,13 +78,14 @@
         }
     }
 
-    static async deleteWaiting(payload) {
+    static async deleteWaiting(order_id) {
         try {
         const token = GlobalVar.getToken();
-        const endpoint = "/api/waiting/delete";
+        const endpoint = `/api/waiting/delete/${order_id}`;
 
         // ทำการเรียก API ด้วย token และ endpoint
-        const response = await ApiProvider.deleteData(endpoint, payload, token, undefined, { useBody: true } );
+        const response = await ApiProvider.deleteData(endpoint, {}, token);
+        //console.log("API Response:", response);
 
         return response; // ส่งค่ากลับไป
         } catch (error) {

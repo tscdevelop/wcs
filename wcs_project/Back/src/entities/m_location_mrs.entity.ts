@@ -7,15 +7,15 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 export class LocationsMrs {
 
     /** PK ของ mapping */
-    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
-    id: number;
+    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+    id: string;
     
     /** ไอดี location (FK) */
-    @Column({ type: 'int', unsigned: true, comment: 'Location ID' })
-    loc_id: number;
+    @Column({ type: 'bigint', unsigned: true, comment: 'Location ID' })
+    loc_id: string;
 
     /** ไอดี mrs (Fk) */
-    @Column({ type: 'int', unsigned: true })
-    mrs_id: number;
+    @Column({ type: 'bigint', unsigned: true })
+    mrs_id: string;
 
 }
