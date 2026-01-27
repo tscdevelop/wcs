@@ -10,6 +10,7 @@ import CounterBox from "../components/counter_box";
 import ScanQtyDialog from "../transactions/scan_qty_form";
 import SweetAlertComponent from "../components/sweetAlert";
 import ExecutionAPI from "api/TaskAPI";
+import StatusBadge from "../components/statusBadge";
 
 import { GlobalVar } from "common/GlobalVar";
 
@@ -29,6 +30,7 @@ const CheckOutTPage = () => {
     onConfirm: null,
   });
 
+  const role = GlobalVar.getRole();
   const storeType = GlobalVar.getStoreType();
 
   const FIXED_COUNTER_IDS = [1, 2, 3, 4, 5, 6];
@@ -106,35 +108,89 @@ const CheckOutTPage = () => {
     [counters]
   );
 
-  /* ---------------- Table Columns ---------------- */
-  const columns = [
-    { field: "mc_code", label: "Maintenance Contract" },
-    { field: "type", label: "Transaction Type" },
-    { field: "spr_no", label: "SPR No." },
+  /* ---------------- Table Columns By Requester ---------------- */
+  const requesterColumns = [
     { field: "work_order", label: "Work Order" },
-    { field: "requested_at", label: "Date" },
-    { field: "stock_item", label: "Stock Item ID" },
+    { field: "spr_no", label: "SPR No." },
+    { field: "usage_line", label: "Usage Line" },
+    { field: "usage_num", label: "Usage No." },
+    { field: "mc_code", label: "MC Code" },
+    { field: "stock_item", label: "Stock Item Number" },
+    { field: "item_desc", label: "Stock Item Description" },
     { field: "cond", label: "Condition" },
-    { field: "actual_qty", label: "Scanned Quantity" },
-    { field: "plan_qty", label: "Required Quantity" },
+    { field: "unit_cost_handled", label: "Unit Cost" },
+    { field: "total_cost_handled", label: "Total Cost" },
+    { field: "plan_qty", label: "Required Qty" },
+    { field: "actual_qty", label: "Actual Qty" },
+    {
+      field: "status",
+      label: "Status",
+      valueGetter: (row) => row.status,
+      renderCell: (status) => <StatusBadge status={status} />,
+    },
     {
       field: "counter_id",
       label: "Counter",
-      minWidth: 120, // ⭐ สำคัญ
       renderCell: (value, row) => (
-        <span
-          style={{
-            color: row.counter_color || "#000",
-            fontWeight: 600,
-            whiteSpace: "nowrap", // ⭐ กันขึ้นบรรทัดใหม่
-          }}
-        >
+        <span style={{ color: row.counter_color || "#000", fontWeight: 600 }}>
           Counter {value}
         </span>
       ),
     },
+  ];
+
+  /* ---------------- Table Columns By Defualt ---------------- */
+  const defaultColumns = [
+    { field: "mc_code", label: "Maintenance Contract" },
+    { field: "type", label: "Transaction Type" },
+    { field: "work_order", label: "Work Order" },
+    { field: "spr_no", label: "SPR No." },
+    { field: "usage_num", label: "Usage No." },
+    { field: "usage_line", label: "Usage Line" },
+    { field: "po_num", label: "PO No." },
+    { field: "object_id", label: "OBJECT ID" },
+    { field: "stock_item", label: "Stock Item Number" },
+    { field: "item_desc", label: "Stock Item Description" },
+    { field: "cond", label: "Condition" },
+    { field: "from_loc", label: "From Location" },
+    { field: "from_box_loc", label: "From BIN" },
+    { field: "to_loc", label: "To Location" },
+    { field: "to_box_loc", label: "To BIN" },
+    { field: "unit_cost_handled", label: "Unit Cost" },
+    { field: "total_cost_handled", label: "Total Cost" },
+    { field: "plan_qty", label: "Required Quantity" },
+    { field: "actual_qty", label: "Scanned Quantity" },
+    {
+      field: "status",
+      label: "Order Status",
+      valueGetter: (row) => row.status,
+      renderCell: (status) => <StatusBadge status={status} />,
+    },
+    {
+      field: "counter_id",
+      label: "Counter",
+      minWidth: 120,
+      renderCell: (value, row) => (
+          <span
+            style={{
+              color: row.counter_color || "#000",
+              fontWeight: 600,
+              whiteSpace: "nowrap", // ⭐ กันขึ้นบรรทัดใหม่
+            }}
+          >
+            Counter {value}
+          </span>
+        ),
+    },
     { field: "is_confirm", label: "Confirm", type: "confirmSku" },
   ];
+
+  const columns = React.useMemo(() => {
+    if (role === "REQUESTER") {
+      return requesterColumns;
+    }
+    return defaultColumns;
+  }, [role]);
 
   //แปลงชื่อคลัง
   let storeTypeTrans = "";
@@ -181,9 +237,9 @@ const CheckOutTPage = () => {
             />
           </Box>
 
-          {/* Check Out */}
+          {/* Check In & Out */}
           <MDTypography variant="h3" color="bold">
-            - Check Out
+            - Check In & Out
           </MDTypography>
         </Box>
       </MDBox>
@@ -234,6 +290,7 @@ const CheckOutTPage = () => {
                 <ReusableDataTable
                   columns={columns}
                   rows={ordersList}
+                  //disableHorizontalScroll
                   idField="order_id"
                   defaultPageSize={10}
                   pageSizeOptions={[10, 25, 50]}

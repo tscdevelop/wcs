@@ -204,8 +204,7 @@ const T1MStore = () => {
         { field: "mrs_status", label: "MRS Status" },
         { field: "requested_at", label: "Date" },
         { field: "type", label: "Transaction Type" },
-        { field: "stock_item", label: "Stock Item ID" },
-        { field: "item_name", label: "Stock Item Name" },
+        { field: "stock_item", label: "Stock Item Number" },
         { field: "item_desc", label: "Stock Item Description" },
         { field: "loc", label: "Location" },
         { field: "box_loc", label: "Box Location" },
@@ -503,11 +502,11 @@ const T1MStore = () => {
                                     <Grid item xs={12} sm={6} md={6}></Grid>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <MDBox>
-                                            <MDTypography variant="h6">Stock Item ID</MDTypography>
+                                            <MDTypography variant="h6">Stock Item Number</MDTypography>
                                         </MDBox>
                                         <MDInput
                                             fullWidth
-                                            placeholder="Stock Item ID"
+                                            placeholder="Stock Item Number"
                                             value={filtersMrs.stock_item}
                                             onChange={handleFilterMrsChange("stock_item")}
                                             InputProps={{

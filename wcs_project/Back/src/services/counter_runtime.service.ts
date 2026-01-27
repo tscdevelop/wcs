@@ -39,7 +39,7 @@ export class CounterRuntimeService {
     { counter_id: counterId },
     {
       actual_qty: 0,
-      order_id: undefined, // ✅ แทน null
+      order_id: null
     }
   );
 }

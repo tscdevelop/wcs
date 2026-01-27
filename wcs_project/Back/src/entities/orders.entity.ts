@@ -7,8 +7,8 @@ import { ScanStatus, StatusOrders, TypeInfm } from '../common/global.enum';
 @Entity({ name: 'orders' })
 export class Orders {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order task' })
-    order_id!: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Primary key of order task' })
+    order_id!: number;
 
     /** ประเภท: Inbound(Receipt) or Outbound(Usage) or Transfer */
     @Column({ type: 'enum', enum:TypeInfm, comment: 'Type of the task' })
@@ -16,7 +16,7 @@ export class Orders {
 
     /** ประเภทคลัง: T1 (WRS) หรือ T1M (MRS) หรือ AGMB*/
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Store type of the stock item location' })
-    store_type: string;
+    store_type: string | null;
 
     /** สำหรับจัดกลุ่ม order ที่ execution */
     @Column({ type: 'varchar', length: 50, nullable: true })
@@ -27,28 +27,24 @@ export class Orders {
     status!: StatusOrders;
 
     /** ไอดี stock item (Fk m_stock_items) */
-    @Column({ type: 'bigint', unsigned: true })
-    item_id!: string;
+    @Column({ type: 'int', unsigned: true })
+    item_id!: number;
 
     /** เก็บ group code */
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Maintenance contract' })
-    mc_code: string;
-
-    /** เก็บ SPR NO */
-    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'SPR NO' })
-    spr_no: string;
+    mc_code: string | null;
 
     /** ไอดี location (Fk) */
-    @Column({ type: 'bigint', unsigned: true })
-    loc_id: string;
+    @Column({ type: 'int', unsigned: true })
+    loc_id!: number;
 
     /** สภาพสินค้า เช่น NEW หรือ CAPITAL */
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Item condition (NEW / CAPITAL)' })
-    cond?: string;
+    cond: string | null;
 
     /** จำนวนที่ต้องการ */
     @Column({ type: 'int', nullable: false, comment: 'Plan Quantity' })
-    plan_qty: number;
+    plan_qty!: number;
     
     /** จำนวนที่ยิงจริง */
     @Column({ type: 'int', nullable: true, default: 0, comment: 'Actual Quantity' })
@@ -60,7 +56,7 @@ export class Orders {
 
     /** ผู้ร้องขอแสกนของ */
     @Column({ type: 'varchar', length: 50, nullable: true })
-    actual_by?: string | null;
+    actual_by: string | null;
 
     /** สถานะการคอนเฟิร์ม */
     @Column({ default: false, nullable: false })
@@ -68,7 +64,7 @@ export class Orders {
 
     /** ผู้ร้องขอ */
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Requester user id/name' })
-    requested_by?: string | null;
+    requested_by: string | null;
 
     /** เวลารับคำขอ */
     @Column({ type: 'timestamp',  default: () => 'CURRENT_TIMESTAMP', comment: 'Requested at' })
@@ -96,17 +92,21 @@ export class Orders {
 
     /** โค้ด/ข้อความความผิดพลาด (ระดับงานรวม) */
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Error code (if failed)' })
-    error_code?: string;
+    error_code: string | null;
 
     @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Error message (if failed)' })
-    error_msg?: string;
+    error_msg: string | null;
 
     /** ไอดี user_id ที่สร้าง order*/
-    @Column({ type: 'bigint', unsigned: true })
+    @Column({ type: 'int', unsigned: true })
     created_by_user_id: number;
 
     /** ไอดี user_id ที่ execute order*/
-    @Column({ type: 'bigint', unsigned: true, nullable: true, })
+    @Column({ type: 'int', unsigned: true, nullable: true, })
     executed_by_user_id?: number;
+
+    /** ผู้ร้องขอ import เท่านั้น */
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Requester username importer' })
+    import_by: string | null;
 
 }

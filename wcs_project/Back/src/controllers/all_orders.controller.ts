@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import ResponseUtils, { HttpStatus } from '../utils/ResponseUtils';
+import ResponseUtils from '../utils/ResponseUtils';
 import RequestUtils from '../utils/RequestUtils';
 import { AllOrdersService } from '../services/all_orders.service';
 import { TypeInfm } from '../common/global.enum';
+import * as lang from '../utils/LangHelper';
 
 dotenv.config();
 
@@ -13,7 +14,10 @@ export const getUsageAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getUsageAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
 
     try {
         // 🔹 รับค่าจาก query
@@ -48,7 +52,10 @@ export const getReceiptAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getReceiptAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
 
     try {
         // 🔹 รับค่าจาก query
@@ -83,7 +90,10 @@ export const getReturnAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getReturnAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
 
     try {
         // 🔹 รับค่าจาก query
@@ -118,7 +128,10 @@ export const getStatusAll = async (req: Request, res: Response) => {
     const operation = 'OrderController.getStatusAll';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
+
 
     try {
         // 🔹 รับค่าจาก query

@@ -19,7 +19,7 @@ const HomePage = () => {
   const [openReturnHome, setOpenReturnHome] = useState(false);
   const [openInvHome, setOpenInvHome] = useState(false);
 
-  
+
   // รายการ Role ที่ไม่ต้องการให้แสดงเมนู
   const hiddenRoles = ["REQUESTER", "STORE"];
   const userRole = GlobalVar.getRole(); // ดึง Role ของผู้ใช้
@@ -39,7 +39,7 @@ const HomePage = () => {
     { title: "Pick", path: "/pick/execute" },
     { title: "Status-req", path: "/status-requester" },
     { title: "Status", path: "/status" },
-    { title: "Check Out", path: "/checkout-t1" },
+    { title: "Check In & Out", path: "/checkout-t1" },
     { title: "Put", path: "/put/execute" },
     { title: "Return", path: "/return/execute" },
     // ✅ แสดงเฉพาะ WCS
@@ -50,7 +50,7 @@ const HomePage = () => {
   const Requester = [
     { title: "Pick", path: "/pick/execute-requester" },
     { title: "Status", path: "/status-requester" },
-    { title: "Check Out", path: "/checkout-t1" },
+    { title: "Check In & Out", path: "/checkout-t1" },
   ];
 
   //menu_route
@@ -60,7 +60,7 @@ const HomePage = () => {
     { title: "Return", path: "/return" },
     { title: "Transfer", path: "" },
     { title: "Status", path: "/status" },
-    { title: "Check Out", path: "/checkout-t1" },
+    { title: "Check In & Out", path: "/checkout-t1" },
     // ✅ แสดงเฉพาะ WCS
     ...(storeType === "WCS" ? [{ title: "Inventory", path: "/inventory" }] : []),
   ];
@@ -76,9 +76,9 @@ const HomePage = () => {
     roleMenu = menuItems;
   }
 
-  // ❌ ปิด Check Out เมื่อเป็น WCS
+  // ❌ ปิด Check In & Out เมื่อเป็น WCS
   if (storeType === "WCS") {
-    roleMenu = roleMenu.filter((item) => item.title !== "Check Out");
+    roleMenu = roleMenu.filter((item) => item.title !== "Check In & Out");
   }
 
   //แปลงชื่อคลัง

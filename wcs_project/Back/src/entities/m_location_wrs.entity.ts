@@ -7,19 +7,19 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 export class LocationsWrs {
 
     /** PK ของ mapping */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
-    id: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
+    id: number;
     
     /** ไอดี location (FK) */
-    @Column({ type: 'bigint', unsigned: true, comment: 'Location ID' })
-    loc_id: string;
+    @Column({ type: 'int', unsigned: true, comment: 'Location ID' })
+    loc_id: number;
 
     /** ไอดี wrs (Fk) */
-    @Column({ type: 'bigint', unsigned: true })
-    wrs_id: string;
+    @Column({ type: 'int', unsigned: true })
+    wrs_id: number;
 
      /** รหัส node / waypoint ที่ robot เข้าใจ */
-    @Column({ type: 'varchar', length: 50, comment: 'Robot node / waypoint code' })
+    @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Robot node / waypoint code' })
     node_code: string;
 
     /** จุดจอด / pose */

@@ -85,8 +85,7 @@
   },
   "stock_item": {
     "stock_id": "Stock Item ID(PK)",
-    "stock_item": "Stock Item ID",
-    "item_name": "Stock Item Name"
+    "stock_item": "Stock Item ID"
   }
 
 }
