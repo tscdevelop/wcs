@@ -136,7 +136,9 @@ export const create = async (req: Request, res: Response) => {
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
-  if (!reqUsername) return;
+  if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
   
   try {
 
@@ -172,7 +174,9 @@ export const update = async (req: Request, res: Response) => {
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
-  if (!reqUsername) return;
+  if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
   //const data = req.body;
   try {
@@ -199,7 +203,9 @@ export const del = async (req: Request, res: Response) => {
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
-  if (!reqUsername) return;
+  if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
   try {
   
@@ -239,7 +245,9 @@ export const getByUserId = async (req: Request, res: Response) => {
   
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
-  if (!reqUsername) return;
+  if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
   try {
       response = await userService.getByUserId(Number(user_id));
@@ -255,7 +263,9 @@ export const checkUsernameExists = async (req: Request, res: Response) => {
 
  // ตรวจสอบ username ส่งมาหรือไม่
  const reqUsername = RequestUtils.getUsernameToken(req, res);
- if (!reqUsername) return;
+ if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
   try {
     const exists = await userService.checkUsernameExists(username);
@@ -277,7 +287,9 @@ export const changePassword = async (req: Request, res: Response) => {
 
   // ตรวจสอบ username ส่งมาหรือไม่
   const reqUsername = RequestUtils.getUsernameToken(req, res);
-  if (!reqUsername) return;
+  if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
   try {
 

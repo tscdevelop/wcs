@@ -6,8 +6,8 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 @Entity({ name: 'wrs' })
 export class WRS {
 
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
-    wrs_id!: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true })
+    wrs_id!: number;
 
     @Column({ type: 'varchar', length: 50, unique: true })
     wrs_code!: string;
@@ -17,16 +17,16 @@ export class WRS {
     wrs_status!: string;
 
     /** ตำแหน่งปัจจุบันของหุ่นยนต์ */
-    @Column({ type: 'bigint', unsigned: true, nullable: true })
-    current_loc_id?: string | null;
+    @Column({ type: 'int', unsigned: true, nullable: true })
+    current_loc_id: number | null;
 
     /** order ที่กำลังทำอยู่ */
-    @Column({ type: 'bigint', unsigned: true, nullable: true })
-    current_order_id?: string | null;
+    @Column({ type: 'int', unsigned: true, nullable: true })
+    current_order_id: number | null;
 
     /** counter เป้าหมาย */
-    @Column({ type: 'bigint', unsigned: true, nullable: true })
-    target_counter_id?: string | null;
+    @Column({ type: 'int', unsigned: true, nullable: true })
+    target_counter_id: number | null;
 
     /** พร้อมรับงานใหม่หรือไม่ */
     @Column({ type: 'boolean', default: true })

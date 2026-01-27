@@ -3,15 +3,15 @@
 import { MrsGateway, OpenCloseAck } from './mrs.gateway';
 
 type Callbacks = {
-    onOpenFinished(payload: { order_id: string; aisle_id: string, duration_ms?: number }): void;
-    //onCloseFinished(payload: { order_id: string; duration_ms?: number }): void;
+    onOpenFinished(payload: { order_id: number; aisle_id: number, duration_ms?: number }): void;
+    //onCloseFinished(payload: { order_id: number; duration_ms?: number }): void;
 };
 
 // → รับคำสั่ง → ตอบรับ (ACK) ทันที → ตั้งเวลาแล้ว “โยนอีเวนต์กลับ”
 export class MockMrsGateway implements MrsGateway {
     constructor(private cb: Callbacks) {}
 
-async openAisle({ order_id, aisle_id }: { mrs_id: string; aisle_id: string; order_id: string }): Promise<OpenCloseAck> {
+async openAisle({ order_id, aisle_id }: { mrs_id: number; aisle_id: number; order_id: number }): Promise<OpenCloseAck> {
     setTimeout(() => this.cb.onOpenFinished({ order_id, aisle_id, duration_ms: 1200 }), 300);
     return {
         ok: true,

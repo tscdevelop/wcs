@@ -58,7 +58,6 @@
 //           message: (
 //             <div>
 //               <strong>Stock Item ID:</strong> {order.stock_item} <br />
-//               <strong>Stock Item Name:</strong> {order.item_name} <br />
 //               <strong>Stock Item Description:</strong> {order.item_desc} <br />
 //               <strong>Order ID:</strong> {order.order_id} <br />
 //               <strong>Transaction Type:</strong> {order.type} <br />

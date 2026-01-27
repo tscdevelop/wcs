@@ -29,7 +29,6 @@ const InventoryProfile = () => {
     const [filteredItems, setFilteredItems] = useState([]);
     const [searchItems, setSearchItems] = useState({
         stock_item: "",
-        item_name: "",
         item_desc: "",
     });
 
@@ -67,7 +66,6 @@ const InventoryProfile = () => {
         const filtered = itemsList.filter(
         (item) =>
             (item.stock_item || "").includes(searchItems.stock_item) &&
-            (item.item_name || "").includes(searchItems.item_name) &&
             (item.item_desc || "").includes(searchItems.item_desc)
         );
         setFilteredItems(filtered);
@@ -87,7 +85,6 @@ const InventoryProfile = () => {
             setEditingItems({
             item_id: data.item_id,
             stock_item: data.stock_item,
-            item_name: data.item_name,
             item_desc: data.item_desc ?? "",
             item_img: data.item_img ?? "",
             item_img_url: data.item_img_url ?? "",
@@ -168,7 +165,6 @@ const InventoryProfile = () => {
 
     const columns = [
         { field: "stock_item", label: "Stock Item No." },
-        { field: "item_name", label: "Stock Item Name" },
         { field: "item_desc", label: "Stock Item Description" },
         { field: "item_img", label: "Photo" },
     ];
@@ -219,7 +215,7 @@ const InventoryProfile = () => {
             </Box>
             {/* Inventory Profile */}
             <MDTypography variant="h3" color="bold">
-                - Inventory - Profile
+                - Inventory - Item Master
             </MDTypography>
             </Box>
         </MDBox>
@@ -263,27 +259,7 @@ const InventoryProfile = () => {
                         fullWidth
                     />
                     </Grid>
-                    {/* Stock Item Name */}
-                    <Grid item xs={12} md={3}>
-                    <MDTypography variant="caption" fontWeight="bold">
-                        Stock Item Name
-                    </MDTypography>
-                    <MDInput
-                        placeholder="Text Field"
-                        sx={{ height: "45px" }}
-                        value={searchItems.item_name}
-                        onChange={(e) => setSearchItems({ ...searchItems, item_name: e.target.value })}
-                        displayEmpty
-                        InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                            <SearchIcon />
-                            </InputAdornment>
-                        ),
-                        }}
-                        fullWidth
-                    />
-                    </Grid>
+                    
                     {/* Stock Item Description */}
                     <Grid item xs={12} md={3}>
                     <MDTypography variant="caption" fontWeight="bold">

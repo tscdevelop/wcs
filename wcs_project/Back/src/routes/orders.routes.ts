@@ -15,7 +15,7 @@ const router = Router();
  * @swagger
  * /api/waiting/create:
  *   post:
- *     summary: สร้างรายการ order
+ *     summary: สร้างรายการ order (รองรับ batch)
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
@@ -27,110 +27,100 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [type, items]
  *             properties:
  *               type:
  *                 type: string
  *                 enum: [RECEIPT, USAGE, RETURN, TRANSFER]
- *                 example: "USAGE"
+ *                 example: USAGE
  *
- *               item_id:
- *                 type: string
- *                 example: "1"
+ *               items:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required: [item_id, mc_code, loc_id]
+ *                   properties:
+ *                     item_id:
+ *                       type: number
+ *                       example: 1
+ *                     mc_code:
+ *                       type: string
+ *                       example: "MC01"
+ *                     loc_id:
+ *                       type: number
+ *                       example: 10
+ *                     cond:
+ *                       type: string
+ *                       example: "CAPITAL"
+ *                     plan_qty:
+ *                       type: number
+ *                       example: 5
+ *                     usage:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = USAGE
+ *                       properties:
+ *                         work_order:
+ *                           type: string
+ *                           example: "WO20251109-001"
+ *                         usage_num:
+ *                           type: string
+ *                           example: "6999"
+ *                         spr_no:
+ *                           type: string
+ *                           example: "spr-001"
+ *                         usage_line:
+ *                           type: string
+ *                           example: "1"
+ *                         usage_type:
+ *                           type: string
+ *                           example: "ISSUE"
+ *                         split:
+ *                           type: number
+ *                           example: 0
  *
- *               mc_code:
- *                 type: string
- *                 example: "1"
+ *                     receipt:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = RECEIPT
+ *                       properties:
+ *                         unit_cost_handled:
+ *                           type: number
+ *                           format: float
+ *                           example: 12500.5
+ *                         contract_num:
+ *                           type: string
+ *                           example: "T23M311"
+ *                         po_num:
+ *                           type: string
+ *                           example: "PO1094940"
+ *                         object_id:
+ *                           type: string
+ *                           example: "61270"
  *
- *               loc_id:
- *                 type: string
- *                 example: "1"
+ *                     return:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = RETURN
+ *                       properties:
+ *                         inv_id:
+ *                           type: string
+ *                           example: "1"
+ *                         usage_id:
+ *                           type: string
+ *                           example: "1"
  *
- *               cond:
- *                 type: string
- *                 example: "CAPITAL"
- *
- *               plan_qty:
- *                 type: number
- *                 example: 1
- *
- *               usage:
- *                 type: object
- *                 description: ใช้เมื่อ type = USAGE
- *                 properties:
- *                   work_order:
- *                     type: string
- *                     example: "WO20251109-001"
- *                   usage_num:
- *                     type: string
- *                     example: "6999"
- *                   line:
- *                     type: string
- *                     example: "1"
- *                   usage_type:
- *                     type: string
- *                     example: "ISSUE"
- *                   split:
- *                     type: number
- *                     example: 0
- *
- *               receipt:
- *                 type: object
- *                 description: ใช้เมื่อ type = RECEIPT
- *                 properties:
- *                   cat_qty:
- *                     type: number
- *                     example: 0
- *                   recond_qty:
- *                     type: number
- *                     example: 0
- *                   unit_cost_handled:
- *                     type: number
- *                     format: float
- *                     example: 12500.50
- *                   contract_num:
- *                     type: string
- *                     example: "T23M311"
- *                   po_num:
- *                     type: string
- *                     example: "PO1094940"
- *                   object_id:
- *                     type: string
- *                     example: "61270"
- *
- *               return:
- *                 type: object
- *                 description: ใช้เมื่อ type = RETURN
- *                 properties:
- *                   usage_trx_id:
- *                     type: string
- *                     example: "1"
- *                   inv_id:
- *                     type: string
- *                     example: "1"
- *                   usage_id:
- *                     type: string
- *                     example: "1"
- *
- *               transfer:
- *                 type: object
- *                 description: ใช้เมื่อ type = TRANSFER
- *                 properties:
- *                   cat_qty:
- *                     type: number
- *                     example: 0
- *                   recond_qty:
- *                     type: number
- *                     example: 0
- *                   contract_num:
- *                     type: string
- *                     example: "T23M311"
- *                   po_num:
- *                     type: string
- *                     example: "PO1094940"
- *                   object_id:
- *                     type: string
- *                     example: "61270"
- *
+ *                     transfer:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = TRANSFER
+ *                       properties:
+ *                         contract_num:
+ *                           type: string
+ *                           example: "T23M311"
+ *                         po_num:
+ *                           type: string
+ *                           example: "PO1094940"
+ *                         object_id:
+ *                           type: string
+ *                           example: "61270"
  *     responses:
  *       201:
  *         description: สร้างข้อมูล order สำเร็จ
@@ -149,160 +139,152 @@ router.post('/create',
 
 /**
  * @swagger
- * /api/waiting/update/{order_id}:
+ * /api/waiting/update:
  *   put:
- *     summary: แก้ไขรายการ order ที่มีอยู่
+ *     summary: แก้ไขรายการ order (รองรับ batch)
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
- *       - in: path
- *         name: order_id
- *         schema:
- *           type: string
- *         required: true
- *         description: ไอดีรายการ order 
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [items]
  *             properties:
- *               type:
- *                 type: string
- *                 enum: [RECEIPT, USAGE, RETURN, TRANSFER]
- *                 example: "USAGE"
+ *               items:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required: [order_id]
+ *                   properties:
+ *                     order_id:
+ *                       type: number
+ *                       example: 1001
+ *                     item_id:
+ *                       type: number
+ *                       example: 1
+ *                     mc_code:
+ *                       type: string
+ *                       example: "MC01"
+ *                     loc_id:
+ *                       type: number
+ *                       example: 10
+ *                     cond:
+ *                       type: string
+ *                       example: "CAPITAL"
+ *                     plan_qty:
+ *                       type: number
+ *                       example: 5
+ *                     usage:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = USAGE
+ *                       properties:
+ *                         work_order:
+ *                           type: string
+ *                           example: "WO20251109-001"
+ *                         usage_num:
+ *                           type: string
+ *                           example: "6999"
+ *                         spr_no:
+ *                           type: string
+ *                           example: "spr-001"
+ *                         usage_line:
+ *                           type: string
+ *                           example: "1"
+ *                         usage_type:
+ *                           type: string
+ *                           example: "ISSUE"
+ *                         split:
+ *                           type: number
+ *                           example: 0
  *
- *               item_id:
- *                 type: string
- *                 example: "1"
+ *                     receipt:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = RECEIPT
+ *                       properties:
+ *                         unit_cost_handled:
+ *                           type: number
+ *                           format: float
+ *                           example: 12500.5
+ *                         contract_num:
+ *                           type: string
+ *                           example: "T23M311"
+ *                         po_num:
+ *                           type: string
+ *                           example: "PO1094940"
+ *                         object_id:
+ *                           type: string
+ *                           example: "61270"
  *
- *               mc_code:
- *                 type: string
- *                 example: "1"
+ *                     return:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = RETURN
+ *                       properties:
+ *                         inv_id:
+ *                           type: string
+ *                           example: "1"
+ *                         usage_id:
+ *                           type: string
+ *                           example: "1"
  *
- *               loc_id:
- *                 type: string
- *                 example: "1"
- *
- *               cond:
- *                 type: string
- *                 example: "CAPITAL"
- *
- *               plan_qty:
- *                 type: number
- *                 example: 1
- *
- *               usage:
- *                 type: object
- *                 description: ใช้เมื่อ type = USAGE
- *                 properties:
- *                   work_order:
- *                     type: string
- *                     example: "WO20251109-001"
- *                   usage_num:
- *                     type: string
- *                     example: "6999"
- *                   line:
- *                     type: string
- *                     example: "1"
- *                   usage_type:
- *                     type: string
- *                     example: "ISSUE"
- *                   split:
- *                     type: number
- *                     example: 0
- *
- *               receipt:
- *                 type: object
- *                 description: ใช้เมื่อ type = RECEIPT
- *                 properties:
- *                   cat_qty:
- *                     type: number
- *                     example: 0
- *                   recond_qty:
- *                     type: number
- *                     example: 0
- *                   unit_cost_handled:
- *                     type: number
- *                     format: float
- *                     example: 12500.50
- *                   contract_num:
- *                     type: string
- *                     example: "T23M311"
- *                   po_num:
- *                     type: string
- *                     example: "PO1094940"
- *                   object_id:
- *                     type: string
- *                     example: "61270"
- *
- *               return:
- *                 type: object
- *                 description: ใช้เมื่อ type = RETURN
- *                 properties:
- *                   usage_trx_id:
- *                     type: string
- *                     example: "1"
- *                   inv_id:
- *                     type: string
- *                     example: "1"
- *                   usage_id:
- *                     type: string
- *                     example: "1"
- *
- *               transfer:
- *                 type: object
- *                 description: ใช้เมื่อ type = TRANSFER
- *                 properties:
- *                   cat_qty:
- *                     type: number
- *                     example: 0
- *                   recond_qty:
- *                     type: number
- *                     example: 0
- *                   contract_num:
- *                     type: string
- *                     example: "T23M311"
- *                   po_num:
- *                     type: string
- *                     example: "PO1094940"
- *                   object_id:
- *                     type: string
- *                     example: "61270"
- *
+ *                     transfer:
+ *                       type: object
+ *                       description: ใช้เมื่อ type = TRANSFER
+ *                       properties:
+ *                         contract_num:
+ *                           type: string
+ *                           example: "T23M311"
+ *                         po_num:
+ *                           type: string
+ *                           example: "PO1094940"
+ *                         object_id:
+ *                           type: string
+ *                           example: "61270"
  *     responses:
  *       200:
  *         description: แก้ไขข้อมูล order สำเร็จ
  *       400:
  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
  *       404:
- *         description: ไม่พบข้อมูล order ที่ร้องขอ
+ *         description: ไม่พบข้อมูล order
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.put('/update/:order_id'
-    , authenticateToken
-    , orderController.updateOrder);
+router.put(
+    '/update',
+    authenticateToken,
+    orderController.updateOrder
+);
 
 /**
  * @swagger
- * /api/waiting/delete/{order_id}:
+ * /api/waiting/delete:
  *   delete:
- *     summary: ลบข้อมูลรายการ order ตามไอดีรายการ order 
+ *     summary: ลบข้อมูลรายการ order หลายรายการพร้อมกัน
  *     tags: [Waiting]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/lng'
- *       - in: path
- *         name: order_id
- *         required: true
- *         schema:
- *           type: string
- *         description: ไอดีรายการ order ที่ต้องการลบ
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - order_ids
+ *             properties:
+ *               order_ids:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *                 example: [1, 2, 3]
  *     responses:
  *       200:
  *         description: ลบข้อมูลรายการ order สำเร็จ
@@ -313,9 +295,12 @@ router.put('/update/:order_id'
  *       500:
  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
  */
-router.delete('/delete/:order_id'
-    , authenticateToken
-    , orderController.del);
+router.delete(
+    '/delete',
+    authenticateToken,
+    orderController.del
+);
+
 
 /**
  * @swagger
@@ -378,7 +363,7 @@ router.get('/get-usage-all'
  *       - in: path
  *         name: order_id
  *         schema:
- *           type: string
+ *           type: number
  *         required: true
  *         description: ไอดีรายการ order
  *     responses:
@@ -433,7 +418,7 @@ router.get('/get-receipt-all'
  *       - in: path
  *         name: order_id
  *         schema:
- *           type: string
+ *           type: number
  *         required: true
  *         description: ไอดีรายการ order
  *     responses:

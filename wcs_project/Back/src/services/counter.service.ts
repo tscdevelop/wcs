@@ -13,204 +13,126 @@ import { OrdersReturn } from "../entities/order_return.entity";
 
 export class CounterService {
 
-    //ก่อนเพิ่ม join return
-    // async getOrderAllByUser(
-    //     userId?: number,
-    //     manager?: EntityManager
-    // ): Promise<ApiResponse<any | null>> {
+    async getOrderAllByUser(
+        userId?: number,
+        manager?: EntityManager
+    ): Promise<ApiResponse<any | null>> {
 
-    //     const response = new ApiResponse<any | null>();
-    //     const operation = 'CounterService.getOrderAllByUser';
+        const response = new ApiResponse<any | null>();
+        const operation = 'CounterService.getOrderAllByUser';
 
-    //     try {
-    //         const repository = manager
-    //             ? manager.getRepository(Counter)
-    //             : AppDataSource.getRepository(Counter);
+        try {
+            const repository = manager
+                ? manager.getRepository(Counter)
+                : AppDataSource.getRepository(Counter);
 
-    //         const qb = repository
-    //             .createQueryBuilder('counter')
-    //             // ❗ INNER JOIN = ตัด counter ที่ไม่มี current_order_id ทิ้งอัตโนมัติ
-    //             .innerJoin(
-    //                 Orders,
-    //                 'order',
-    //                 'order.order_id = counter.current_order_id'
-    //             )
-    //             .leftJoin('orders_usage', 'usage', 'usage.order_id = order.order_id')
-    //             .leftJoin('m_stock_items', 'stock', 'stock.item_id = order.item_id')
-    //             .leftJoin('m_location', 'loc', 'loc.loc_id = order.loc_id')
-    //             .select([
-    //                 'counter.counter_id AS counter_id',
-    //                 'counter.light_color_hex AS counter_color',
+            const qb = repository
+                .createQueryBuilder('counter')
 
-    //                 'order.order_id AS order_id',
-    //                 'order.mc_code AS mc_code',
-    //                 'order.type AS type',
-    //                 'order.spr_no AS spr_no',
-    //                 'usage.work_order AS work_order',
+                .innerJoin(
+                    Orders,
+                    'order',
+                    'order.order_id = counter.current_order_id'
+                )
 
-    //                 'stock.item_id AS item_id',
-    //                 'stock.stock_item AS stock_item',
-    //                 'order.cond AS cond',
-    //                 'order.status AS status',
-    //                 'order.plan_qty AS plan_qty',
-    //                 'order.actual_qty AS actual_qty',
-    //                 "DATE_FORMAT(order.requested_at, '%d/%m/%Y') AS requested_at",
-    //             ])
-    //             // ❗ ตัด EMPTY counter ทิ้งทุกกรณี
-    //             .where('counter.status <> :emptyStatus', { emptyStatus: 'EMPTY' })
-    //             .orderBy('counter.counter_id', 'ASC');
+                // 🔵 USAGE → join ตรง
+                .leftJoin(
+                    'orders_usage',
+                    'usage',
+                    'usage.order_id = order.order_id AND order.type = \'USAGE\''
+                )
 
-    //         // ✅ filter user เฉพาะกรณี REQUESTER (ส่ง userId มา)
-    //         if (userId) {
-    //             qb.andWhere('order.executed_by_user_id = :userId', { userId });
-    //         }
+                // 🟣 RETURN → เอา usage_id มาก่อน
+                .leftJoin(
+                    'orders_return',
+                    'ret',
+                    'ret.order_id = order.order_id AND order.type = \'RETURN\''
+                )
 
-    //         const rawData = await qb.getRawMany();
+                // 🟣 RETURN → join usage อีกครั้งด้วย usage_id
+                .leftJoin(
+                    'orders_usage',
+                    'usage_ret',
+                    'usage_ret.usage_id = ret.usage_id'
+                )
 
-    //         if (!rawData || rawData.length === 0) {
-    //             return response.setIncomplete(lang.msgNotFound('field.orders'));
-    //         }
+                .leftJoin('m_stock_items', 'stock', 'stock.item_id = order.item_id')
+                .leftJoin('m_location', 'loc', 'loc.loc_id = order.loc_id')
 
-    //         const cleanedData = rawData.map((item: any) => ({
-    //             ...item,
-    //             actual_qty:
-    //                 item.actual_qty != null && !isNaN(Number(item.actual_qty))
-    //                     ? Number(item.actual_qty)
-    //                     : 0,
-    //             order_id: item.order_id ?? '-',
-    //             work_order: item.work_order ?? '-',
-    //             spr_no: item.spr_no ?? '-',
-    //         }));
+                .select([
+                    'counter.counter_id AS counter_id',
+                    'counter.light_color_hex AS counter_color',
 
-    //         return response.setComplete(lang.msgFound('field.orders'), cleanedData);
+                    'order.order_id AS order_id',
+                    'order.mc_code AS mc_code',
+                    'order.type AS type',
 
-    //     } catch (error: any) {
-    //         console.error(`Error during ${operation}:`, error);
+                    // ⭐ work_order ตาม type
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.work_order
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.work_order
+                        ELSE NULL
+                    END AS work_order
+                    `,
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.spr_no
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.spr_no
+                        ELSE NULL
+                    END AS spr_no
+                    `,
 
-    //         if (error instanceof QueryFailedError) {
-    //             return response.setIncomplete(
-    //                 lang.msgErrorFunction(operation, error.message)
-    //             );
-    //         }
+                    'stock.item_id AS item_id',
+                    'stock.stock_item AS stock_item',
+                    'order.cond AS cond',
+                    'order.status AS status',
+                    'order.plan_qty AS plan_qty',
+                    'order.actual_qty AS actual_qty',
+                    "DATE_FORMAT(order.requested_at, '%d/%m/%Y') AS requested_at",
+                ])
 
-    //         throw new Error(lang.msgErrorFunction(operation, error.message));
-    //     }
-    // }
+                .where('counter.status <> :emptyStatus', { emptyStatus: 'EMPTY' })
+                .orderBy('counter.counter_id', 'ASC');
 
-async getOrderAllByUser(
-    userId?: number,
-    manager?: EntityManager
-): Promise<ApiResponse<any | null>> {
+            if (userId) {
+                qb.andWhere('order.executed_by_user_id = :userId', { userId });
+            }
 
-    const response = new ApiResponse<any | null>();
-    const operation = 'CounterService.getOrderAllByUser';
+            const rawData = await qb.getRawMany();
 
-    try {
-        const repository = manager
-            ? manager.getRepository(Counter)
-            : AppDataSource.getRepository(Counter);
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('field.orders'));
+            }
 
-        const qb = repository
-            .createQueryBuilder('counter')
+            const cleanedData = rawData.map((item: any) => ({
+                ...item,
+                actual_qty: Number(item.actual_qty || 0),
+                work_order: item.work_order ?? '-',
+                spr_no: item.spr_no ?? '-',
+            }));
 
-            .innerJoin(
-                Orders,
-                'order',
-                'order.order_id = counter.current_order_id'
-            )
-
-            // 🔵 USAGE → join ตรง
-            .leftJoin(
-                'orders_usage',
-                'usage',
-                'usage.order_id = order.order_id AND order.type = \'USAGE\''
-            )
-
-            // 🟣 RETURN → เอา usage_id มาก่อน
-            .leftJoin(
-                'orders_return',
-                'ret',
-                'ret.order_id = order.order_id AND order.type = \'RETURN\''
-            )
-
-            // 🟣 RETURN → join usage อีกครั้งด้วย usage_id
-            .leftJoin(
-                'orders_usage',
-                'usage_ret',
-                'usage_ret.usage_id = ret.usage_id'
-            )
-
-            .leftJoin('m_stock_items', 'stock', 'stock.item_id = order.item_id')
-            .leftJoin('m_location', 'loc', 'loc.loc_id = order.loc_id')
-
-            .select([
-                'counter.counter_id AS counter_id',
-                'counter.light_color_hex AS counter_color',
-
-                'order.order_id AS order_id',
-                'order.mc_code AS mc_code',
-                'order.type AS type',
-                'order.spr_no AS spr_no',
-
-                // ⭐ work_order ตาม type
-                `
-                CASE
-                    WHEN order.type = 'USAGE'
-                        THEN usage.work_order
-                    WHEN order.type = 'RETURN'
-                        THEN usage_ret.work_order
-                    ELSE NULL
-                END AS work_order
-                `,
-
-                'stock.item_id AS item_id',
-                'stock.stock_item AS stock_item',
-                'order.cond AS cond',
-                'order.status AS status',
-                'order.plan_qty AS plan_qty',
-                'order.actual_qty AS actual_qty',
-                "DATE_FORMAT(order.requested_at, '%d/%m/%Y') AS requested_at",
-            ])
-
-            .where('counter.status <> :emptyStatus', { emptyStatus: 'EMPTY' })
-            .orderBy('counter.counter_id', 'ASC');
-
-        if (userId) {
-            qb.andWhere('order.executed_by_user_id = :userId', { userId });
-        }
-
-        const rawData = await qb.getRawMany();
-
-        if (!rawData || rawData.length === 0) {
-            return response.setIncomplete(lang.msgNotFound('field.orders'));
-        }
-
-        const cleanedData = rawData.map((item: any) => ({
-            ...item,
-            actual_qty: Number(item.actual_qty || 0),
-            work_order: item.work_order ?? '-',
-            spr_no: item.spr_no ?? '-',
-        }));
-
-        return response.setComplete(
-            lang.msgFound('field.orders'),
-            cleanedData
-        );
-
-    } catch (error: any) {
-        console.error(`Error during ${operation}:`, error);
-
-        if (error instanceof QueryFailedError) {
-            return response.setIncomplete(
-                lang.msgErrorFunction(operation, error.message)
+            return response.setComplete(
+                lang.msgFound('field.orders'),
+                cleanedData
             );
+
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error);
+
+            if (error instanceof QueryFailedError) {
+                return response.setIncomplete(
+                    lang.msgErrorFunction(operation, error.message)
+                );
+            }
+
+            throw new Error(lang.msgErrorFunction(operation, error.message));
         }
-
-        throw new Error(lang.msgErrorFunction(operation, error.message));
     }
-}
-
-
 
     async getCounterAllByUser(
         userId?: number,
@@ -277,348 +199,204 @@ async getOrderAllByUser(
         }
     }
 
-
-//ก่อนเพิ่ม join return
-    // get counter id for screen counter
-    // async getByCounterId(
-    //     counterId: number,
-    //     manager?: EntityManager
-    //     ): Promise<ApiResponse<any[] | null>> {
-    //     const response = new ApiResponse<any[] | null>();
-    //     const operation = 'CounterService.getByCounterId';
-
-    //     try {
-    //         const counterRepo = manager
-    //         ? manager.getRepository(Counter)
-    //         : AppDataSource.getRepository(Counter);
-
-    //         const rawData = await counterRepo
-    //         .createQueryBuilder('counter')
-    //         .leftJoin(
-    //             Orders,
-    //             'order',
-    //             'order.order_id = counter.current_order_id'
-    //         )
-
-    //         // ===== USAGE =====
-    //         .leftJoin(
-    //             OrdersUsage,
-    //             'usage',
-    //             'usage.order_id = order.order_id'
-    //         )
-
-    //         // ===== RECEIPT =====
-    //         .leftJoin(
-    //             OrdersReceipt,
-    //             'receipt',
-    //             'receipt.order_id = order.order_id'
-    //         )
-
-    //         // ===== TRANSFER =====
-    //         .leftJoin(
-    //             OrdersTransfer,
-    //             'transfer',
-    //             'transfer.order_id = order.order_id'
-    //         )
-
-    //         // ===== ITEM =====
-    //         .leftJoin(
-    //             StockItems,
-    //             'item',
-    //             'item.item_id = order.item_id'
-    //         )
-
-    //         .select([
-    //             // counter
-    //             'counter.counter_id AS counter_id',
-    //             'counter.light_color_hex AS color',
-    //             'counter.light_mode AS light_mode',
-
-    //             // order
-    //             'order.order_id AS order_id',
-    //             'order.type AS trx_type',
-    //             'order.mc_code AS mc_code',
-    //             'order.spr_no AS spr_no',
-    //             'order.plan_qty AS plan_qty',
-    //             'order.actual_qty AS actual_qty',
-    //             'order.item_id AS item_id',
-
-    //             // USAGE
-    //             'usage.work_order AS work_order',
-    //             'usage.usage_num AS usage_num',
-    //             'usage.line AS usage_line',
-
-    //             // RECEIPT
-    //             'receipt.po_num AS receipt_po_num',
-    //             'receipt.object_id AS receipt_object_id',
-
-    //             // TRANSFER
-    //             'transfer.po_num AS transfer_po_num',
-    //             'transfer.object_id AS transfer_object_id',
-
-    //             // item
-    //             'item.stock_item AS stock_item',
-    //             'item.item_desc AS item_desc',
-    //             'item.item_img AS item_img',
-    //             'item.item_img_url AS item_img_url',
-    //         ])
-    //         .where('counter.counter_id = :counterId', { counterId })
-    //         .getRawMany();
-
-    //         if (!rawData || rawData.length === 0) {
-    //         return response.setIncomplete(lang.msgNotFound('counter'));
-    //         }
-
-    //         const flattenedData = rawData.map((row) => {
-    //         const isUsage = row.trx_type === 'USAGE';
-    //         const isReceipt = row.trx_type === 'RECEIPT';
-    //         const isTransfer = row.trx_type === 'TRANSFER';
-
-    //         return {
-    //             // counter
-    //             counter_id: row.counter_id,
-    //             color: row.color,
-    //             light_mode: row.light_mode,
-
-    //             // order
-    //             order_id: row.order_id,
-    //             trx_type: row.trx_type,
-    //             mc_code: row.mc_code,
-    //             spr_no: row.spr_no,
-    //             plan_qty: row.plan_qty,
-    //             actual_qty: row.actual_qty,
-
-    //             // ===== conditional =====
-    //             work_order: isUsage ? row.work_order : null,
-    //             usage_num: isUsage ? row.usage_num : null,
-    //             usage_line: isUsage ? row.usage_line : null,
-
-    //             po_num: isReceipt
-    //             ? row.receipt_po_num
-    //             : isTransfer
-    //             ? row.transfer_po_num
-    //             : null,
-
-    //             object_id: isReceipt
-    //             ? row.receipt_object_id
-    //             : isTransfer
-    //             ? row.transfer_object_id
-    //             : null,
-
-    //             // item
-    //             item_id: row.item_id,
-    //             stock_item: row.stock_item,
-    //             item_desc: row.item_desc,
-    //             item_img: row.item_img,
-    //             item_img_url: row.item_img_url,
-    //         };
-    //         });
-
-    //         return response.setComplete(lang.msgFound('counter'), flattenedData);
-    //     } catch (error: any) {
-    //         console.error(`Error during ${operation}:`, error.message);
-    //         if (error instanceof QueryFailedError) {
-    //         return response.setIncomplete(
-    //             lang.msgErrorFunction(operation, error.message)
-    //         );
-    //         }
-    //         throw new Error(lang.msgErrorFunction(operation, error.message));
-    //     }
-    // }
-
     async getByCounterId(
-    counterId: number,
-    manager?: EntityManager
-): Promise<ApiResponse<any[] | null>> {
+        counterId: number,
+        manager?: EntityManager
+    ): Promise<ApiResponse<any[] | null>> {
 
-    const response = new ApiResponse<any[] | null>();
-    const operation = 'CounterService.getByCounterId';
+        const response = new ApiResponse<any[] | null>();
+        const operation = 'CounterService.getByCounterId';
 
-    try {
-        const counterRepo = manager
-            ? manager.getRepository(Counter)
-            : AppDataSource.getRepository(Counter);
+        try {
+            const counterRepo = manager
+                ? manager.getRepository(Counter)
+                : AppDataSource.getRepository(Counter);
 
-        const rawData = await counterRepo
-            .createQueryBuilder('counter')
+            const rawData = await counterRepo
+                .createQueryBuilder('counter')
 
-            .leftJoin(
-                Orders,
-                'order',
-                'order.order_id = counter.current_order_id'
-            )
+                .leftJoin(
+                    Orders,
+                    'order',
+                    'order.order_id = counter.current_order_id'
+                )
 
-            // ===== USAGE (ตรง) =====
-            .leftJoin(
-                OrdersUsage,
-                'usage',
-                'usage.order_id = order.order_id AND order.type = \'USAGE\''
-            )
+                // ===== USAGE (ตรง) =====
+                .leftJoin(
+                    OrdersUsage,
+                    'usage',
+                    'usage.order_id = order.order_id AND order.type = \'USAGE\''
+                )
 
-            // ===== RETURN (เอา usage_id มาก่อน) =====
-            .leftJoin(
-                OrdersReturn,
-                'ret',
-                'ret.order_id = order.order_id AND order.type = \'RETURN\''
-            )
+                // ===== RETURN (เอา usage_id มาก่อน) =====
+                .leftJoin(
+                    OrdersReturn,
+                    'ret',
+                    'ret.order_id = order.order_id AND order.type = \'RETURN\''
+                )
 
-            // ===== RETURN → join usage อีกครั้ง =====
-            .leftJoin(
-                OrdersUsage,
-                'usage_ret',
-                'usage_ret.usage_id = ret.usage_id'
-            )
+                // ===== RETURN → join usage อีกครั้ง =====
+                .leftJoin(
+                    OrdersUsage,
+                    'usage_ret',
+                    'usage_ret.usage_id = ret.usage_id'
+                )
 
-            // ===== RECEIPT =====
-            .leftJoin(
-                OrdersReceipt,
-                'receipt',
-                'receipt.order_id = order.order_id'
-            )
+                // ===== RECEIPT =====
+                .leftJoin(
+                    OrdersReceipt,
+                    'receipt',
+                    'receipt.order_id = order.order_id'
+                )
 
-            // ===== TRANSFER =====
-            .leftJoin(
-                OrdersTransfer,
-                'transfer',
-                'transfer.order_id = order.order_id'
-            )
+                // ===== TRANSFER =====
+                .leftJoin(
+                    OrdersTransfer,
+                    'transfer',
+                    'transfer.order_id = order.order_id'
+                )
 
-            // ===== ITEM =====
-            .leftJoin(
-                StockItems,
-                'item',
-                'item.item_id = order.item_id'
-            )
+                // ===== ITEM =====
+                .leftJoin(
+                    StockItems,
+                    'item',
+                    'item.item_id = order.item_id'
+                )
 
-            .select([
-                // counter
-                'counter.counter_id AS counter_id',
-                'counter.light_color_hex AS color',
-                'counter.light_mode AS light_mode',
+                .select([
+                    // counter
+                    'counter.counter_id AS counter_id',
+                    'counter.light_color_hex AS color',
+                    'counter.light_mode AS light_mode',
 
-                // order
-                'order.order_id AS order_id',
-                'order.type AS trx_type',
-                'order.mc_code AS mc_code',
-                'order.spr_no AS spr_no',
-                'order.plan_qty AS plan_qty',
-                'order.actual_qty AS actual_qty',
-                'order.item_id AS item_id',
+                    // order
+                    'order.order_id AS order_id',
+                    'order.type AS trx_type',
+                    'order.mc_code AS mc_code',
+                    'order.plan_qty AS plan_qty',
+                    'order.actual_qty AS actual_qty',
+                    'order.item_id AS item_id',
 
-                // ⭐ USAGE / RETURN (ใช้ CASE)
-                `
-                CASE
-                    WHEN order.type = 'USAGE'
-                        THEN usage.work_order
-                    WHEN order.type = 'RETURN'
-                        THEN usage_ret.work_order
-                    ELSE NULL
-                END AS work_order
-                `,
+                    // ⭐ USAGE / RETURN (ใช้ CASE)
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.work_order
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.work_order
+                        ELSE NULL
+                    END AS work_order
+                    `,
 
-                `
-                CASE
-                    WHEN order.type = 'USAGE'
-                        THEN usage.usage_num
-                    WHEN order.type = 'RETURN'
-                        THEN usage_ret.usage_num
-                    ELSE NULL
-                END AS usage_num
-                `,
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.usage_num
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.usage_num
+                        ELSE NULL
+                    END AS usage_num
+                    `,
 
-                `
-                CASE
-                    WHEN order.type = 'USAGE'
-                        THEN usage.line
-                    WHEN order.type = 'RETURN'
-                        THEN usage_ret.line
-                    ELSE NULL
-                END AS usage_line
-                `,
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.spr_no
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.spr_no
+                        ELSE NULL
+                    END AS spr_no
+                    `,
 
-                // RECEIPT
-                'receipt.po_num AS receipt_po_num',
-                'receipt.object_id AS receipt_object_id',
+                    `
+                    CASE
+                        WHEN order.type = 'USAGE'
+                            THEN usage.usage_line
+                        WHEN order.type = 'RETURN'
+                            THEN usage_ret.usage_line
+                        ELSE NULL
+                    END AS usage_line
+                    `,
 
-                // TRANSFER
-                'transfer.po_num AS transfer_po_num',
-                'transfer.object_id AS transfer_object_id',
+                    // RECEIPT
+                    'receipt.po_num AS po_num',
+                    'receipt.object_id AS receipt_object_id',
 
-                // item
-                'item.stock_item AS stock_item',
-                'item.item_desc AS item_desc',
-                'item.item_img AS item_img',
-                'item.item_img_url AS item_img_url',
-            ])
-            .where('counter.counter_id = :counterId', { counterId })
-            .getRawMany();
+                    // TRANSFER
+                    'transfer.object_id AS transfer_object_id',
 
-        if (!rawData || rawData.length === 0) {
-            return response.setIncomplete(lang.msgNotFound('counter'));
+                    // item
+                    'item.stock_item AS stock_item',
+                    'item.item_desc AS item_desc',
+                    'item.item_img AS item_img',
+                    'item.item_img_url AS item_img_url',
+                ])
+                .where('counter.counter_id = :counterId', { counterId })
+                .getRawMany();
+
+            if (!rawData || rawData.length === 0) {
+                return response.setIncomplete(lang.msgNotFound('counter'));
+            }
+
+            const flattenedData = rawData.map((row) => {
+                const isUsageOrReturn =
+                    row.trx_type === 'USAGE' || row.trx_type === 'RETURN';
+
+                const isReceipt = row.trx_type === 'RECEIPT';
+                const isTransfer = row.trx_type === 'TRANSFER';
+
+                return {
+                    // counter
+                    counter_id: row.counter_id,
+                    color: row.color,
+                    light_mode: row.light_mode,
+
+                    // order
+                    order_id: row.order_id,
+                    trx_type: row.trx_type,
+                    mc_code: row.mc_code,
+                    plan_qty: row.plan_qty,
+                    actual_qty: row.actual_qty,
+
+                    // ⭐ USAGE / RETURN
+                    work_order: isUsageOrReturn ? row.work_order : null,
+                    usage_num: isUsageOrReturn ? row.usage_num : null,
+                    spr_no: isUsageOrReturn ? row.spr_no : null,
+                    usage_line: isUsageOrReturn ? row.usage_line : null,
+
+                    // RECEIPT
+                    po_num: row.po_num,
+
+                    // RECEIPT / TRANSFER
+                    object_id: isReceipt
+                        ? row.receipt_object_id
+                        : isTransfer
+                        ? row.transfer_object_id
+                        : null,
+
+                    // item
+                    item_id: row.item_id,
+                    stock_item: row.stock_item,
+                    item_desc: row.item_desc,
+                    item_img: row.item_img,
+                    item_img_url: row.item_img_url,
+                };
+            });
+
+            return response.setComplete(lang.msgFound('counter'), flattenedData);
+
+        } catch (error: any) {
+            console.error(`Error during ${operation}:`, error.message);
+
+            if (error instanceof QueryFailedError) {
+                return response.setIncomplete(
+                    lang.msgErrorFunction(operation, error.message)
+                );
+            }
+
+            throw new Error(lang.msgErrorFunction(operation, error.message));
         }
-
-        const flattenedData = rawData.map((row) => {
-            const isUsageOrReturn =
-                row.trx_type === 'USAGE' || row.trx_type === 'RETURN';
-
-            const isReceipt = row.trx_type === 'RECEIPT';
-            const isTransfer = row.trx_type === 'TRANSFER';
-
-            return {
-                // counter
-                counter_id: row.counter_id,
-                color: row.color,
-                light_mode: row.light_mode,
-
-                // order
-                order_id: row.order_id,
-                trx_type: row.trx_type,
-                mc_code: row.mc_code,
-                spr_no: row.spr_no,
-                plan_qty: row.plan_qty,
-                actual_qty: row.actual_qty,
-
-                // ⭐ USAGE / RETURN
-                work_order: isUsageOrReturn ? row.work_order : null,
-                usage_num: isUsageOrReturn ? row.usage_num : null,
-                usage_line: isUsageOrReturn ? row.usage_line : null,
-
-                // RECEIPT / TRANSFER
-                po_num: isReceipt
-                    ? row.receipt_po_num
-                    : isTransfer
-                    ? row.transfer_po_num
-                    : null,
-
-                object_id: isReceipt
-                    ? row.receipt_object_id
-                    : isTransfer
-                    ? row.transfer_object_id
-                    : null,
-
-                // item
-                item_id: row.item_id,
-                stock_item: row.stock_item,
-                item_desc: row.item_desc,
-                item_img: row.item_img,
-                item_img_url: row.item_img_url,
-            };
-        });
-
-        return response.setComplete(lang.msgFound('counter'), flattenedData);
-
-    } catch (error: any) {
-        console.error(`Error during ${operation}:`, error.message);
-
-        if (error instanceof QueryFailedError) {
-            return response.setIncomplete(
-                lang.msgErrorFunction(operation, error.message)
-            );
-        }
-
-        throw new Error(lang.msgErrorFunction(operation, error.message));
     }
-}
 
     
 }

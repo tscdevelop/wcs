@@ -8,8 +8,8 @@ import { AisleStatus } from '../common/global.enum';
 @Entity({ name: 'aisle' })
 export class Aisle {
     /** รหัสช่องทางเดิน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of aisle' })
-    aisle_id!: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Primary key of aisle' })
+    aisle_id!: number;
 
     /** รหัสช่อง (A, B, C, …) */
     @Column({ type: 'varchar', length: 50, nullable: true, comment: 'Aisle code' })

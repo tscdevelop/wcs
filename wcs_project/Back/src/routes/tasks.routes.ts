@@ -41,8 +41,8 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *                     - order_id
      *                   properties:
      *                     order_id:
-     *                       type: string
-     *                       example: "ORD-001"
+     *                       type: number
+     *                       example: "1"
      *     responses:
      *       201:
      *         description: งานทั้งหมดถูกสร้างและเริ่ม process แล้ว
@@ -78,11 +78,11 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *                   type: object
      *                   properties:
      *                     order_id:
-     *                       type: string
+     *                       type: number
      *                 example:
-     *                   - order_id: "ORD-001"
-     *                   - order_id: "ORD-002"
-     *                   - order_id: "ORD-003"
+     *                   - order_id: "1"
+     *                   - order_id: "2"
+     *                   - order_id: "3"
      *     responses:
      *       200:
      *         description: เปลี่ยนสถานะรายการ order สำเร็จ
@@ -122,11 +122,11 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *                   type: object
      *                   properties:
      *                     order_id:
-     *                       type: string
+     *                       type: snumbertring
      *                 example:
-     *                   - order_id: "ORD-001"
-     *                   - order_id: "ORD-002"
-     *                   - order_id: "ORD-003"
+     *                   - order_id: "1"
+     *                   - order_id: "2"
+     *                   - order_id: "3"
      *     responses:
      *       200:
      *         description: เปลี่ยนสถานะรายการ order สำเร็จ
@@ -157,7 +157,7 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *         name: order_id
      *         required: true
      *         schema:
-     *           type: string
+     *           type: number
      *         description: ไอดีรายการ order ที่ต้องการเปลี่ยนสถานะ
      *       - in: path
      *         name: actual_qty
@@ -195,7 +195,7 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *         name: order_id
      *         required: true
      *         schema:
-     *           type: string
+     *           type: number
      *         description: ไอดีรายการ order ที่ต้องการเปลี่ยนสถานะ
      *       - in: path
      *         name: actual_qty
@@ -203,6 +203,16 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *         schema:
      *           type: number
      *         description: ไอดีรายการ order ที่ต้องการเปลี่ยนสถานะ
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               inv_id:
+     *                 type: number
+     *                 description: inventory id (required for USAGE / RETURN)
      *     responses:
      *       200:
      *         description: เปลี่ยนสถานะรายการ order สำเร็จ
@@ -240,46 +250,6 @@ export default function createTasksRouter(orchestrator: OrchestratedTaskService)
      *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
      */
     router.get('/get-all', authenticateToken, c.getAll);
-
-    // /**
-    //  * @swagger
-    //  * /api/execution/get-all-usage:
-    //  *   get:
-    //  *     summary: ดึงข้อมูล Usage Execution
-    //  *     tags: [Execution]
-    //  *     security:
-    //  *       - bearerAuth: []
-    //  *     parameters:
-    //  *       - $ref: '#/components/parameters/lng'
-    //  *       - in: query
-    //  *         name: store_type
-    //  *         schema:
-    //  *           type: string
-    //  *         required: false
-    //  *         description: |
-    //  *           ประเภทคลัง  
-    //  *           - ไม่ส่ง = ดึงทั้งหมด  
-    //  *           - ส่งค่า = filter ตาม store_type
-    //  *       - in: query
-    //  *         name: mc_code
-    //  *         schema:
-    //  *           type: string
-    //  *         required: false
-    //  *         description: |
-    //  *           รหัส Maintenance Contract  
-    //  *           - ไม่ส่ง = ดึงทั้งหมด  
-    //  *           - ส่งค่า = filter ตาม mc_code
-    //  *     responses:
-    //  *       200:
-    //  *         description: พบข้อมูล Execution
-    //  *       400:
-    //  *         description: ข้อมูลที่ส่งมาไม่ถูกต้องหรือไม่ครบถ้วน
-    //  *       404:
-    //  *         description: ไม่พบข้อมูล Execution ที่ร้องขอ
-    //  *       500:
-    //  *         description: เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์
-    //  */
-    // router.get('/get-all-usage', authenticateToken, c.getUsageAllByMcCode);
 
     return router;
 }

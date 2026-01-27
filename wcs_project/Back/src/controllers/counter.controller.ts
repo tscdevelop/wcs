@@ -13,7 +13,9 @@ export const getOrderAllByUser = async (req: Request, res: Response) => {
     const operation = 'counterController.getOrderAllByUser';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
     const reqUserId = RequestUtils.getUserIdToken(req, res);
     if (!reqUserId) return;
@@ -57,7 +59,9 @@ export const getCounterAllByUser = async (req: Request, res: Response) => {
     const operation = 'counterController.getCounterAllByUser';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
     const reqUserId = RequestUtils.getUserIdToken(req, res);
     if (!reqUserId) return;
@@ -99,7 +103,9 @@ export const getByCounterId = async (req: Request, res: Response) => {
     const operation = 'checkoutController.getByCounterId';
 
     const reqUsername = RequestUtils.getUsernameToken(req, res);
-    if (!reqUsername) return;
+    if (!reqUsername) {
+        return ResponseUtils.handleBadRequest(res, lang.msgRequiredUsername());
+    }
 
     const counterIdParam = req.query.counterId || req.params.counterId;
     const counterId = Number(counterIdParam);

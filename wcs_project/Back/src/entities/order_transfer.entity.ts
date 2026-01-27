@@ -6,24 +6,16 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 @Entity({ name: 'orders_transfer' })
 export class OrdersTransfer {
     /** รหัสงาน (PK) */
-    @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true, comment: 'Primary key of order transfer' })
-    transfer_id!: string;
+    @PrimaryGeneratedColumn({ type: 'int', unsigned: true, comment: 'Primary key of order transfer' })
+    transfer_id!: number;
 
     /** FK เชื่อมกับ Orders */
-    @Column({ type: 'bigint', unsigned: true })
-    order_id!: string;
+    @Column({ type: 'int', unsigned: true })
+    order_id!: number;
 
     /** ไอดี location (Fk) โดยเก็บ location ต้นทาง และ loc_id ใน Orders คือเก็บปลายทาง*/
-    @Column({ type: 'bigint', unsigned: true })
-    from_loc_id: string;
-
-    /** จำนวน cat */
-    @Column({ type: 'int', nullable: true, default: null, comment: 'Cat Quantity' })
-    cat_qty?: number;
-
-    /** จำนวน recond */
-    @Column({ type: 'int', nullable: true, default: null, comment: 'Recond Quantity' })
-    recond_qty?: number;
+    @Column({ type: 'int', unsigned: true })
+    from_loc_id: number;
 
     /** เลขติดต่อ */
     @Column({ type: 'varchar', length: 20, nullable: true, comment: 'Contract Number' })

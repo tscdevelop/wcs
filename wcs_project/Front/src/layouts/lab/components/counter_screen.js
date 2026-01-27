@@ -15,39 +15,47 @@ export default function CounterScreen({
   usage_line,
   po_num,
   object_id,
-  item_id,
   imageUrl,
   slots = 6,
 }) {
   console.log("[CounterScreen] render pickedQty =", pickedQty);
   const counterColor = counter?.color || "#ff0000";
 
-  const isReceiptOrTransfer = type === "RECEIPT" || type === "TRANSFER";
+  //Item Info
+  const itemFields = [
+    ["Stock Item", stock_item],
+    ["Description", item_desc],
+  ];
 
-  const transactionFields = isReceiptOrTransfer
-    ? [
-        ["Transaction Type", type],
-        ["PO No.", po_num],
-        ["OBJECT ID", object_id],
-      ]
-    : [
-        ["Transaction Type", type],
-        ["SPR No.", spr_no],
-        ["Work Order", work_order],
-        ["USAGE NO.", usage_num],
-        ["USAGE Line", usage_line],
-      ];
+  //Transaction / Order Info
+  let transactionFields = [];
+
+  if (type === "RECEIPT") {
+    transactionFields = [
+      ["PO NO.", po_num],
+      ["OBJECT ID", object_id],
+    ];
+  } else if (type === "TRANSFER") {
+    transactionFields = [["PO NO.", po_num]];
+  } else {
+    transactionFields = [
+      ["SPR NO.", spr_no],
+      ["Work Order", work_order],
+      ["USAGE NO.", usage_num],
+      ["USAGE Line", usage_line],
+    ];
+  }
 
   return (
-    <Box
+    <Card
       sx={{
-        width: "100%", // 🔒 รับขนาดจาก wrapper
-        height: "100%", // 🔒 ไม่คุมจอเอง
+        width: "100%",
+        height: "100%",
         backgroundColor: alpha(counterColor || "#000", 0.1),
         border: "4px solid black",
         borderRadius: 0,
         p: 4,
-        boxSizing: "border-box", // 🔥 สำคัญมาก
+        boxSizing: "border-box",
       }}
     >
       {/* Counter Title */}
@@ -79,22 +87,51 @@ export default function CounterScreen({
                   p: 3,
                   width: "100%",
                   display: "flex",
-                  flexDirection: "column", // 🔥 สำคัญ
+                  flexDirection: "column",
                 }}
               >
-                <Typography fontWeight="bold" fontSize={30}>
-                  {stock_item} ({item_id})
+                <Typography fontWeight="bold" fontSize={38} ml={2}>
+                  {mc_code}
                 </Typography>
 
-                <Typography fontSize={25}>{item_desc}</Typography>
+                <Grid container spacing={0.5} mt={1} sx={{ pl: 2 }}>
+                  {itemFields.map(([label, value], i) => (
+                    <Grid item xs={12} key={i}>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "200px minmax(0, 1fr)", // 🔥 สำคัญมาก
+                          columnGap: 8,
+                          alignItems: "start",
+                          width: "100%", // 🔒 บังคับไม่เกิน Card
+                          overflow: "hidden", // 🔒 กันล้น
+                        }}
+                      >
+                        <Typography fontSize={28}>{label} :</Typography>
 
-                <Typography
-                  fontWeight="bold"
-                  fontSize={30}
-                  sx={{ mt: "auto" }} // 🔥 ดันลงล่างสุด
-                >
-                  Pick Quantity: {plan_qty}
-                </Typography>
+                        <Typography
+                          fontSize={28}
+                          sx={{
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2, // 🔥 จำกัด 2 บรรทัด
+                            WebkitBoxOrient: "vertical",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {value ?? "-"}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                <Box display="flex" gap={10} sx={{ mt: "auto", ml: 2 }}>
+                  <Typography fontSize={28}>Pick Quantity :</Typography>
+                  <Typography fontSize={28}>{plan_qty}</Typography>
+                </Box>
               </Card>
             </Grid>
 
@@ -108,17 +145,34 @@ export default function CounterScreen({
                   width: "100%",
                 }}
               >
-                <Typography fontWeight="bold" fontSize={30}>
-                  {mc_code || "-"}
+                <Typography fontWeight="bold" fontSize={38} ml={2}>
+                  {type || "-"}
                 </Typography>
-                <Grid container spacing={0.5}>
+                <Grid container spacing={0.5} mt={1} sx={{ pl: 2 }}>
                   {transactionFields.map(([label, value], i) => (
                     <Grid item xs={12} key={i}>
-                      <Box display="flex">
-                        <Typography fontWeight="bold" sx={{ width: 220 }} fontSize={23}>
-                          {label} :
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "200px minmax(0, 1fr)", // 🔥 สำคัญมาก
+                          columnGap: 8,
+                          alignItems: "start",
+                          width: "100%", // 🔒 บังคับไม่เกิน Card
+                          overflow: "hidden", // 🔒 กันล้น
+                        }}
+                      >
+                        <Typography fontSize={28}>{label} :</Typography>
+
+                        <Typography
+                          fontSize={28}
+                          sx={{
+                            minWidth: 0, // 🔥 กันดัน layout
+                            wordBreak: "break-word",
+                            whiteSpace: "normal",
+                          }}
+                        >
+                          {value ?? "-"}
                         </Typography>
-                        <Typography fontSize={23}>{value ?? "-"}</Typography>
                       </Box>
                     </Grid>
                   ))}
@@ -240,6 +294,6 @@ export default function CounterScreen({
           </Grid>
         </Grid>
       </Grid>
-    </Box>
+    </Card>
   );
 }
