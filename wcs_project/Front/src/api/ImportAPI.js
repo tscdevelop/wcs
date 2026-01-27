@@ -65,6 +65,7 @@ export default class ImportFileAPI {
             data: null,
             });
         }
+        
         const expectedHeaders = [
             "FROM LOCATION",
             "FROMBIN",
