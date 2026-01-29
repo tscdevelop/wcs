@@ -85,6 +85,7 @@ const PickCounterPage = () => {
 
     connectSSE();
 
+    
     return () => {
       clearTimeout(retryTimer);
       es?.close();

@@ -55,6 +55,12 @@ import { T1OrdersService } from './services/order_wrs.service';
 
 const app = express();
 
+/* 🔥 DEBUG MIDDLEWARE (ต้องอยู่บนสุด) */
+app.use((req, _res, next) => {
+  console.log("[REQ]", req.method, req.originalUrl);
+  next();
+});
+
 // const server = http.createServer(app);
 
 // ตั้งค่า i18next
@@ -107,7 +113,19 @@ app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors({ origin: '*', optionsSuccessStatus: 200 }));
+
+app.use(cors({
+  origin: 'https://wcs-gold-two.vercel.app',
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors()); // preflight for all routes
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+//app.use(cookieParser());
 
 // Use express-fileupload middleware
 app.use(fileUpload());
@@ -221,14 +239,11 @@ AppDataSource.initialize()
       res.render('error');
     });
 
-    // 7) Start server
-    const server = app.listen(process.env.PORT || 3000, () => {
-      const addr = server.address();
-      if (addr && typeof addr === 'object') {
-        console.log(`Server is running on http://${addr.address}:${(addr as any).port}`);
-      } else {
-        console.log(`Server is running on ${addr}`);
-      }
+    // 8) Start server (ครั้งเดียว)
+    const PORT = Number(process.env.PORT) || 3502;
+
+    const server = app.listen(3502, '0.0.0.0', () => {
+      console.log(`Server running on port ${3502}`);
     });
   })
   .catch((error: any) => console.log('Error: ', error));
