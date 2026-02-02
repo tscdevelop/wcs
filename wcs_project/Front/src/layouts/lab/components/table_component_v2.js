@@ -52,8 +52,11 @@ export default function ReusableDataTable({
   extraActionButtons = [],
 
   // ✅ ใหม่สำหรับ Confirm SKU column
-  confirmSkuDisabled = false, // boolean หรือ (row)=>boolean
   onConfirmSku,
+  confirmSkuDisabled = false, // boolean หรือ (row)=>boolean
+  
+  onScanSku,
+  scanSkuDisabled = false,
 
   onRowClick,
   selectedId,
@@ -292,6 +295,26 @@ export default function ReusableDataTable({
     );
   };
 
+  //scan
+  const renderScanSkuCell = (row) => {
+    const disabled =
+      typeof scanSkuDisabled === "function"
+        ? !!scanSkuDisabled(row)
+        : !!scanSkuDisabled;
+
+    return (
+      <MDButton
+        variant="contained"
+        size="small"
+        color={disabled ? "secondary" : "info"}
+        disabled={disabled}
+        onClick={() => !disabled && onScanSku?.(row)}
+      >
+        Scan
+      </MDButton>
+    );
+  };
+
   const selectableRows = isRowSelectable ? safeRows.filter(isRowSelectable) : safeRows;
 
   const allSelectableIds = selectableRows.map((r, i) => getRowId(r, i));
@@ -476,6 +499,15 @@ export default function ReusableDataTable({
                   )}
 
                   {columns.map((col) => {
+
+                    if (col.type === "scanSku") {
+                      return (
+                        <TableCell key={col.field} align="center">
+                          {renderScanSkuCell(row)}
+                        </TableCell>
+                      );
+                    }
+
                     if (col.type === "confirmSku") {
                       return (
                         <TableCell key={col.field} align={col.align || "center"}>
@@ -571,8 +603,11 @@ ReusableDataTable.propTypes = {
   ),
 
   // ✅ ใหม่
-  confirmSkuDisabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onConfirmSku: PropTypes.func,
+  confirmSkuDisabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+
+  onScanSku: PropTypes.func,
+  scanSkuDisabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
 
   onRowClick: PropTypes.func,
   selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
