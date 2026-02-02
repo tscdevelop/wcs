@@ -371,7 +371,7 @@ export default function ReusableDataTable({
               )}
 
               {columns.map((col) => {
-                const sortable = col.sortable !== false && col.type !== "confirmSku";
+                const sortable = col.sortable !== false && col.type !== "confirmSku" && col.type !== "scanSku";
                 const active = orderBy === col.field;
                 return (
                   <TableCell
@@ -500,29 +500,32 @@ export default function ReusableDataTable({
 
                   {columns.map((col) => {
 
-                    if (col.type === "scanSku") {
-                      return (
-                        <TableCell key={col.field} align="center">
-                          {renderScanSkuCell(row)}
-                        </TableCell>
-                      );
-                    }
+  const key = `${col.field}-${col.type || "data"}`;
 
-                    if (col.type === "confirmSku") {
-                      return (
-                        <TableCell key={col.field} align={col.align || "center"}>
-                          {renderConfirmSkuCell(row)}
-                        </TableCell>
-                      );
-                    }
+  if (col.type === "scanSku") {
+    return (
+      <TableCell key={key} align="center">
+        {renderScanSkuCell(row)}
+      </TableCell>
+    );
+  }
 
-                    const value = getValue(row, col);
-                    return (
-                      <TableCell key={col.field} align={col.align || "left"}>
-                        {col.renderCell ? col.renderCell(value, row) : value}
-                      </TableCell>
-                    );
-                  })}
+  if (col.type === "confirmSku") {
+    return (
+      <TableCell key={key} align={col.align || "center"}>
+        {renderConfirmSkuCell(row)}
+      </TableCell>
+    );
+  }
+
+  const value = getValue(row, col);
+  return (
+    <TableCell key={key} align={col.align || "left"}>
+      {col.renderCell ? col.renderCell(value, row) : value}
+    </TableCell>
+  );
+})}
+
 
                   {actionsList.length > 0 && (
                     <TableCell align="center">{renderActions(row)}</TableCell>
@@ -573,7 +576,7 @@ ReusableDataTable.propTypes = {
       valueGetter: PropTypes.func,
       renderCell: PropTypes.func,
       // ✅ ใหม่: ระบุว่าเป็นคอลัมน์ปุ่ม Confirm SKU
-      type: PropTypes.oneOf(["confirmSku"]),
+      type: PropTypes.oneOf(["confirmSku","scanSku"]),
     })
   ).isRequired,
   rows: PropTypes.array.isRequired,
