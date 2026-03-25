@@ -297,7 +297,6 @@ const CheckOutT1MPage = () => {
     box_loc: b.box_loc,
     plan_qty: b.plan_qty,
     actual_qty: b.actual_qty,
-
     current_order_id: b.current_order_id,
   }));
 
